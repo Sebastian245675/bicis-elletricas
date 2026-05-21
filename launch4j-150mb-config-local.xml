@@ -9,7 +9,7 @@
   <chdir>.</chdir>
   <priority>normal</priority>
   <downloadUrl>https://adoptium.net/</downloadUrl>
-  <supportUrl>https://github.com/Sebastian245675/punto-mx</supportUrl>
+  <supportUrl>https://github.com/Sebastian245675/bicis-elletricas</supportUrl>
   <stayAlive>false</stayAlive>
   <restartOnCrash>false</restartOnCrash>
   <manifest></manifest>

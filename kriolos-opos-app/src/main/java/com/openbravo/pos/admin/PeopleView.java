@@ -80,6 +80,15 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         private JLabel jLabel6;
         private com.openbravo.data.gui.JImageEditor m_jImage;
 
+        private JLabel jLblFirstName;
+        private JTextField m_jFirstName;
+        private JLabel jLblLastName;
+        private JTextField m_jLastName;
+        private JLabel jLblAge;
+        private JTextField m_jAge;
+        private JLabel jLblDocument;
+        private JTextField m_jDocument;
+
         // Colores
         private static final Color PRIMARY_COLOR = new Color(41, 128, 185);
         private static final Color HEADER_BG = new Color(245, 245, 245);
@@ -118,6 +127,15 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
                 jLabel6 = new JLabel();
                 m_jImage = new com.openbravo.data.gui.JImageEditor();
 
+                jLblFirstName = new JLabel();
+                m_jFirstName = new JTextField();
+                jLblLastName = new JLabel();
+                m_jLastName = new JTextField();
+                jLblAge = new JLabel();
+                m_jAge = new JTextField();
+                jLblDocument = new JLabel();
+                m_jDocument = new JTextField();
+
                 setFont(new Font("Arial", Font.PLAIN, 12));
                 setPreferredSize(new Dimension(800, 600));
 
@@ -153,15 +171,196 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
 
                 jTabbedPane1.addTab(AppLocal.getIntString("label.general"), generalPanel);
 
-                // Image Panel
+                // ─── IMAGE TAB: Rediseño estilo tarjeta de perfil moderna ───
                 m_jImage.setFont(new Font("Arial", Font.PLAIN, 12));
-                m_jImage.setPreferredSize(new Dimension(300, 250));
+                m_jImage.setPreferredSize(new Dimension(220, 220));
                 m_jImage.addPropertyChangeListener("image", m_Dirty);
 
-                imagePanel.setLayout(new FlowLayout(FlowLayout.CENTER, 20, 20));
-                imagePanel.add(m_jImage);
+                // Fondo del tab con degradado oscuro
+                imagePanel.setLayout(new GridBagLayout());
+                imagePanel.setBackground(new Color(30, 41, 59)); // slate-900
+
+                // Tarjeta central blanca con sombra simulada
+                JPanel card = new JPanel(new BorderLayout(0, 0)) {
+                    @Override protected void paintComponent(java.awt.Graphics g) {
+                        java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                        g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                        // Sombra
+                        g2.setColor(new Color(0, 0, 0, 60));
+                        g2.fillRoundRect(6, 6, getWidth() - 6, getHeight() - 6, 20, 20);
+                        // Fondo blanco
+                        g2.setColor(Color.WHITE);
+                        g2.fillRoundRect(0, 0, getWidth() - 6, getHeight() - 6, 20, 20);
+                        g2.dispose();
+                    }
+                };
+                card.setOpaque(false);
+                card.setPreferredSize(new Dimension(750, 420));
+
+                // ── Header de la tarjeta (banda de color) ──
+                JPanel cardHeader = new JPanel(new BorderLayout()) {
+                    @Override protected void paintComponent(java.awt.Graphics g) {
+                        java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                        g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                        java.awt.GradientPaint gp = new java.awt.GradientPaint(
+                            0, 0, new Color(234, 120, 12),  // naranja
+                            getWidth(), 0, new Color(251, 146, 60) // naranja claro
+                        );
+                        g2.setPaint(gp);
+                        g2.fillRoundRect(0, 0, getWidth(), getHeight() + 20, 20, 20);
+                        g2.dispose();
+                    }
+                };
+                cardHeader.setOpaque(false);
+                cardHeader.setPreferredSize(new Dimension(750, 70));
+                cardHeader.setBorder(BorderFactory.createEmptyBorder(15, 25, 15, 25));
+
+                JLabel headerLabel = new JLabel("Perfil de Usuario");
+                headerLabel.setFont(new Font("Arial", Font.BOLD, 18));
+                headerLabel.setForeground(Color.WHITE);
+                JLabel subLabel = new JLabel("Fotografía e información personal");
+                subLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+                subLabel.setForeground(new Color(255, 255, 255, 200));
+                JPanel headerText = new JPanel();
+                headerText.setOpaque(false);
+                headerText.setLayout(new javax.swing.BoxLayout(headerText, javax.swing.BoxLayout.Y_AXIS));
+                headerText.add(headerLabel);
+                headerText.add(subLabel);
+                cardHeader.add(headerText, BorderLayout.CENTER);
+
+                // ── Cuerpo de la tarjeta ──
+                JPanel cardBody = new JPanel(new BorderLayout(30, 0));
+                cardBody.setOpaque(false);
+                cardBody.setBorder(BorderFactory.createEmptyBorder(25, 30, 25, 30));
+
+                // ── Lado izquierdo: foto ──
+                JPanel leftPanel = new JPanel();
+                leftPanel.setOpaque(false);
+                leftPanel.setLayout(new javax.swing.BoxLayout(leftPanel, javax.swing.BoxLayout.Y_AXIS));
+                leftPanel.setPreferredSize(new Dimension(250, 300));
+
+                // Marco estilizado para la foto
+                JPanel photoFrame = new JPanel(new BorderLayout()) {
+                    @Override protected void paintComponent(java.awt.Graphics g) {
+                        java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                        g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                        g2.setColor(new Color(241, 245, 249)); // slate-100
+                        g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+                        g2.setColor(new Color(226, 232, 240)); // slate-200
+                        g2.setStroke(new java.awt.BasicStroke(1.5f));
+                        g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 16, 16);
+                        g2.dispose();
+                    }
+                };
+                photoFrame.setOpaque(false);
+                photoFrame.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+                photoFrame.add(m_jImage, BorderLayout.CENTER);
+
+                JLabel photoLabel = new JLabel("Foto de Perfil", JLabel.CENTER);
+                photoLabel.setFont(new Font("Arial", Font.BOLD, 12));
+                photoLabel.setForeground(new Color(100, 116, 139)); // slate-500
+                photoLabel.setBorder(BorderFactory.createEmptyBorder(8, 0, 0, 0));
+                photoLabel.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+                photoFrame.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+
+                leftPanel.add(photoFrame);
+                leftPanel.add(photoLabel);
+
+                // ── Lado derecho: datos personales ──
+                JPanel rightPanel = new JPanel(new GridBagLayout());
+                rightPanel.setOpaque(false);
+
+                // Helper para crear un campo estilo Material
+                java.util.function.BiFunction<String, JTextField, JPanel> makeField = (labelText, field) -> {
+                    JPanel fp = new JPanel(new BorderLayout(0, 4));
+                    fp.setOpaque(false);
+
+                    JLabel lbl = new JLabel(labelText.toUpperCase());
+                    lbl.setFont(new Font("Arial", Font.BOLD, 10));
+                    lbl.setForeground(new Color(100, 116, 139)); // slate-500
+
+                    field.setFont(new Font("Arial", Font.PLAIN, 15));
+                    field.setForeground(new Color(30, 41, 59));
+                    field.setBackground(Color.WHITE);
+                    field.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(234, 120, 12)),
+                        BorderFactory.createEmptyBorder(6, 4, 4, 4)
+                    ));
+                    field.setPreferredSize(new Dimension(200, 36));
+                    field.setOpaque(true);
+
+                    fp.add(lbl, BorderLayout.NORTH);
+                    fp.add(field, BorderLayout.CENTER);
+                    return fp;
+                };
+
+                // Configurar campos
+                jLblFirstName.setText("Nombres:");
+                m_jFirstName.getDocument().addDocumentListener(m_Dirty);
+                jLblLastName.setText("Apellidos:");
+                m_jLastName.getDocument().addDocumentListener(m_Dirty);
+                jLblAge.setText("Edad:");
+                m_jAge.setPreferredSize(new Dimension(100, 36));
+                m_jAge.getDocument().addDocumentListener(m_Dirty);
+                jLblDocument.setText("Identificaci\u00f3n:");
+                m_jDocument.getDocument().addDocumentListener(m_Dirty);
+
+                // Título sección
+                JLabel sectionTitle = new JLabel("Información Personal");
+                sectionTitle.setFont(new Font("Arial", Font.BOLD, 16));
+                sectionTitle.setForeground(new Color(30, 41, 59));
+
+                JSeparator sep = new JSeparator();
+                sep.setForeground(new Color(226, 232, 240));
+                sep.setBackground(new Color(226, 232, 240));
+
+                GridBagConstraints rc = new GridBagConstraints();
+                rc.fill = GridBagConstraints.HORIZONTAL;
+                rc.weightx = 1.0;
+                rc.insets = new Insets(0, 0, 0, 0);
+
+                rc.gridx = 0; rc.gridy = 0; rc.gridwidth = 2; rc.insets = new Insets(0, 0, 6, 0);
+                rightPanel.add(sectionTitle, rc);
+                rc.gridy = 1; rc.insets = new Insets(0, 0, 20, 0);
+                rightPanel.add(sep, rc);
+                rc.gridwidth = 1;
+
+                // Nombres - fila 2 col 0
+                rc.gridx = 0; rc.gridy = 2; rc.insets = new Insets(0, 0, 16, 12);
+                rc.weightx = 0.5;
+                rightPanel.add(makeField.apply("Nombres", m_jFirstName), rc);
+
+                // Apellidos - fila 2 col 1
+                rc.gridx = 1; rc.gridy = 2;
+                rightPanel.add(makeField.apply("Apellidos", m_jLastName), rc);
+
+                // Edad - fila 3 col 0
+                rc.gridx = 0; rc.gridy = 3; rc.insets = new Insets(0, 0, 16, 12);
+                rc.weightx = 0.3;
+                JPanel agePanel = makeField.apply("Edad", m_jAge);
+                m_jAge.setPreferredSize(new Dimension(100, 36));
+                rightPanel.add(agePanel, rc);
+
+                // Identificación - fila 3 col 1
+                rc.gridx = 1; rc.gridy = 3; rc.weightx = 0.7;
+                rightPanel.add(makeField.apply("No. Identificaci\u00f3n", m_jDocument), rc);
+
+                // Filler
+                rc.gridx = 0; rc.gridy = 4; rc.gridwidth = 2; rc.weighty = 1.0;
+                rc.fill = GridBagConstraints.BOTH;
+                rc.insets = new Insets(0, 0, 0, 0);
+                rightPanel.add(new JPanel() {{ setOpaque(false); }}, rc);
+
+                cardBody.add(leftPanel, BorderLayout.WEST);
+                cardBody.add(rightPanel, BorderLayout.CENTER);
+
+                card.add(cardHeader, BorderLayout.NORTH);
+                card.add(cardBody, BorderLayout.CENTER);
+
+                imagePanel.add(card);
 
                 jTabbedPane1.addTab(AppLocal.getIntString("label.peopleimage"), imagePanel);
+
 
                 setLayout(new BorderLayout());
                 add(jTabbedPane1, BorderLayout.CENTER);
@@ -371,6 +570,10 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
                 m_jVisible.setSelected(false);
                 m_jcard.setText(null);
                 m_jImage.setImage(null);
+                m_jFirstName.setText(null);
+                m_jLastName.setText(null);
+                m_jAge.setText(null);
+                m_jDocument.setText(null);
 
                 for (JCheckBox cb : permissionCheckboxes.values()) {
                         cb.setSelected(false);
@@ -388,6 +591,10 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
                 m_jImage.setEnabled(false);
                 jButton1.setEnabled(false);
                 webCBSecurity.setEnabled(false);
+                m_jFirstName.setEnabled(false);
+                m_jLastName.setEnabled(false);
+                m_jAge.setEnabled(false);
+                m_jDocument.setEnabled(false);
                 setPermissionsEnabled(false);
                 permissionsTabbedPane.setEnabled(false);
         }
@@ -399,6 +606,10 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
                 m_jImage.setEnabled(true);
                 jButton1.setEnabled(true);
                 webCBSecurity.setEnabled(true);
+                m_jFirstName.setEnabled(true);
+                m_jLastName.setEnabled(true);
+                m_jAge.setEnabled(true);
+                m_jDocument.setEnabled(true);
                 setPermissionsEnabled(true);
                 permissionsTabbedPane.setEnabled(true);
         }
@@ -433,6 +644,11 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
                 m_jcard.setText(Formats.STRING.formatValue((String) people[5]));
                 m_jImage.setImage((BufferedImage) people[6]);
 
+                m_jFirstName.setText(people.length > 11 && people[11] != null ? Formats.STRING.formatValue((String) people[11]) : "");
+                m_jLastName.setText(people.length > 12 && people[12] != null ? Formats.STRING.formatValue((String) people[12]) : "");
+                m_jAge.setText(people.length > 13 && people[13] != null ? Formats.INT.formatValue((Integer) people[13]) : "");
+                m_jDocument.setText(people.length > 14 && people[14] != null ? Formats.STRING.formatValue((String) people[14]) : "");
+
                 m_currentRoleId = (String) people[3];
                 loadPermissionsFromRole(m_currentRoleId);
 
@@ -448,6 +664,11 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
                 m_jVisible.setSelected(((Boolean) people[4]));
                 m_jcard.setText(Formats.STRING.formatValue((String) people[5]));
                 m_jImage.setImage((BufferedImage) people[6]);
+
+                m_jFirstName.setText(people.length > 11 && people[11] != null ? Formats.STRING.formatValue((String) people[11]) : "");
+                m_jLastName.setText(people.length > 12 && people[12] != null ? Formats.STRING.formatValue((String) people[12]) : "");
+                m_jAge.setText(people.length > 13 && people[13] != null ? Formats.INT.formatValue((Integer) people[13]) : "");
+                m_jDocument.setText(people.length > 14 && people[14] != null ? Formats.STRING.formatValue((String) people[14]) : "");
 
                 if (m_jcard.getText() != null && m_jcard.getText().length() == 16) {
                         jLblCardID.setText(AppLocal.getIntString("label.ibutton"));
@@ -542,7 +763,7 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
 
         @Override
         public Object createValue() throws BasicException {
-                Object[] people = new Object[11];
+                Object[] people = new Object[15];
                 String cardText = m_jcard.getText();
                 boolean hasCard = cardText != null && cardText.length() > 0;
                 String computedId = hasCard ? cardText : (m_oId == null ? UUID.randomUUID().toString() : m_oId);
@@ -561,6 +782,11 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
                 people[8] = null;
                 people[9] = null;
                 people[10] = null;
+                
+                people[11] = Formats.STRING.parseValue(m_jFirstName.getText());
+                people[12] = Formats.STRING.parseValue(m_jLastName.getText());
+                people[13] = Formats.INT.parseValue(m_jAge.getText());
+                people[14] = Formats.STRING.parseValue(m_jDocument.getText());
 
                 return people;
         }

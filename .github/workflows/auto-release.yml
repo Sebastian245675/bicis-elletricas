@@ -1,0 +1,82 @@
+name: Auto Release on Push to Main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  auto-release:
+    name: Auto Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+        fetch-depth: 0
+        
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+        
+    - name: Bump Version in VERSION.txt
+      id: bump
+      run: python scripts/bump_version.py
+      
+    - name: Commit & Push VERSION.txt
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add VERSION.txt
+        git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }} [skip ci]"
+        git push origin main
+        
+    - name: Set up JDK 21
+      uses: actions/setup-java@v3
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: maven
+        
+    - name: Set version in Maven
+      run: mvn versions:set -DnewVersion=${{ steps.bump.outputs.new_version }} -DgenerateBackupPoms=false
+      
+    - name: Build with Maven
+      run: mvn package -Pdocs-gen,distribuition -DskipTests -B --file pom.xml
+      
+    - name: Copy JAR for release
+      run: |
+        if [ -f "kriolos-opos-app/target/kriolos-pos.jar" ]; then
+          cp kriolos-opos-app/target/kriolos-pos.jar kriolos-opos-app/target/kriolos-pos-release.jar
+          echo "JAR copiado para release"
+        else
+          echo "Error: No se encontró kriolos-pos.jar"
+          exit 1
+        fi
+        
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag_name: v${{ steps.bump.outputs.new_version }}
+        name: Release v${{ steps.bump.outputs.new_version }}
+        body: |
+          Actualización automática generada desde la rama `main`.
+          
+          **Versión:** `${{ steps.bump.outputs.new_version }}`
+          **Commit:** `${{ github.sha }}`
+        draft: false
+        prerelease: false
+        files: |
+          VERSION.txt
+          kriolos-opos-app/target/kriolos-pos.jar
+          kriolos-opos-app/target/kriolos-pos-release.jar
+          kriolos-opos-app/target/*.zip
+          docs/guide-comercial/target/generated-docs/pdf/kriolos-pos-*.pdf
+          docs/guide-devel/target/generated-docs/pdf/kriolos-pos-*.pdf
+          docs/guide-user/target/generated-docs/pdf/kriolos-pos-*.pdf

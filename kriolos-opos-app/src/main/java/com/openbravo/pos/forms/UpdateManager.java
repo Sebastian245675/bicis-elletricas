@@ -20,14 +20,14 @@ public class UpdateManager {
     
     // URL base donde están los archivos JAR actualizados
     // Formato: https://github.com/USER/REPO/releases/download/vVERSION/kriolos-pos.jar
-    private static final String UPDATE_BASE_URL = "https://github.com/Sebastian245675/punto-mx/releases/download/";
+    private static final String UPDATE_BASE_URL = "https://github.com/Sebastian245675/bicis-elletricas/releases/download/";
     
     // URLs alternativas para descargar actualizaciones
     private static final String[] UPDATE_URLS = {
         UPDATE_BASE_URL + "v{version}/kriolos-pos-release.jar",
         UPDATE_BASE_URL + "v{version}/kriolos-pos.jar",
-        "https://github.com/Sebastian245675/punto-mx/releases/latest/download/kriolos-pos-release.jar",
-        "https://github.com/Sebastian245675/punto-mx/releases/latest/download/kriolos-pos.jar"
+        "https://github.com/Sebastian245675/bicis-elletricas/releases/latest/download/kriolos-pos-release.jar",
+        "https://github.com/Sebastian245675/bicis-elletricas/releases/latest/download/kriolos-pos.jar"
     };
     
     /**

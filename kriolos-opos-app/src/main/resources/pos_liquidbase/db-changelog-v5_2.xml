@@ -149,4 +149,18 @@
             <column name="PROCESSED_BY" type="VARCHAR(255)"/>
         </addColumn>
     </changeSet>
+
+    <changeSet author="antigravity" id="add-personal-fields-to-people">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="people" columnName="FIRSTNAME"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="people">
+            <column name="FIRSTNAME" type="VARCHAR(255)"/>
+            <column name="LASTNAME" type="VARCHAR(255)"/>
+            <column name="AGE" type="INTEGER"/>
+            <column name="DOCUMENT" type="VARCHAR(100)"/>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

@@ -42,6 +42,9 @@ public class StartPOS {
         AppConfig config = new AppConfig(configFile);
         config.load();
         AppConfig.applySystemProperties(config);
+        
+        // Re-apply style customizations after look and feel is initialized by system properties
+        ModernLookAndFeel.aplicarEstiloModerno();
 
         SwingUtilities.invokeLater(new Runnable() {
 

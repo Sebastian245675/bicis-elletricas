@@ -66,17 +66,18 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
         m_tpeople = new TableDefinition(s,
                 "people",
                 new String[] { "ID", "NAME", "APPPASSWORD", "ROLE", "VISIBLE", "CARD", "IMAGE", "BRANCH_NAME",
-                        "BRANCH_ADDRESS", "SECURITY_QUESTION", "SECURITY_ANSWER" },
+                        "BRANCH_ADDRESS", "SECURITY_QUESTION", "SECURITY_ANSWER", "FIRSTNAME", "LASTNAME", "AGE", "DOCUMENT" },
                 new String[] { "ID", AppLocal.getIntString("label.peoplename"), AppLocal.getIntString("label.Password"),
                         AppLocal.getIntString("label.role"), AppLocal.getIntString("label.peoplevisible"),
                         AppLocal.getIntString("label.card"), AppLocal.getIntString("label.peopleimage"),
                         "Sucursal (Nombre)", "Sucursal (Dirección)", "Pregunta de Seguridad",
-                        "Respuesta de Seguridad" },
+                        "Respuesta de Seguridad", "Nombres", "Apellidos", "Edad", "Documento" },
                 new Datas[] { Datas.STRING, Datas.STRING, Datas.STRING, Datas.STRING, Datas.BOOLEAN,
-                        Datas.STRING, Datas.IMAGE, Datas.STRING, Datas.STRING, Datas.STRING, Datas.STRING },
+                        Datas.STRING, Datas.IMAGE, Datas.STRING, Datas.STRING, Datas.STRING, Datas.STRING,
+                        Datas.STRING, Datas.STRING, Datas.INT, Datas.STRING },
                 new Formats[] { Formats.STRING, Formats.STRING, Formats.STRING, Formats.STRING,
                         Formats.BOOLEAN, Formats.STRING, Formats.NULL, Formats.STRING, Formats.STRING, Formats.STRING,
-                        Formats.STRING },
+                        Formats.STRING, Formats.STRING, Formats.STRING, Formats.INT, Formats.STRING },
                 new int[] { 0 });
 
         m_troles = new TableDefinition(s,
@@ -105,7 +106,7 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
         // filas
         SentenceExec update = new PreparedSentence(
                 s,
-                "UPDATE people SET NAME=?, APPPASSWORD=?, ROLE=?, VISIBLE=?, CARD=?, IMAGE=?, BRANCH_NAME=?, BRANCH_ADDRESS=?, SECURITY_QUESTION=?, SECURITY_ANSWER=? WHERE ID=?",
+                "UPDATE people SET NAME=?, APPPASSWORD=?, ROLE=?, VISIBLE=?, CARD=?, IMAGE=?, BRANCH_NAME=?, BRANCH_ADDRESS=?, SECURITY_QUESTION=?, SECURITY_ANSWER=?, FIRSTNAME=?, LASTNAME=?, AGE=?, DOCUMENT=? WHERE ID=?",
                 new SerializerWriteBasic(new Datas[] {
                         Datas.STRING, // NAME
                         Datas.STRING, // APPPASSWORD
@@ -117,12 +118,16 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
                         Datas.STRING, // BRANCH_ADDRESS
                         Datas.STRING, // SECURITY_QUESTION
                         Datas.STRING, // SECURITY_ANSWER
+                        Datas.STRING, // FIRSTNAME
+                        Datas.STRING, // LASTNAME
+                        Datas.INT,    // AGE
+                        Datas.STRING, // DOCUMENT
                         Datas.STRING // ID (WHERE)
                 }));
 
         SentenceExec insert = new PreparedSentence(
                 s,
-                "INSERT INTO people (ID, NAME, APPPASSWORD, ROLE, VISIBLE, CARD, IMAGE, BRANCH_NAME, BRANCH_ADDRESS, SECURITY_QUESTION, SECURITY_ANSWER) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO people (ID, NAME, APPPASSWORD, ROLE, VISIBLE, CARD, IMAGE, BRANCH_NAME, BRANCH_ADDRESS, SECURITY_QUESTION, SECURITY_ANSWER, FIRSTNAME, LASTNAME, AGE, DOCUMENT) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 new SerializerWriteBasic(new Datas[] {
                         Datas.STRING, // ID
                         Datas.STRING, // NAME
@@ -134,7 +139,11 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
                         Datas.STRING, // BRANCH_NAME
                         Datas.STRING, // BRANCH_ADDRESS
                         Datas.STRING, // SECURITY_QUESTION
-                        Datas.STRING // SECURITY_ANSWER
+                        Datas.STRING, // SECURITY_ANSWER
+                        Datas.STRING, // FIRSTNAME
+                        Datas.STRING, // LASTNAME
+                        Datas.INT,    // AGE
+                        Datas.STRING  // DOCUMENT
                 }));
 
         for (Map<String, Object> u : users) {
@@ -154,15 +163,20 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
             String appPassword = "";
             String securityQuestion = asString(u.get("security_question"));
             String securityAnswer = asString(u.get("security_answer"));
+            
+            String firstName = asString(u.get("firstname"));
+            String lastName = asString(u.get("lastname"));
+            Integer age = asInteger(u.get("age"));
+            String document = asString(u.get("document"));
 
             int affected = update.exec(new Object[] {
                     name, appPassword, role, visible, card, image, branchName, branchAddress, securityQuestion,
-                    securityAnswer, id
+                    securityAnswer, firstName, lastName, age, document, id
             });
             if (affected == 0) {
                 insert.exec(new Object[] {
                         id, name, appPassword, role, visible, card, image, branchName, branchAddress, securityQuestion,
-                        securityAnswer
+                        securityAnswer, firstName, lastName, age, document
                 });
             }
         }
@@ -179,6 +193,18 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
             return (Boolean) o;
         String s = String.valueOf(o);
         return "1".equals(s) || "true".equalsIgnoreCase(s) || "t".equalsIgnoreCase(s);
+    }
+
+    private Integer asInteger(Object o) {
+        if (o == null)
+            return null;
+        if (o instanceof Number)
+            return ((Number) o).intValue();
+        try {
+            return Integer.parseInt(String.valueOf(o));
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     public final TableDefinition<PeopleInfo> getTablePeople() {
@@ -325,7 +351,7 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
 
                 // PRIMERO: Guardar en la base de datos local
                 SentenceExec localInsert = new PreparedSentence(s,
-                        "INSERT INTO people (ID, NAME, APPPASSWORD, ROLE, VISIBLE, CARD, IMAGE, BRANCH_NAME, BRANCH_ADDRESS, SECURITY_QUESTION, SECURITY_ANSWER) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                        "INSERT INTO people (ID, NAME, APPPASSWORD, ROLE, VISIBLE, CARD, IMAGE, BRANCH_NAME, BRANCH_ADDRESS, SECURITY_QUESTION, SECURITY_ANSWER, FIRSTNAME, LASTNAME, AGE, DOCUMENT) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                         new SerializerWriteBasic(new Datas[] {
                                 Datas.STRING, // ID
                                 Datas.STRING, // NAME
@@ -337,7 +363,11 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
                                 Datas.STRING, // BRANCH_NAME
                                 Datas.STRING, // BRANCH_ADDRESS
                                 Datas.STRING, // SECURITY_QUESTION
-                                Datas.STRING // SECURITY_ANSWER
+                                Datas.STRING, // SECURITY_ANSWER
+                                Datas.STRING, // FIRSTNAME
+                                Datas.STRING, // LASTNAME
+                                Datas.INT,    // AGE
+                                Datas.STRING  // DOCUMENT
                         }));
 
                 int result = localInsert.exec(params);
@@ -357,6 +387,10 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
                     data.put("tabla", "people");
                     data.put("sucursal_nombre", v[7]); // BRANCH_NAME
                     data.put("sucursal_direccion", v[8]); // BRANCH_ADDRESS
+                    data.put("firstname", v.length > 11 ? v[11] : null);
+                    data.put("lastname", v.length > 12 ? v[12] : null);
+                    data.put("age", v.length > 13 ? v[13] : null);
+                    data.put("document", v.length > 14 ? v[14] : null);
                     sendToSupabase("POST", "usuarios", data, null);
                 } catch (Exception ex) {
                     System.err.println("Error al sincronizar con Supabase (INSERT people): " + ex.getMessage());
@@ -382,7 +416,13 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
                 // createValue() retorna [ID(0), NAME(1), APPPASSWORD(2), ROLE(3), VISIBLE(4),
                 // CARD(5), IMAGE(6), BRANCH(7), ADDR(8), SEC_Q(9), SEC_A(10)]
                 // El UPDATE necesita: NAME, APPPASSWORD, ROLE, VISIBLE, CARD, IMAGE, BRANCH,
-                // ADDR, SEC_Q, SEC_A, ID(WHERE)
+                // ADDR, SEC_Q, SEC_A, FIRSTNAME, LASTNAME, AGE, DOCUMENT, ID(WHERE)
+                
+                Object firstNameVal = v.length > 11 ? v[11] : null;
+                Object lastNameVal = v.length > 12 ? v[12] : null;
+                Object ageVal = v.length > 13 ? v[13] : null;
+                Object docVal = v.length > 14 ? v[14] : null;
+
                 Object[] reordered = new Object[] {
                         v[1], // NAME
                         v[2], // APPPASSWORD
@@ -394,11 +434,15 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
                         v[8], // BRANCH_ADDRESS
                         v[9], // SECURITY_QUESTION
                         v[10], // SECURITY_ANSWER
+                        firstNameVal, // FIRSTNAME
+                        lastNameVal, // LASTNAME
+                        ageVal, // AGE
+                        docVal, // DOCUMENT
                         v[0] // ID (WHERE)
                 };
 
                 SentenceExec localUpdate = new PreparedSentence(s,
-                        "UPDATE people SET NAME=?, APPPASSWORD=?, ROLE=?, VISIBLE=?, CARD=?, IMAGE=?, BRANCH_NAME=?, BRANCH_ADDRESS=?, SECURITY_QUESTION=?, SECURITY_ANSWER=? WHERE ID=?",
+                        "UPDATE people SET NAME=?, APPPASSWORD=?, ROLE=?, VISIBLE=?, CARD=?, IMAGE=?, BRANCH_NAME=?, BRANCH_ADDRESS=?, SECURITY_QUESTION=?, SECURITY_ANSWER=?, FIRSTNAME=?, LASTNAME=?, AGE=?, DOCUMENT=? WHERE ID=?",
                         new SerializerWriteBasic(new Datas[] {
                                 Datas.STRING, // NAME
                                 Datas.STRING, // APPPASSWORD
@@ -410,6 +454,10 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
                                 Datas.STRING, // BRANCH_ADDRESS
                                 Datas.STRING, // SECURITY_QUESTION
                                 Datas.STRING, // SECURITY_ANSWER
+                                Datas.STRING, // FIRSTNAME
+                                Datas.STRING, // LASTNAME
+                                Datas.INT,    // AGE
+                                Datas.STRING, // DOCUMENT
                                 Datas.STRING // ID (WHERE)
                         }));
 
@@ -427,6 +475,10 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
                     data.put("tabla", "people");
                     data.put("sucursal_nombre", v[7]);
                     data.put("sucursal_direccion", v[8]);
+                    data.put("firstname", firstNameVal);
+                    data.put("lastname", lastNameVal);
+                    data.put("age", ageVal);
+                    data.put("document", docVal);
                     String idOld = String.valueOf(v[0]);
                     String idNew = v[5] != null ? String.valueOf(v[5]) : idOld;
                     data.put("id", idNew);

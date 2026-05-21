@@ -203,6 +203,9 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
                     if (laf1 instanceof LookAndFeel) {
                         UIManager.setLookAndFeel((LookAndFeel) laf1);
                     }
+                    // Re-apply style customizations after look and feel is dynamically changed
+                    com.openbravo.pos.util.ModernLookAndFeel.aplicarEstiloModerno();
+                    
                     SwingUtilities.updateComponentTreeUI(JPanelConfigGeneral.this.getTopLevelAncestor());
                 }catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException | NoSuchMethodException | SecurityException | IllegalArgumentException | InvocationTargetException ex) {
                     LOGGER.log(Level.WARNING, "Cannot set Look and Feel", ex);

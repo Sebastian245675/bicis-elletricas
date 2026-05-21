@@ -189,7 +189,7 @@ public class PermissionsCatalog {
         List<PermissionInfo> maintenance = new ArrayList<>();
         maintenance.add(new PermissionInfo("com.openbravo.pos.forms.MenuMaintenance", "Menú Mantenimiento", "Mantenimiento"));
         maintenance.add(new PermissionInfo("com.openbravo.pos.admin.PeoplePanel", "Gestión de Usuarios", "Mantenimiento"));
-        maintenance.add(new PermissionInfo("com.openbravo.pos.admin.RolesPanel", "Gestión de Roles", "Mantenimiento"));
+        // maintenance.add(new PermissionInfo("com.openbravo.pos.admin.RolesPanel", "Gestión de Roles", "Mantenimiento"));
         maintenance.add(new PermissionInfo("com.openbravo.pos.admin.ResourcesPanel", "Gestión de Recursos", "Mantenimiento"));
         maintenance.add(new PermissionInfo("com.openbravo.pos.voucher.VoucherPanel", "Gestión de Vales", "Mantenimiento"));
         maintenance.add(new PermissionInfo("com.openbravo.pos.branches.JPanelBranchesManagement", "Administrar Sucursales", "Mantenimiento"));

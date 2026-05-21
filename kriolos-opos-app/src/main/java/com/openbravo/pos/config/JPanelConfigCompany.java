@@ -19,25 +19,66 @@ package com.openbravo.pos.config;
 import com.openbravo.data.user.DirtyManager;
 import com.openbravo.pos.forms.AppConfig;
 import com.openbravo.pos.forms.AppLocal;
+import java.awt.Color;
 import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.RenderingHints;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
+import javax.swing.JCheckBox;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextField;
+import javax.swing.border.Border;
 
 /**
  *
- * @author JG uniCenta
+ * @author JG uniCenta & Google DeepMind Team
  */
-public class JPanelConfigCompany extends javax.swing.JPanel implements PanelConfig {
+public class JPanelConfigCompany extends JPanel implements PanelConfig {
     
     private final DirtyManager dirty = new DirtyManager();
 
+    // Visual Controls
+    private JLabel jLbllogoPath;
+    private JLabel jLogo;
+    private JPanel jPanel1;
+    private JTextField jtxtTktFooter1;
+    private JTextField jtxtTktFooter2;
+    private JTextField jtxtTktFooter3;
+    private JTextField jtxtTktFooter4;
+    private JTextField jtxtTktFooter5;
+    private JTextField jtxtTktFooter6;
+    private JTextField jtxtTktHeader1;
+    private JTextField jtxtTktHeader2;
+    private JTextField jtxtTktHeader3;
+    private JTextField jtxtTktHeader4;
+    private JTextField jtxtTktHeader5;
+    private JTextField jtxtTktHeader6;
+    private JLabel lblLogo;
+    private JLabel lblTktFooter1;
+    private JLabel lblTktHeader1;
+    private JCheckBox webSwtch_Logo;
 
     /**
-     *
+     * Creates new form JPanelConfigCompany
      */
     public JPanelConfigCompany() {
-        
         initComponents();
-                          
+        registerListeners();
+    }
+
+    private void registerListeners() {
         jtxtTktHeader1.getDocument().addDocumentListener(dirty);
         jtxtTktHeader2.getDocument().addDocumentListener(dirty);
         jtxtTktHeader3.getDocument().addDocumentListener(dirty);
@@ -52,11 +93,12 @@ public class JPanelConfigCompany extends javax.swing.JPanel implements PanelConf
         jtxtTktFooter5.getDocument().addDocumentListener(dirty);
         jtxtTktFooter6.getDocument().addDocumentListener(dirty);
         
-// JG - For future
-        lblLogo.setVisible(false);
-        jLbllogoPath.setVisible(false);
-        webSwtch_Logo.setVisible(false);
-        
+        webSwtch_Logo.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                webSwtch_LogoActionPerformed(evt);
+            }
+        });
     }
 
     /**
@@ -83,7 +125,6 @@ public class JPanelConfigCompany extends javax.swing.JPanel implements PanelConf
      */
     @Override
     public void loadProperties(AppConfig config) {
-
         jtxtTktHeader1.setText(config.getProperty("tkt.header1"));
         jtxtTktHeader2.setText(config.getProperty("tkt.header2"));
         jtxtTktHeader3.setText(config.getProperty("tkt.header3"));  
@@ -97,12 +138,7 @@ public class JPanelConfigCompany extends javax.swing.JPanel implements PanelConf
         jtxtTktFooter4.setText(config.getProperty("tkt.footer4"));  
         jtxtTktFooter5.setText(config.getProperty("tkt.footer5"));  
         jtxtTktFooter6.setText(config.getProperty("tkt.footer6"));  
-
-/** JG - here for future per terminal
-        jLbllogoPath.setText(config.getProperty("tkt.logopath"));
-        ImageIcon image = new ImageIcon(jLbllogoPath.getText());        
-        jLogo.setIcon(image);        
-*/        
+        
         dirty.setDirty(false);        
     }
    
@@ -112,7 +148,6 @@ public class JPanelConfigCompany extends javax.swing.JPanel implements PanelConf
      */
     @Override
     public void saveProperties(AppConfig config) {
-        
         config.setProperty("tkt.header1", jtxtTktHeader1.getText());
         config.setProperty("tkt.header2", jtxtTktHeader2.getText()); 
         config.setProperty("tkt.header3", jtxtTktHeader3.getText()); 
@@ -127,296 +162,412 @@ public class JPanelConfigCompany extends javax.swing.JPanel implements PanelConf
         config.setProperty("tkt.footer5", jtxtTktFooter5.getText()); 
         config.setProperty("tkt.footer6", jtxtTktFooter6.getText());          
 
-        config.setProperty("tkt.logopath", jLbllogoPath.getText());
+        if (jLbllogoPath != null) {
+            config.setProperty("tkt.logopath", jLbllogoPath.getText());
+        }
         
         dirty.setDirty(false);
     }
     
-    /** This method is called from within the constructor to
-     * initialize the form.
-     * WARNING: Do NOT modify this code. The content of this method is
-     * always regenerated by the Form Editor.
-     */
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
+        setLayout(new java.awt.BorderLayout());
+        setOpaque(true);
+        setBackground(new Color(248, 250, 252)); // Slate 50
 
-        lblTktHeader1 = new javax.swing.JLabel();
-        lblTktFooter1 = new javax.swing.JLabel();
-        webSwtch_Logo = new javax.swing.JCheckBox();
-        jPanel1 = new javax.swing.JPanel();
-        jtxtTktHeader3 = new javax.swing.JTextField();
-        jtxtTktFooter6 = new javax.swing.JTextField();
-        jtxtTktHeader2 = new javax.swing.JTextField();
-        jtxtTktHeader5 = new javax.swing.JTextField();
-        jtxtTktHeader6 = new javax.swing.JTextField();
-        jtxtTktFooter4 = new javax.swing.JTextField();
-        jtxtTktHeader4 = new javax.swing.JTextField();
-        jtxtTktFooter5 = new javax.swing.JTextField();
-        jtxtTktHeader1 = new javax.swing.JTextField();
-        jtxtTktFooter3 = new javax.swing.JTextField();
-        jtxtTktFooter2 = new javax.swing.JTextField();
-        jtxtTktFooter1 = new javax.swing.JTextField();
-        jLogo = new javax.swing.JLabel();
-        jLbllogoPath = new javax.swing.JLabel();
-        lblLogo = new javax.swing.JLabel();
+        // Create transparent ScrollPane
+        JScrollPane scrollPane = new JScrollPane();
+        scrollPane.setBorder(null);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
 
-        setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        setOpaque(false);
-        setPreferredSize(new java.awt.Dimension(700, 500));
+        // Stretching Wrapper Panel
+        ScrollablePanel centerWrapper = new ScrollablePanel(new GridBagLayout());
+        centerWrapper.setOpaque(false);
 
-        lblTktHeader1.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
-        lblTktHeader1.setText(AppLocal.getIntString("label.tktheader1")); // NOI18N
-        lblTktHeader1.setMaximumSize(new java.awt.Dimension(0, 25));
-        lblTktHeader1.setMinimumSize(new java.awt.Dimension(0, 0));
-        lblTktHeader1.setPreferredSize(new java.awt.Dimension(150, 30));
+        // Main Rounded Card
+        RoundedCard card = new RoundedCard();
+        card.setLayout(new GridBagLayout());
+        card.setMinimumSize(new Dimension(640, 500));
 
-        lblTktFooter1.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
-        lblTktFooter1.setText(AppLocal.getIntString("label.tktfooter1")); // NOI18N
-        lblTktFooter1.setMaximumSize(new java.awt.Dimension(0, 25));
-        lblTktFooter1.setMinimumSize(new java.awt.Dimension(0, 0));
-        lblTktFooter1.setPreferredSize(new java.awt.Dimension(150, 30));
+        // GridBagConstraints to make the card stretch to fill the available space
+        GridBagConstraints wgbc = new GridBagConstraints();
+        wgbc.gridx = 0;
+        wgbc.gridy = 0;
+        wgbc.fill = GridBagConstraints.BOTH;
+        wgbc.weightx = 1.0;
+        wgbc.weighty = 1.0;
+        wgbc.insets = new Insets(24, 24, 24, 24); // 24px padding around the card
+        centerWrapper.add(card, wgbc);
 
-        webSwtch_Logo.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        webSwtch_Logo.setPreferredSize(new java.awt.Dimension(80, 30));
-        webSwtch_Logo.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                webSwtch_LogoActionPerformed(evt);
+        GridBagConstraints cardGbc = new GridBagConstraints();
+        cardGbc.gridx = 0;
+        cardGbc.gridy = 0;
+        cardGbc.fill = GridBagConstraints.HORIZONTAL;
+        cardGbc.weightx = 1.0;
+        cardGbc.insets = new Insets(0, 0, 16, 0);
+
+        // --- Card Header Section ---
+        JPanel headerPanel = new JPanel(new GridBagLayout());
+        headerPanel.setOpaque(false);
+
+        GridBagConstraints hgbc = new GridBagConstraints();
+        hgbc.gridx = 0;
+        hgbc.gridy = 0;
+        hgbc.gridheight = 2;
+        hgbc.anchor = GridBagConstraints.WEST;
+        hgbc.insets = new Insets(0, 0, 0, 20);
+        
+        PrinterBadgePanel printerBadge = new PrinterBadgePanel();
+        headerPanel.add(printerBadge, hgbc);
+
+        hgbc.gridx = 1;
+        hgbc.gridheight = 1;
+        hgbc.weightx = 1.0;
+        hgbc.fill = GridBagConstraints.HORIZONTAL;
+        hgbc.anchor = GridBagConstraints.SOUTHWEST;
+        hgbc.insets = new Insets(0, 0, 4, 0);
+
+        JLabel titleLabel = new JLabel(AppLocal.getIntString("jpanelconfiguration.tab.company.title")); // "Empresa"
+        if (titleLabel.getText() == null || titleLabel.getText().trim().isEmpty() || titleLabel.getText().startsWith("jpanel")) {
+            titleLabel.setText("Empresa - Impresión de Ticket");
+        } else {
+            titleLabel.setText(titleLabel.getText() + " - Impresión de Ticket");
+        }
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        titleLabel.setForeground(new Color(30, 41, 59)); // Slate 800
+        headerPanel.add(titleLabel, hgbc);
+
+        hgbc.gridy = 1;
+        hgbc.anchor = GridBagConstraints.NORTHWEST;
+        hgbc.insets = new Insets(4, 0, 0, 0);
+
+        JLabel subtitleLabel = new JLabel("Establece el encabezado y pie de página de los comprobantes impresos.");
+        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        subtitleLabel.setForeground(new Color(100, 116, 139)); // Slate 500
+        headerPanel.add(subtitleLabel, hgbc);
+
+        card.add(headerPanel, cardGbc);
+
+        // --- Separator Line ---
+        cardGbc.gridy = 1;
+        cardGbc.insets = new Insets(0, 0, 20, 0);
+        JPanel separator = new JPanel();
+        separator.setPreferredSize(new Dimension(1, 1));
+        separator.setBackground(new Color(226, 232, 240)); // Slate 200
+        card.add(separator, cardGbc);
+
+        // --- Form Fields Layout ---
+        JPanel formFieldsPanel = new JPanel(new GridBagLayout());
+        formFieldsPanel.setOpaque(false);
+
+        // Initialize Text Fields
+        jtxtTktHeader1 = createStyledTextField();
+        jtxtTktHeader2 = createStyledTextField();
+        jtxtTktHeader3 = createStyledTextField();
+        jtxtTktHeader4 = createStyledTextField();
+        jtxtTktHeader5 = createStyledTextField();
+        jtxtTktHeader6 = createStyledTextField();
+
+        jtxtTktFooter1 = createStyledTextField();
+        jtxtTktFooter2 = createStyledTextField();
+        jtxtTktFooter3 = createStyledTextField();
+        jtxtTktFooter4 = createStyledTextField();
+        jtxtTktFooter5 = createStyledTextField();
+        jtxtTktFooter6 = createStyledTextField();
+
+        // Initialize unused compat components
+        jLbllogoPath = new JLabel("");
+        lblLogo = new JLabel("");
+        webSwtch_Logo = new JCheckBox();
+        jLogo = new JLabel();
+        jPanel1 = new JPanel();
+
+        // Column layout constraints
+        GridBagConstraints fgbc = new GridBagConstraints();
+        fgbc.fill = GridBagConstraints.BOTH;
+        fgbc.weightx = 0.5;
+        fgbc.weighty = 1.0;
+
+        // Left Column Panel: Encabezado
+        JTextField[] headerFields = {jtxtTktHeader1, jtxtTktHeader2, jtxtTktHeader3, jtxtTktHeader4, jtxtTktHeader5, jtxtTktHeader6};
+        lblTktHeader1 = new JLabel(AppLocal.getIntString("label.tktheader1")); // "Encabezado"
+        if (lblTktHeader1.getText() == null || lblTktHeader1.getText().trim().isEmpty() || lblTktHeader1.getText().startsWith("label.")) {
+            lblTktHeader1.setText("Encabezado");
+        }
+        JPanel headerCol = createSectionPanel(lblTktHeader1.getText(), headerFields);
+        
+        fgbc.gridx = 0;
+        fgbc.gridy = 0;
+        fgbc.insets = new Insets(0, 0, 0, 16);
+        formFieldsPanel.add(headerCol, fgbc);
+
+        // Right Column Panel: Pie de página
+        JTextField[] footerFields = {jtxtTktFooter1, jtxtTktFooter2, jtxtTktFooter3, jtxtTktFooter4, jtxtTktFooter5, jtxtTktFooter6};
+        lblTktFooter1 = new JLabel(AppLocal.getIntString("label.tktfooter1")); // "Pie de página"
+        if (lblTktFooter1.getText() == null || lblTktFooter1.getText().trim().isEmpty() || lblTktFooter1.getText().startsWith("label.")) {
+            lblTktFooter1.setText("Pie de página");
+        }
+        JPanel footerCol = createSectionPanel(lblTktFooter1.getText(), footerFields);
+
+        fgbc.gridx = 1;
+        fgbc.insets = new Insets(0, 16, 0, 0);
+        formFieldsPanel.add(footerCol, fgbc);
+
+        // Add formFieldsPanel to card
+        cardGbc.gridy = 2;
+        cardGbc.fill = GridBagConstraints.BOTH;
+        cardGbc.weighty = 1.0;
+        cardGbc.insets = new Insets(0, 0, 0, 0);
+        card.add(formFieldsPanel, cardGbc);
+
+        scrollPane.setViewportView(centerWrapper);
+        add(scrollPane, java.awt.BorderLayout.CENTER);
+    }
+
+    private JPanel createSectionPanel(String sectionTitle, JTextField[] fields) {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setOpaque(false);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        gbc.insets = new Insets(0, 0, 12, 0);
+
+        JLabel titleLabel = new JLabel(sectionTitle);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        titleLabel.setForeground(new Color(30, 41, 59)); // Slate 800
+        panel.add(titleLabel, gbc);
+
+        for (int i = 0; i < fields.length; i++) {
+            gbc.gridy = i + 1;
+
+            JPanel fieldRow = new JPanel(new GridBagLayout());
+            fieldRow.setOpaque(false);
+
+            GridBagConstraints rgbc = new GridBagConstraints();
+            rgbc.gridx = 0;
+            rgbc.gridy = 0;
+            rgbc.anchor = GridBagConstraints.WEST;
+            rgbc.insets = new Insets(0, 0, 0, 8);
+
+            JLabel lineLabel = new JLabel("Línea " + (i + 1));
+            lineLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            lineLabel.setForeground(new Color(100, 116, 139)); // Slate 500
+            lineLabel.setPreferredSize(new Dimension(70, 36));
+            fieldRow.add(lineLabel, rgbc);
+
+            rgbc.gridx = 1;
+            rgbc.fill = GridBagConstraints.HORIZONTAL;
+            rgbc.weightx = 1.0;
+            rgbc.insets = new Insets(0, 0, 0, 0);
+            fieldRow.add(fields[i], rgbc);
+
+            gbc.insets = new Insets(0, 0, 8, 0);
+            panel.add(fieldRow, gbc);
+        }
+
+        // Add a vertical spacer at the bottom to push all fields to the top
+        gbc.gridy = fields.length + 1;
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
+        panel.add(new JPanel() {{ setOpaque(false); }}, gbc);
+
+        return panel;
+    }
+
+    private JTextField createStyledTextField() {
+        final JTextField tf = new JTextField();
+        tf.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        tf.setPreferredSize(new Dimension(180, 36));
+        tf.setBackground(Color.WHITE);
+        tf.setForeground(new Color(30, 41, 59)); // Slate 800
+        tf.setCaretColor(new Color(59, 130, 246)); // Focus Blue
+        tf.setHorizontalAlignment(JTextField.CENTER); // receipts center alignment
+        
+        // Base Rounded Border
+        tf.setBorder(BorderFactory.createCompoundBorder(
+            new RoundedBorder(new Color(226, 232, 240), 8, 1),
+            BorderFactory.createEmptyBorder(6, 12, 6, 12)
+        ));
+
+        // Interaction Listener
+        tf.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                tf.setBorder(BorderFactory.createCompoundBorder(
+                    new RoundedBorder(new Color(59, 130, 246), 8, 1),
+                    BorderFactory.createEmptyBorder(6, 12, 6, 12)
+                ));
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                tf.setBorder(BorderFactory.createCompoundBorder(
+                    new RoundedBorder(new Color(226, 232, 240), 8, 1),
+                    BorderFactory.createEmptyBorder(6, 12, 6, 12)
+                ));
             }
         });
 
-        jtxtTktHeader3.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jtxtTktHeader3.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        jtxtTktHeader3.setBorder(null);
-        jtxtTktHeader3.setMaximumSize(new java.awt.Dimension(0, 25));
-        jtxtTktHeader3.setMinimumSize(new java.awt.Dimension(0, 0));
-        jtxtTktHeader3.setPreferredSize(new java.awt.Dimension(300, 30));
+        return tf;
+    }
 
-        jtxtTktFooter6.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jtxtTktFooter6.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        jtxtTktFooter6.setBorder(null);
-        jtxtTktFooter6.setMaximumSize(new java.awt.Dimension(0, 25));
-        jtxtTktFooter6.setMinimumSize(new java.awt.Dimension(0, 0));
-        jtxtTktFooter6.setPreferredSize(new java.awt.Dimension(300, 30));
+    private void webSwtch_LogoActionPerformed(java.awt.event.ActionEvent evt) {
+        // JG - For future
+    }
 
-        jtxtTktHeader2.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jtxtTktHeader2.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        jtxtTktHeader2.setBorder(null);
-        jtxtTktHeader2.setMaximumSize(new java.awt.Dimension(0, 25));
-        jtxtTktHeader2.setMinimumSize(new java.awt.Dimension(0, 0));
-        jtxtTktHeader2.setPreferredSize(new java.awt.Dimension(300, 30));
+    // Custom Rounded Border Class
+    private static class RoundedBorder implements Border {
+        private final Color color;
+        private final int radius;
+        private final int thickness;
 
-        jtxtTktHeader5.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jtxtTktHeader5.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        jtxtTktHeader5.setBorder(null);
-        jtxtTktHeader5.setMaximumSize(new java.awt.Dimension(0, 25));
-        jtxtTktHeader5.setMinimumSize(new java.awt.Dimension(0, 0));
-        jtxtTktHeader5.setPreferredSize(new java.awt.Dimension(300, 30));
-
-        jtxtTktHeader6.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jtxtTktHeader6.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        jtxtTktHeader6.setBorder(null);
-        jtxtTktHeader6.setMaximumSize(new java.awt.Dimension(0, 25));
-        jtxtTktHeader6.setMinimumSize(new java.awt.Dimension(0, 0));
-        jtxtTktHeader6.setPreferredSize(new java.awt.Dimension(300, 30));
-
-        jtxtTktFooter4.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jtxtTktFooter4.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        jtxtTktFooter4.setBorder(null);
-        jtxtTktFooter4.setMaximumSize(new java.awt.Dimension(0, 25));
-        jtxtTktFooter4.setMinimumSize(new java.awt.Dimension(0, 0));
-        jtxtTktFooter4.setPreferredSize(new java.awt.Dimension(300, 30));
-
-        jtxtTktHeader4.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jtxtTktHeader4.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        jtxtTktHeader4.setBorder(null);
-        jtxtTktHeader4.setMaximumSize(new java.awt.Dimension(0, 25));
-        jtxtTktHeader4.setMinimumSize(new java.awt.Dimension(0, 0));
-        jtxtTktHeader4.setPreferredSize(new java.awt.Dimension(300, 30));
-
-        jtxtTktFooter5.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jtxtTktFooter5.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        jtxtTktFooter5.setBorder(null);
-        jtxtTktFooter5.setMaximumSize(new java.awt.Dimension(0, 25));
-        jtxtTktFooter5.setMinimumSize(new java.awt.Dimension(0, 0));
-        jtxtTktFooter5.setPreferredSize(new java.awt.Dimension(300, 30));
-
-        jtxtTktHeader1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jtxtTktHeader1.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        jtxtTktHeader1.setBorder(null);
-        jtxtTktHeader1.setMaximumSize(new java.awt.Dimension(0, 25));
-        jtxtTktHeader1.setMinimumSize(new java.awt.Dimension(0, 0));
-        jtxtTktHeader1.setPreferredSize(new java.awt.Dimension(300, 30));
-
-        jtxtTktFooter3.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jtxtTktFooter3.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        jtxtTktFooter3.setBorder(null);
-        jtxtTktFooter3.setMaximumSize(new java.awt.Dimension(0, 25));
-        jtxtTktFooter3.setMinimumSize(new java.awt.Dimension(0, 0));
-        jtxtTktFooter3.setPreferredSize(new java.awt.Dimension(300, 30));
-
-        jtxtTktFooter2.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jtxtTktFooter2.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        jtxtTktFooter2.setBorder(null);
-        jtxtTktFooter2.setMaximumSize(new java.awt.Dimension(0, 25));
-        jtxtTktFooter2.setMinimumSize(new java.awt.Dimension(0, 0));
-        jtxtTktFooter2.setPreferredSize(new java.awt.Dimension(300, 30));
-
-        jtxtTktFooter1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jtxtTktFooter1.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        jtxtTktFooter1.setBorder(null);
-        jtxtTktFooter1.setMaximumSize(new java.awt.Dimension(0, 25));
-        jtxtTktFooter1.setMinimumSize(new java.awt.Dimension(0, 0));
-        jtxtTktFooter1.setPreferredSize(new java.awt.Dimension(300, 30));
-
-        jLogo.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jLogo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLogo.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/printer.png"))); // NOI18N
-        jLogo.setToolTipText("");
-        jLogo.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        jLogo.setOpaque(true);
-        jLogo.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-
-        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
-        jPanel1.setLayout(jPanel1Layout);
-        jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                        .addComponent(jtxtTktFooter5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jtxtTktFooter4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jtxtTktFooter3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jtxtTktFooter2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jtxtTktFooter1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jtxtTktHeader6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jtxtTktHeader5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jtxtTktHeader4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jtxtTktHeader3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jtxtTktHeader2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jtxtTktHeader1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jtxtTktFooter6, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(jLogo, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-        jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLogo, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
-                .addComponent(jtxtTktHeader1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(1, 1, 1)
-                .addComponent(jtxtTktHeader2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(1, 1, 1)
-                .addComponent(jtxtTktHeader3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(1, 1, 1)
-                .addComponent(jtxtTktHeader4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(1, 1, 1)
-                .addComponent(jtxtTktHeader5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(1, 1, 1)
-                .addComponent(jtxtTktHeader6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 41, Short.MAX_VALUE)
-                .addComponent(jtxtTktFooter1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(1, 1, 1)
-                .addComponent(jtxtTktFooter2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(1, 1, 1)
-                .addComponent(jtxtTktFooter3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(1, 1, 1)
-                .addComponent(jtxtTktFooter4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(1, 1, 1)
-                .addComponent(jtxtTktFooter5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(1, 1, 1)
-                .addComponent(jtxtTktFooter6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
-        );
-
-        jLbllogoPath.setBackground(new java.awt.Color(255, 255, 255));
-        jLbllogoPath.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jLbllogoPath.setForeground(new java.awt.Color(153, 153, 153));
-        jLbllogoPath.setText(AppLocal.getIntString("label.tktheader1")); // NOI18N
-        jLbllogoPath.setMaximumSize(new java.awt.Dimension(0, 25));
-        jLbllogoPath.setMinimumSize(new java.awt.Dimension(0, 0));
-        jLbllogoPath.setPreferredSize(new java.awt.Dimension(150, 30));
-
-        lblLogo.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
-        lblLogo.setText(AppLocal.getIntString("label.tktheader1")); // NOI18N
-        lblLogo.setMaximumSize(new java.awt.Dimension(0, 25));
-        lblLogo.setMinimumSize(new java.awt.Dimension(0, 0));
-        lblLogo.setPreferredSize(new java.awt.Dimension(150, 30));
-
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
-        this.setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                        .addComponent(lblTktFooter1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(lblTktHeader1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                            .addComponent(lblLogo, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                            .addComponent(webSwtch_Logo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                    .addComponent(jLbllogoPath, javax.swing.GroupLayout.PREFERRED_SIZE, 134, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-            .addGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(39, 39, 39)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                            .addComponent(lblLogo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(webSwtch_Logo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(52, 52, 52)
-                        .addComponent(lblTktHeader1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(126, 126, 126)
-                        .addComponent(jLbllogoPath, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(38, 38, 38)
-                        .addComponent(lblTktFooter1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(layout.createSequentialGroup()
-                        .addContainerGap()
-                        .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-    }// </editor-fold>//GEN-END:initComponents
-
-    private void webSwtch_LogoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_webSwtch_LogoActionPerformed
-// JG - For future
-        if (webSwtch_Logo.isSelected()) {
-
-        } else {
-
+        public RoundedBorder(Color color, int radius, int thickness) {
+            this.color = color;
+            this.radius = radius;
+            this.thickness = thickness;
         }
 
-    }//GEN-LAST:event_webSwtch_LogoActionPerformed
-    
-    
-    // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JLabel jLbllogoPath;
-    private javax.swing.JLabel jLogo;
-    private javax.swing.JPanel jPanel1;
-    private javax.swing.JTextField jtxtTktFooter1;
-    private javax.swing.JTextField jtxtTktFooter2;
-    private javax.swing.JTextField jtxtTktFooter3;
-    private javax.swing.JTextField jtxtTktFooter4;
-    private javax.swing.JTextField jtxtTktFooter5;
-    private javax.swing.JTextField jtxtTktFooter6;
-    private javax.swing.JTextField jtxtTktHeader1;
-    private javax.swing.JTextField jtxtTktHeader2;
-    private javax.swing.JTextField jtxtTktHeader3;
-    private javax.swing.JTextField jtxtTktHeader4;
-    private javax.swing.JTextField jtxtTktHeader5;
-    private javax.swing.JTextField jtxtTktHeader6;
-    private javax.swing.JLabel lblLogo;
-    private javax.swing.JLabel lblTktFooter1;
-    private javax.swing.JLabel lblTktHeader1;
-    private javax.swing.JCheckBox webSwtch_Logo;
-    // End of variables declaration//GEN-END:variables
-    
+        @Override
+        public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(color);
+            for (int i = 0; i < thickness; i++) {
+                g2.drawRoundRect(x + i, y + i, width - 1 - i * 2, height - 1 - i * 2, radius, radius);
+            }
+            g2.dispose();
+        }
+
+        @Override
+        public Insets getBorderInsets(Component c) {
+            return new Insets(thickness, thickness, thickness, thickness);
+        }
+
+        @Override
+        public boolean isBorderOpaque() {
+            return false;
+        }
+    }
+
+    // Custom Rounded Card Class
+    private static class RoundedCard extends JPanel {
+        private final int cornerRadius = 16;
+
+        public RoundedCard() {
+            setOpaque(false);
+            setBackground(Color.WHITE);
+            setBorder(BorderFactory.createEmptyBorder(24, 24, 24, 24));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            
+            // Draw card background
+            g2.setColor(getBackground());
+            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, cornerRadius, cornerRadius);
+            
+            // Draw card border
+            g2.setColor(new Color(226, 232, 240)); // Slate 200
+            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, cornerRadius, cornerRadius);
+            
+            g2.dispose();
+        }
+    }
+
+    // Dynamic Printer Badge Panel
+    private static class PrinterBadgePanel extends JPanel {
+        private final ImageIcon printerIcon;
+
+        public PrinterBadgePanel() {
+            setPreferredSize(new Dimension(72, 72));
+            setMinimumSize(new Dimension(72, 72));
+            setMaximumSize(new Dimension(72, 72));
+            setOpaque(false);
+            
+            java.net.URL imgUrl = getClass().getResource("/com/openbravo/images/printer.png");
+            if (imgUrl != null) {
+                printerIcon = new ImageIcon(imgUrl);
+            } else {
+                printerIcon = null;
+            }
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int w = getWidth();
+            int h = getHeight();
+
+            // Gradient Paint for background circle
+            java.awt.GradientPaint gradient = new java.awt.GradientPaint(
+                0, 0, new Color(239, 246, 255), // Blue 50
+                0, h, new Color(219, 234, 254)  // Blue 100
+            );
+            g2.setPaint(gradient);
+            g2.fillOval(2, 2, w - 5, h - 5);
+
+            // Draw Border
+            g2.setColor(new Color(59, 130, 246)); // Blue 500
+            g2.setStroke(new java.awt.BasicStroke(2f));
+            g2.drawOval(2, 2, w - 5, h - 5);
+
+            // Draw Printer Icon in the center
+            if (printerIcon != null) {
+                int iconW = printerIcon.getIconWidth();
+                int iconH = printerIcon.getIconHeight();
+                int x = (w - iconW) / 2;
+                int y = (h - iconH) / 2;
+                g2.drawImage(printerIcon.getImage(), x, y, null);
+            }
+
+            g2.dispose();
+        }
+    }
+
+    // Scrollable Wrapper Panel class for viewport tracking and responsiveness
+    private static class ScrollablePanel extends JPanel implements javax.swing.Scrollable {
+        public ScrollablePanel(java.awt.LayoutManager layout) {
+            super(layout);
+        }
+
+        @Override
+        public Dimension getPreferredScrollableViewportSize() {
+            return getPreferredSize();
+        }
+
+        @Override
+        public int getScrollableUnitIncrement(java.awt.Rectangle visibleRect, int orientation, int direction) {
+            return 16;
+        }
+
+        @Override
+        public int getScrollableBlockIncrement(java.awt.Rectangle visibleRect, int orientation, int direction) {
+            return 64;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            if (getParent() instanceof javax.swing.JViewport) {
+                return getParent().getWidth() > getPreferredSize().width;
+            }
+            return false;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportHeight() {
+            if (getParent() instanceof javax.swing.JViewport) {
+                return getParent().getHeight() > getPreferredSize().height;
+            }
+            return false;
+        }
+    }
 }

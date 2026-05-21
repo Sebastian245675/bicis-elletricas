@@ -104,7 +104,6 @@ public class JRootApp extends JPanel implements AppView {
 
         try {
             session = AppViewConnection.createSession(this, appFileProperties);
-            updateDatabaseSchema();
         } catch (BasicException e) {
             LOGGER.log(Level.WARNING, "Exception on DB createSession", e);
             throw new BasicException("Exception on DB createSession", e);
@@ -119,6 +118,9 @@ public class JRootApp extends JPanel implements AppView {
         } catch (BasicException ex) {
             throw new BasicException("Database verification fail", ex);
         }
+
+        // Ejecutar DESPUÉS de Liquibase para que no sobreescriba las columnas nuevas
+        updateDatabaseSchema();
 
         logStartup();
 
@@ -217,6 +219,9 @@ public class JRootApp extends JPanel implements AppView {
     private void updateDatabaseSchema() {
         try {
             java.sql.Connection conn = session.getConnection();
+            boolean originalAutoCommit = conn.getAutoCommit();
+            // Forzar autoCommit para que los DDL se apliquen inmediatamente en HSQLDB
+            conn.setAutoCommit(true);
             java.sql.DatabaseMetaData md = conn.getMetaData();
             
             // 1. Columnas de control de efectivo en CLOSEDCASH
@@ -225,7 +230,6 @@ public class JRootApp extends JPanel implements AppView {
                 boolean exists = false;
                 // Probar diferentes combinaciones de mayúsculas/minúsculas para compatibilidad entre DBs
                 String[] tableNames = {"CLOSEDCASH", "closedcash"};
-                String[] columnNames = {col, col.toLowerCase()};
                 
                 for (String tableName : tableNames) {
                     try (java.sql.ResultSet rs = md.getColumns(null, null, tableName, null)) {
@@ -243,6 +247,7 @@ public class JRootApp extends JPanel implements AppView {
                     LOGGER.info("🔧 Sebastian - Agregando columna " + col + " a la tabla CLOSEDCASH...");
                     try {
                         conn.createStatement().execute("ALTER TABLE CLOSEDCASH ADD COLUMN " + col + " DOUBLE DEFAULT 0.0");
+                        LOGGER.info("✅ Columna " + col + " agregada a CLOSEDCASH");
                     } catch (SQLException e) {
                         // Fallback por si la tabla es en minúsculas
                         try {
@@ -253,6 +258,44 @@ public class JRootApp extends JPanel implements AppView {
                     }
                 }
             }
+
+            // 2. Columnas adicionales en la tabla PEOPLE
+            String[][] peopleColumns = {
+                {"FIRSTNAME", "VARCHAR(255)"},
+                {"LASTNAME", "VARCHAR(255)"},
+                {"AGE", "INTEGER"},
+                {"DOCUMENT", "VARCHAR(100)"}
+            };
+            for (String[] colInfo : peopleColumns) {
+                String col = colInfo[0];
+                String colType = colInfo[1];
+                boolean exists = false;
+
+                // HSQLDB almacena nombres de columnas en mayúsculas; buscar directamente
+                try (java.sql.ResultSet rs = md.getColumns(null, null, "PEOPLE", null)) {
+                    while (rs.next()) {
+                        if (rs.getString("COLUMN_NAME").equalsIgnoreCase(col)) {
+                            exists = true;
+                            break;
+                        }
+                    }
+                } catch (SQLException e) {}
+
+                if (!exists) {
+                    LOGGER.info("🔧 Sebastian - Agregando columna " + col + " a la tabla PEOPLE...");
+                    try (java.sql.Statement stmt = conn.createStatement()) {
+                        stmt.execute("ALTER TABLE PEOPLE ADD COLUMN " + col + " " + colType);
+                        LOGGER.info("✅ Columna " + col + " agregada a PEOPLE exitosamente");
+                    } catch (SQLException e) {
+                        LOGGER.log(Level.WARNING, "⚠️ No se pudo agregar columna " + col + " a PEOPLE: " + e.getMessage());
+                    }
+                } else {
+                    LOGGER.info("✔️ Columna " + col + " ya existe en PEOPLE");
+                }
+            }
+
+            // Restaurar autoCommit original
+            conn.setAutoCommit(originalAutoCommit);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "❌ Error al verificar esquema de base de datos", e);
         }

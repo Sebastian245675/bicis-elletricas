@@ -443,6 +443,15 @@ public class JAuthPanel extends javax.swing.JPanel {
         gbc.insets = new Insets(15, 0, 0, 0);
         loginCard.add(btnForgotPassword, gbc);
 
+        // Etiqueta de versión de desarrollo - Pequeña abajo
+        JLabel lblDevVersion = new JLabel("v1.0 desarrollo");
+        lblDevVersion.setFont(new Font("Segoe UI", Font.ITALIC, 11));
+        lblDevVersion.setForeground(new Color(150, 150, 150));
+        lblDevVersion.setHorizontalAlignment(SwingConstants.CENTER);
+        gbc.gridy = 7;
+        gbc.insets = new Insets(10, 0, 0, 0);
+        loginCard.add(lblDevVersion, gbc);
+
         // Agregar la tarjeta al contenedor principal
         GridBagConstraints cardGbc = new GridBagConstraints();
         cardGbc.gridx = 0;

@@ -1324,7 +1324,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         btnConfig.setFocusPainted(false);
         btnConfig.setFocusable(false);
         btnConfig.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnConfig.setToolTipText("ConfiguraciÃ³n del Sistema");
+        btnConfig.setToolTipText("Configuración del Sistema");
         btnConfig.setPreferredSize(new java.awt.Dimension(36, 36));
         btnConfig.setMinimumSize(new java.awt.Dimension(36, 36));
         btnConfig.setMaximumSize(new java.awt.Dimension(36, 36));
@@ -1334,7 +1334,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                     showTask("com.openbravo.pos.config.JPanelConfiguration");
                 } else {
                     javax.swing.JOptionPane.showMessageDialog(null, 
-                        "No tienes permiso para acceder a la configuraciÃ³n.", 
+                        "No tienes permiso para acceder a la configuración.", 
                         "Acceso Denegado", 
                         javax.swing.JOptionPane.WARNING_MESSAGE);
                 }
@@ -1629,8 +1629,11 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         if (sTaskClass == null) {
             return null;
         }
+        if ("com.openbravo.pos.sales.JPanelTicketSales".equals(sTaskClass)) {
+            return new String[]{ AppLocal.getIntString("Menu.Ticket"), "com.openbravo.pos.sales.JPanelTicketSales" };
+        }
         if ("com.openbravo.pos.config.JPanelConfiguration".equals(sTaskClass)) {
-            return new String[]{ "ConfiguraciÃ³n", "com.openbravo.pos.config.JPanelConfiguration" };
+            return new String[]{ "Configuración", "com.openbravo.pos.config.JPanelConfiguration" };
         }
         if ("com.openbravo.pos.admin.JPanelHR".equals(sTaskClass)) {
             return new String[]{ "Recursos Humanos", "com.openbravo.pos.admin.JPanelHR" };

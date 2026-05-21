@@ -13,7 +13,7 @@
    ```
 
 ### Paso 2: Crear un Release en GitHub
-1. Ve a tu repositorio en GitHub: https://github.com/Sebastian245675/punto-mx
+1. Ve a tu repositorio en GitHub: https://github.com/Sebastian245675/bicis-elletricas
 2. Haz clic en "Releases" (en el menú lateral derecho)
 3. Haz clic en "Create a new release"
 4. **Tag version**: Usa el formato `v1.0.1-Sebastian` (debe coincidir con VERSION.txt)
@@ -24,8 +24,8 @@
 
 ### Paso 3: Verificar que funciona
 - El sistema automáticamente:
-  - Lee `VERSION.txt` desde: `https://raw.githubusercontent.com/Sebastian245675/punto-mx/main/VERSION.txt`
-  - Descarga el JAR desde: `https://github.com/Sebastian245675/punto-mx/releases/download/v1.0.1-Sebastian/kriolos-pos.jar`
+  - Lee `VERSION.txt` desde: `https://raw.githubusercontent.com/Sebastian245675/bicis-elletricas/main/VERSION.txt`
+  - Descarga el JAR desde: `https://github.com/Sebastian245675/bicis-elletricas/releases/download/v1.0.1-Sebastian/kriolos-pos.jar`
 
 ---
 
@@ -36,7 +36,7 @@ Si prefieres usar tu propio servidor, necesitas modificar las URLs en el código
 ### Archivo: `UpdateChecker.java`
 ```java
 // Cambiar esta línea:
-private static final String VERSION_CHECK_URL = "https://raw.githubusercontent.com/Sebastian245675/punto-mx/main/VERSION.txt";
+private static final String VERSION_CHECK_URL = "https://raw.githubusercontent.com/Sebastian245675/bicis-elletricas/main/VERSION.txt";
 
 // Por tu URL, por ejemplo:
 private static final String VERSION_CHECK_URL = "https://tudominio.com/updates/VERSION.txt";
@@ -45,7 +45,7 @@ private static final String VERSION_CHECK_URL = "https://tudominio.com/updates/V
 ### Archivo: `UpdateManager.java`
 ```java
 // Cambiar esta línea:
-private static final String UPDATE_BASE_URL = "https://github.com/Sebastian245675/punto-mx/releases/download/";
+private static final String UPDATE_BASE_URL = "https://github.com/Sebastian245675/bicis-elletricas/releases/download/";
 
 // Por tu URL, por ejemplo:
 private static final String UPDATE_BASE_URL = "https://tudominio.com/updates/";

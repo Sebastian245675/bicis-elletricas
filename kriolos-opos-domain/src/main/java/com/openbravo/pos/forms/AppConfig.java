@@ -378,6 +378,13 @@ public class AppConfig implements AppProperties {
     public static void applySystemProperties(AppConfig config) {
         // Set the look and feel.
         String lafClass = config.getProperty("swing.defaultlaf");
+        
+        // Sebastian: Migrate/Default to FlatLightLaf if it's set to the old MetalLookAndFeel or is blank
+        if (lafClass == null || lafClass.isBlank() || lafClass.equals("javax.swing.plaf.metal.MetalLookAndFeel")) {
+            lafClass = "com.formdev.flatlaf.FlatLightLaf";
+            config.setProperty("swing.defaultlaf", lafClass);
+        }
+        
         try {
             if (lafClass != null && !lafClass.isBlank()) {
                 Object laf = Class.forName(lafClass).getDeclaredConstructor().newInstance();

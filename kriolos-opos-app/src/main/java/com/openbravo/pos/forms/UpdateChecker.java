@@ -17,13 +17,13 @@ public class UpdateChecker {
     
     // URL donde se publica la versión más reciente
     // Puede ser desde GitHub raw o desde tu propio servidor
-    private static final String VERSION_CHECK_URL = "https://raw.githubusercontent.com/Sebastian245675/punto-mx/main/VERSION.txt";
+    private static final String VERSION_CHECK_URL = "https://raw.githubusercontent.com/Sebastian245675/bicis-elletricas/main/VERSION.txt";
     
     // URL alternativa para verificar versiones (puedes agregar más)
     private static final String[] VERSION_CHECK_URLS = {
         VERSION_CHECK_URL,
-        "https://raw.githubusercontent.com/Sebastian245675/punto-mx/main/VERSION.txt?t=" + System.currentTimeMillis(), // Con timestamp para evitar caché
-        "https://api.github.com/repos/Sebastian245675/punto-mx/releases/latest" // API de GitHub como respaldo
+        "https://raw.githubusercontent.com/Sebastian245675/bicis-elletricas/main/VERSION.txt?t=" + System.currentTimeMillis(), // Con timestamp para evitar caché
+        "https://api.github.com/repos/Sebastian245675/bicis-elletricas/releases/latest" // API de GitHub como respaldo
     };
     
     /**

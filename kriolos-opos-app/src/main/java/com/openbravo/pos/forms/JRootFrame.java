@@ -59,7 +59,7 @@ public class JRootFrame extends javax.swing.JFrame implements AppMessage {
 
     public void initFrame() {
 
-        setTitle(AppLocal.APP_NAME + " - " + AppLocal.APP_VERSION);
+        setTitle("websy Tiendas version 1.0 licencia de pruebas");
 
         // FORZAR ICONO PERSONALIZADO CON MÁXIMA AGRESIVIDAD
         try {

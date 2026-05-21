@@ -18,6 +18,7 @@ package com.openbravo.pos.sales;
 import com.openbravo.basic.BasicException;
 import com.openbravo.pos.catalog.CatalogSelector;
 import com.openbravo.pos.catalog.JCatalog;
+import com.openbravo.pos.forms.AppLocal;
 import com.openbravo.pos.forms.AppView;
 import com.openbravo.pos.ticket.ProductInfoExt;
 import java.awt.Component;
@@ -43,7 +44,7 @@ public class JPanelTicketSales extends JPanelTicket {
 
     @Override
     public String getTitle() {
-        return "";
+        return AppLocal.getIntString("Menu.Ticket");
     }
 
     /**
