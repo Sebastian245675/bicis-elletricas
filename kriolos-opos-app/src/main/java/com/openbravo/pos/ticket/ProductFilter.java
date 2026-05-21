@@ -1,0 +1,383 @@
+//    KriolOS POS
+//    Copyright (c) 2019-2023 KriolOS
+//    
+//
+//     
+//
+//    This program is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+package com.openbravo.pos.ticket;
+
+import com.openbravo.basic.BasicException;
+import com.openbravo.data.gui.ComboBoxValModel;
+import com.openbravo.data.gui.ListQBFModelNumber;
+import com.openbravo.data.loader.Datas;
+import com.openbravo.data.loader.QBFCompareEnum;
+import com.openbravo.data.loader.SentenceList;
+import com.openbravo.data.loader.SerializerWrite;
+import com.openbravo.data.loader.SerializerWriteBasic;
+import com.openbravo.format.Formats;
+import com.openbravo.pos.forms.AppLocal;
+import com.openbravo.pos.forms.AppView;
+import com.openbravo.pos.forms.DataLogicSales;
+import com.openbravo.pos.reports.ReportEditorCreator;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Font;
+import java.util.List;
+import javax.swing.BorderFactory;
+import javax.swing.border.EmptyBorder;
+
+/**
+ *
+ * @author JG uniCenta
+ */
+public class ProductFilter extends javax.swing.JPanel implements ReportEditorCreator {
+    
+    private SentenceList m_sentcat;
+    private ComboBoxValModel m_CategoryModel;
+    
+//    private SentenceList m_sentsup;
+//    private ComboBoxValModel m_SupplierModel;
+
+    /** Creates new form JQBFProduct */
+    public ProductFilter() {
+        initComponents();
+        styleComponents();
+    }
+    
+    private void styleComponents() {
+        setOpaque(false);
+        setBorder(new EmptyBorder(5, 5, 5, 5));
+        
+        Font fontLabel = new Font("Segoe UI", Font.BOLD, 13);
+        Font fontText = new Font("Segoe UI", Font.PLAIN, 14);
+        Color colorLabel = new Color(70, 80, 90);
+
+        jLabel1.setFont(fontLabel); jLabel1.setForeground(colorLabel);
+        jLabel2.setFont(fontLabel); jLabel2.setForeground(colorLabel);
+        jLabel3.setFont(fontLabel); jLabel3.setForeground(colorLabel);
+        jLabel4.setFont(fontLabel); jLabel4.setForeground(colorLabel);
+        jLabel5.setFont(fontLabel); jLabel5.setForeground(colorLabel);
+
+        m_jBarcode.setFont(fontText);
+        m_jName.setFont(fontText);
+        m_jPriceBuy.setFont(fontText);
+        m_jPriceSell.setFont(fontText);
+        
+        m_jCategory.setFont(fontText);
+        m_jCboName.setFont(fontText);
+        m_jCboPriceBuy.setFont(fontText);
+        m_jCboPriceSell.setFont(fontText);
+        
+        javax.swing.JTextField[] tfs = {m_jBarcode, m_jName, m_jPriceBuy, m_jPriceSell};
+        for (javax.swing.JTextField tf : tfs) {
+            tf.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(210, 220, 230)),
+                BorderFactory.createEmptyBorder(2, 8, 2, 8)
+            ));
+        }
+        
+        jBtnReset.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+    }
+    
+    /**
+     *
+     * @param app
+     */
+    @Override
+    public void init(AppView app) {
+         
+        DataLogicSales dlSales = (DataLogicSales) app.getBean("com.openbravo.pos.forms.DataLogicSales");
+
+        m_sentcat = dlSales.getCategoriesList();
+        m_CategoryModel = new ComboBoxValModel();
+         
+        m_jCboName.setModel(ListQBFModelNumber.getMandatoryString());
+        m_jCboPriceBuy.setModel(ListQBFModelNumber.getMandatoryNumber());
+        m_jCboPriceSell.setModel(ListQBFModelNumber.getMandatoryNumber());
+    }
+    
+    /**
+     *
+     * @throws BasicException
+     */
+    @Override
+    public void activate() throws BasicException {
+
+        List catlist = m_sentcat.list();
+        catlist.add(0, null);
+        m_CategoryModel = new ComboBoxValModel(catlist);
+        m_jCategory.setModel(m_CategoryModel);
+              
+    }
+    
+    /**
+     *
+     * @return
+     */
+    @Override
+    public SerializerWrite getSerializerWrite() {
+        return new SerializerWriteBasic(
+            new Datas[] {
+                Datas.OBJECT, Datas.STRING, 
+                Datas.OBJECT, Datas.DOUBLE, 
+                Datas.OBJECT, Datas.DOUBLE, 
+                Datas.OBJECT, Datas.STRING, 
+                Datas.OBJECT, Datas.STRING});
+    }
+
+    /**
+     *
+     * @return
+     */
+    @Override
+    public Component getComponent() {
+        return this;
+    }
+   
+    /**
+     *
+     * @return
+     * @throws BasicException
+     */
+    @Override
+    public Object createValue() throws BasicException {
+        
+        if (m_jBarcode.getText() == null || m_jBarcode.getText().equals("")) {
+
+            return new Object[] {
+                m_jCboName.getSelectedItem(), m_jName.getText(),
+                m_jCboPriceBuy.getSelectedItem(), Formats.CURRENCY.parseValue(m_jPriceBuy.getText()),           
+                m_jCboPriceSell.getSelectedItem(), Formats.CURRENCY.parseValue(m_jPriceSell.getText()),
+                m_CategoryModel.getSelectedKey() == null ? QBFCompareEnum.COMP_NONE : QBFCompareEnum.COMP_EQUALS, m_CategoryModel.getSelectedKey(),
+//                m_SupplierModel.getSelectedKey() == null ? QBFCompareEnum.COMP_NONE : QBFCompareEnum.COMP_EQUALS, m_SupplierModel.getSelectedKey(),                                
+                QBFCompareEnum.COMP_NONE, null         
+            };
+        } else {            
+            return new Object[] {
+                QBFCompareEnum.COMP_NONE, null,
+                QBFCompareEnum.COMP_NONE, null,
+                QBFCompareEnum.COMP_NONE, null,
+                QBFCompareEnum.COMP_NONE, null,
+                QBFCompareEnum.COMP_EQUALS, m_jBarcode.getText()
+            };
+        }
+    } 
+ 
+    
+    /** This method is called from within the constructor to
+     * initialize the form.
+     * WARNING: Do NOT modify this code. The content of this method is
+     * always regenerated by the Form Editor.
+     */
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    private void initComponents() {
+
+        jLabel1 = new javax.swing.JLabel();
+        m_jCategory = new javax.swing.JComboBox();
+        jLabel5 = new javax.swing.JLabel();
+        m_jBarcode = new javax.swing.JTextField();
+        jLabel2 = new javax.swing.JLabel();
+        m_jCboName = new javax.swing.JComboBox();
+        m_jName = new javax.swing.JTextField();
+        jLabel4 = new javax.swing.JLabel();
+        m_jCboPriceBuy = new javax.swing.JComboBox();
+        m_jPriceBuy = new javax.swing.JTextField();
+        jLabel3 = new javax.swing.JLabel();
+        m_jCboPriceSell = new javax.swing.JComboBox();
+        m_jPriceSell = new javax.swing.JTextField();
+        jBtnReset = new javax.swing.JButton();
+
+        setMaximumSize(new java.awt.Dimension(450, 200));
+        setMinimumSize(new java.awt.Dimension(450, 200));
+        setPreferredSize(new java.awt.Dimension(450, 200));
+
+        jLabel1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabel1.setText(AppLocal.getIntString("label.prodcategory")); // NOI18N
+        jLabel1.setPreferredSize(new java.awt.Dimension(110, 30));
+
+        m_jCategory.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        m_jCategory.setMaximumSize(new java.awt.Dimension(150, 30));
+        m_jCategory.setMinimumSize(new java.awt.Dimension(150, 30));
+        m_jCategory.setPreferredSize(new java.awt.Dimension(150, 30));
+
+        jLabel5.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabel5.setText(AppLocal.getIntString("label.prodbarcode")); // NOI18N
+        jLabel5.setPreferredSize(new java.awt.Dimension(110, 30));
+
+        m_jBarcode.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        m_jBarcode.setMaximumSize(new java.awt.Dimension(150, 30));
+        m_jBarcode.setMinimumSize(new java.awt.Dimension(150, 30));
+        m_jBarcode.setPreferredSize(new java.awt.Dimension(150, 30));
+
+        jLabel2.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabel2.setText(AppLocal.getIntString("label.prodname")); // NOI18N
+        jLabel2.setPreferredSize(new java.awt.Dimension(110, 30));
+
+        m_jCboName.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        m_jCboName.setLightWeightPopupEnabled(false);
+        m_jCboName.setMaximumSize(new java.awt.Dimension(150, 30));
+        m_jCboName.setMinimumSize(new java.awt.Dimension(150, 30));
+        m_jCboName.setPreferredSize(new java.awt.Dimension(150, 30));
+
+        m_jName.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        m_jName.setMaximumSize(new java.awt.Dimension(100, 30));
+        m_jName.setMinimumSize(new java.awt.Dimension(100, 30));
+        m_jName.setPreferredSize(new java.awt.Dimension(100, 30));
+
+        jLabel4.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabel4.setText(AppLocal.getIntString("label.prodpricebuy")); // NOI18N
+        jLabel4.setPreferredSize(new java.awt.Dimension(110, 30));
+
+        m_jCboPriceBuy.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        m_jCboPriceBuy.setMaximumSize(new java.awt.Dimension(150, 30));
+        m_jCboPriceBuy.setMinimumSize(new java.awt.Dimension(150, 30));
+        m_jCboPriceBuy.setPreferredSize(new java.awt.Dimension(150, 30));
+
+        m_jPriceBuy.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        m_jPriceBuy.setMaximumSize(new java.awt.Dimension(60, 30));
+        m_jPriceBuy.setMinimumSize(new java.awt.Dimension(60, 30));
+        m_jPriceBuy.setPreferredSize(new java.awt.Dimension(60, 30));
+
+        jLabel3.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabel3.setText(AppLocal.getIntString("label.prodpricesell")); // NOI18N
+        jLabel3.setPreferredSize(new java.awt.Dimension(110, 30));
+
+        m_jCboPriceSell.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        m_jCboPriceSell.setMaximumSize(new java.awt.Dimension(150, 30));
+        m_jCboPriceSell.setMinimumSize(new java.awt.Dimension(150, 30));
+        m_jCboPriceSell.setPreferredSize(new java.awt.Dimension(150, 30));
+
+        m_jPriceSell.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        m_jPriceSell.setMaximumSize(new java.awt.Dimension(60, 30));
+        m_jPriceSell.setMinimumSize(new java.awt.Dimension(60, 30));
+        m_jPriceSell.setPreferredSize(new java.awt.Dimension(60, 30));
+
+        jBtnReset.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jBtnReset.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/reload.png"))); // NOI18N
+        jBtnReset.setMaximumSize(new java.awt.Dimension(40, 30));
+        jBtnReset.setMinimumSize(new java.awt.Dimension(40, 30));
+        jBtnReset.setPreferredSize(new java.awt.Dimension(80, 45));
+        jBtnReset.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jBtnResetActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
+        this.setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addGroup(layout.createSequentialGroup()
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                    .addGroup(layout.createSequentialGroup()
+                                        .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(m_jBarcode, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                    .addGroup(layout.createSequentialGroup()
+                                        .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(m_jCategory, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(jBtnReset, javax.swing.GroupLayout.PREFERRED_SIZE, 52, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(m_jCboName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(m_jName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addContainerGap())
+                    .addGroup(layout.createSequentialGroup()
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(m_jCboPriceBuy, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(m_jPriceBuy, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(m_jCboPriceSell, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(m_jPriceSell, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                        .addContainerGap())))
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                    .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(m_jCboName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(m_jName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                    .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(m_jBarcode, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jBtnReset, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                    .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(m_jCategory, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                    .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(m_jCboPriceBuy, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(m_jPriceBuy, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                    .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(m_jCboPriceSell, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(m_jPriceSell, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+        );
+    }// </editor-fold>//GEN-END:initComponents
+
+    private void jBtnResetActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jBtnResetActionPerformed
+        m_jBarcode.setText(null);
+        m_jCategory.setSelectedIndex(0);
+        m_jCboName.setSelectedIndex(0);
+        m_jCboPriceBuy.setSelectedIndex(0);
+        m_jCboPriceSell.setSelectedIndex(0);
+        m_jName.setText(null);
+        m_jPriceBuy.setText(null);
+        m_jPriceSell.setText(null);
+    }//GEN-LAST:event_jBtnResetActionPerformed
+   
+    
+    
+    // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton jBtnReset;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
+    private javax.swing.JTextField m_jBarcode;
+    private javax.swing.JComboBox m_jCategory;
+    private javax.swing.JComboBox m_jCboName;
+    private javax.swing.JComboBox m_jCboPriceBuy;
+    private javax.swing.JComboBox m_jCboPriceSell;
+    private javax.swing.JTextField m_jName;
+    private javax.swing.JTextField m_jPriceBuy;
+    private javax.swing.JTextField m_jPriceSell;
+    // End of variables declaration//GEN-END:variables
+    
+}

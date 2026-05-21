@@ -1,0 +1,117 @@
+= KriolOS POS :: Hardware
+
+Provide access/API for common POS (Poin of Sales) Hardware
+
+
+.Common Hardware
+|====
+|Names
+
+|Priner (Thermal Priner, Receipt Printer)
+|Scanner
+|Drawer
+|Scale
+|Display
+|Pamn
+|====
+
+.Libs
+|====
+|Name  |License  |Descrip |Ref
+
+|JavaPOS
+|Eclipse Foundation CPL 
+|UnifiedPOS reference implementation for Java. 
+|https://github.com/JavaPOSWorkingGroup
+
+|====
+
+
+=== ESC (Epson Sandard Code)
+
+* Carcher Encoding
+
+ESC/POS
+
+* ESC/POS prining command is a simplified version of ESC prining Conrol Command.
+* ...
+
+ESC/P-K 
+
+* Adds special suppor for chinese Compuers
+
+=== JavaPOS 
+
+----
+JavaPOS Device Controls, Device Services and Events v1.x
+----
+
+Concepts
+
+* JavaPOS Config Loader library (JCL).
+
+Configuration 
+
+* -Djpos.config.populatorFile="%USERPROFILE%/jpos.xml"
+
+
+Links
+
+* https://www.omg.org/retail/unified-pos.htm
+* https://www.omg.org/spec/UPOS/
+* https://github.com/JavaPOSWorkingGroup
+* Datalogic: 
+** https://datalogic.github.io/javapos/configref/jposxml/
+** https://github.com/orgs/datalogic
+
+== JPOS 
+
+(TO BE MOVED - NOT HARDWARE, BUT Payment releated)
+
+* jPOS Is a implemenaion of ISO-8583 Sandard
+* ISO-8583 (Transion Card Origined Messages Sandard)
+* License: AGPL
+* http://jpos.org 
+* http://gihub.com/jpos
+
+== Serial Device on Java
+
+
+.Future version to be used
+[source,xml]
+----
+<dependency>
+    <groupId>com.fazecast</groupId>
+    <artifactId>jSerialComm</artifactId>
+    <version>2.11.0</version>
+</dependency>
+
+<!-- https://github.com/Fazecast/jSerialComm -->
+----
+
+
+.Current in use (Compatible with RxTx)
+[source, xml]
+----
+<dependency>
+    <groupId>com.neuronrobotics</groupId>
+    <artifactId>nrjavaserial</artifactId>
+    <version>5.2.1</version>
+</dependency>
+----
+
+== Unicode 
+
+* Code Page 1252 (Windows-1252):
+
+
+== Java USB API 
+
+JSR 80: JavaTM USB API
+
+* https://jcp.org/ja/jsr/detail?id=80
+* src/main/resource/javax.usb.properties
+
+USB4Java 
+
+* http://usb4java.org/

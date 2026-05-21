@@ -1,0 +1,16 @@
+# THIS is a file for travis CI
+
+language: java
+
+# Testing Against Multiple JDKs
+jdk:
+  - openjdk11
+  - openjdk-ea
+
+matrix:
+  allow_failures:
+    - jdk: openjdk-ea
+
+# If a build is successful, the code is submitted for coverage analysis
+after_success:
+  - bash <(curl -s https://codecov.io/bash)

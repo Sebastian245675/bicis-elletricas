@@ -1,0 +1,273 @@
+package com.openbravo.pos.forms;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/**
+ * Gestor de actualizaciones - Descarga y aplica actualizaciones sin borrar datos
+ * @author Sebastian
+ */
+public class UpdateManager {
+    
+    private static final Logger LOGGER = Logger.getLogger(UpdateManager.class.getName());
+    
+    // URL base donde están los archivos JAR actualizados
+    // Formato: https://github.com/USER/REPO/releases/download/vVERSION/kriolos-pos.jar
+    private static final String UPDATE_BASE_URL = "https://github.com/Sebastian245675/punto-mx/releases/download/";
+    
+    // URLs alternativas para descargar actualizaciones
+    private static final String[] UPDATE_URLS = {
+        UPDATE_BASE_URL + "v{version}/kriolos-pos-release.jar",
+        UPDATE_BASE_URL + "v{version}/kriolos-pos.jar",
+        "https://github.com/Sebastian245675/punto-mx/releases/latest/download/kriolos-pos-release.jar",
+        "https://github.com/Sebastian245675/punto-mx/releases/latest/download/kriolos-pos.jar"
+    };
+    
+    /**
+     * Descarga y aplica una actualización
+     * @param version Versión a descargar
+     * @param progressCallback Callback para reportar progreso
+     * @return true si la actualización fue exitosa
+     */
+    public static boolean applyUpdate(String version, ProgressCallback progressCallback) {
+        try {
+            progressCallback.onProgress(0, "Iniciando actualización...");
+            
+            // Obtener ruta del JAR actual
+            String currentJarPath = getCurrentJarPath();
+            if (currentJarPath == null) {
+                progressCallback.onError("No se pudo determinar la ubicación del JAR actual");
+                return false;
+            }
+            
+            File currentJar = new File(currentJarPath);
+            File backupJar = new File(currentJarPath + ".backup");
+            File newJar = new File(currentJarPath + ".new");
+            
+            // 1. Crear respaldo del JAR actual
+            progressCallback.onProgress(10, "Creando respaldo...");
+            Files.copy(currentJar.toPath(), backupJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            
+            // 2. Descargar nuevo JAR
+            progressCallback.onProgress(20, "Descargando nueva versión " + version + "...");
+            boolean downloadSuccess = false;
+            
+            // Intentar descargar desde múltiples URLs
+            for (String urlTemplate : UPDATE_URLS) {
+                String downloadUrl = urlTemplate.replace("{version}", version);
+                LOGGER.info("Intentando descargar desde: " + downloadUrl);
+                
+                if (downloadFile(downloadUrl, newJar, progressCallback)) {
+                    downloadSuccess = true;
+                    LOGGER.info("Descarga exitosa desde: " + downloadUrl);
+                    break;
+                } else {
+                    LOGGER.warning("Falló descarga desde: " + downloadUrl);
+                }
+            }
+            
+            if (!downloadSuccess) {
+                progressCallback.onError("No se pudo descargar la actualización desde ninguna fuente disponible.\n" +
+                    "Por favor, verifica tu conexión a internet o descarga manualmente desde GitHub.");
+                return false;
+            }
+            
+            // 3. Verificar que el nuevo JAR es válido (tiene tamaño razonable)
+            if (newJar.length() < 1000) {
+                progressCallback.onError("El archivo descargado parece estar corrupto");
+                newJar.delete();
+                return false;
+            }
+            
+            // 4. Reemplazar JAR actual con el nuevo
+            progressCallback.onProgress(90, "Aplicando actualización...");
+            
+            // En Windows, necesitamos renombrar en lugar de reemplazar directamente
+            // Esto funciona tanto si se ejecuta desde JAR como desde cualquier ubicación
+            if (System.getProperty("os.name").toLowerCase().contains("win")) {
+                File tempOld = new File(currentJarPath + ".old");
+                // Eliminar archivo .old anterior si existe
+                if (tempOld.exists()) {
+                    tempOld.delete();
+                }
+                // Renombrar JAR actual a .old
+                if (currentJar.exists()) {
+                    if (!currentJar.renameTo(tempOld)) {
+                        // Si falla el rename, intentar copiar y luego eliminar
+                        Files.copy(currentJar.toPath(), tempOld.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                }
+                }
+                // Renombrar nuevo JAR a actual
+                if (!newJar.renameTo(currentJar)) {
+                    // Si falla, intentar copiar
+                    Files.copy(newJar.toPath(), currentJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    newJar.delete();
+                }
+            } else {
+                // En Linux/Mac, usar move directamente
+                Files.move(newJar.toPath(), currentJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+            
+            // Limpiar archivo temporal si aún existe
+            if (newJar.exists()) {
+                newJar.delete();
+            }
+            
+            progressCallback.onProgress(100, "¡Actualización completada!");
+            LOGGER.info("Actualización aplicada exitosamente a versión " + version);
+            
+            return true;
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error aplicando actualización", e);
+            progressCallback.onError("Error: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Descarga un archivo desde una URL
+     */
+    private static boolean downloadFile(String urlString, File destination, ProgressCallback callback) {
+        try {
+            URL url = new java.net.URI(urlString).toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(30000);
+            
+            int responseCode = conn.getResponseCode();
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                LOGGER.warning("No se pudo descargar: " + responseCode);
+                return false;
+            }
+            
+            long fileSize = conn.getContentLengthLong();
+            try (InputStream inputStream = conn.getInputStream();
+                 FileOutputStream outputStream = new FileOutputStream(destination)) {
+                
+                byte[] buffer = new byte[4096];
+                long totalBytesRead = 0;
+                int bytesRead;
+                
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, bytesRead);
+                    totalBytesRead += bytesRead;
+                    
+                    if (fileSize > 0) {
+                        int progress = 20 + (int) ((totalBytesRead * 70) / fileSize);
+                        callback.onProgress(progress, "Descargando... " + 
+                            (totalBytesRead / 1024 / 1024) + " MB / " + 
+                            (fileSize / 1024 / 1024) + " MB");
+                    }
+                }
+            }
+            
+            return true;
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error descargando archivo: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Obtiene la ruta del JAR actual
+     * Funciona tanto si se ejecuta desde JAR como desde IDE
+     */
+    private static String getCurrentJarPath() {
+        try {
+            // Obtener la ruta del JAR desde la clase
+            java.net.URL location = UpdateManager.class.getProtectionDomain()
+                    .getCodeSource().getLocation();
+            
+            if (location == null) {
+                throw new Exception("No se pudo obtener la ubicación del código");
+            }
+            
+            String path = location.toURI().getPath();
+            
+            // Decodificar URL encoding
+            path = java.net.URLDecoder.decode(path, "UTF-8");
+            
+            // En Windows, remover el "/" inicial si existe
+            if (path.startsWith("/") && path.length() > 2 && path.charAt(2) == ':') {
+                path = path.substring(1);
+            }
+            
+            // Verificar que el archivo existe y es un JAR
+            File jarFile = new File(path);
+            if (jarFile.exists() && (path.toLowerCase().endsWith(".jar") || path.toLowerCase().endsWith(".exe"))) {
+                // Si es .exe, buscar el JAR asociado en la misma carpeta
+                if (path.toLowerCase().endsWith(".exe")) {
+                    File jarInSameDir = new File(jarFile.getParent(), "kriolos-pos.jar");
+                    if (jarInSameDir.exists()) {
+                        return jarInSameDir.getAbsolutePath();
+                    }
+                }
+                return jarFile.getAbsolutePath();
+            }
+            
+            // Si no es un JAR válido, buscar en ubicaciones comunes
+            String[] possiblePaths = {
+                "kriolos-pos.jar",
+                "target/kriolos-pos.jar",
+                "kriolos-opos-app/target/kriolos-pos.jar"
+            };
+            
+            for (String possiblePath : possiblePaths) {
+                File possibleFile = new File(possiblePath);
+                if (possibleFile.exists() && possibleFile.getName().endsWith(".jar")) {
+                    return possibleFile.getAbsolutePath();
+                }
+            }
+            
+            throw new Exception("No se encontró el archivo JAR");
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "No se pudo obtener ruta del JAR: " + e.getMessage());
+            // Último recurso: buscar en el directorio actual
+            File currentDir = new File(System.getProperty("user.dir"));
+            File[] jars = currentDir.listFiles((dir, name) -> name.endsWith(".jar") && name.contains("kriolos"));
+            if (jars != null && jars.length > 0) {
+                return jars[0].getAbsolutePath();
+            }
+            return null;
+        }
+    }
+    
+    /**
+     * Restaura el respaldo en caso de error
+     */
+    public static boolean restoreBackup() {
+        try {
+            String currentJarPath = getCurrentJarPath();
+            File currentJar = new File(currentJarPath);
+            File backupJar = new File(currentJarPath + ".backup");
+            
+            if (backupJar.exists()) {
+                Files.copy(backupJar.toPath(), currentJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                LOGGER.info("Respaldo restaurado exitosamente");
+                return true;
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error restaurando respaldo", e);
+        }
+        return false;
+    }
+    
+    /**
+     * Interfaz para reportar progreso de la actualización
+     */
+    public interface ProgressCallback {
+        void onProgress(int percentage, String message);
+        void onError(String error);
+    }
+}
+

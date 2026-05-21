@@ -1,0 +1,44 @@
+/**/target/
+/**/*.iml
+/.settings/
+/.idea/
+*.prefs
+.classpath
+.project
+/build
+/docs/**/asciidoc/.asciidoctor/
+/docs/**/asciidoc/images/
+/.dbase/
+/**/kriolopos/
+/**/kriolopos.lck
+/**/kriolopos.log
+
+# GraalVM files (too large for GitHub)
+graalvm-java21.zip
+graalvm-java21/
+jdk-install.log
+
+# Build output and installer files (too large for GitHub)
+installer/output-jpackage/
+installer/output-final/
+custom-jre/
+SebastianPOS-Distribuible/
+
+# Launch4j tools (too large, can be downloaded)
+launch4j.zip
+launch4j-installer.zip
+launch4j/
+
+# Large JAR and binary files
+**/*.jar.original
+**/kriolos-pos.jar
+
+kriolopos/
+scripts/cleanup-temp.ps1
+tmp_extracted_jar/
+
+# Executables and build distributions
+dist/
+*.exe
+*.class
+punto-mx-mirror/

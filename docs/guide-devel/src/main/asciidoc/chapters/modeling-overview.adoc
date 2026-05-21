@@ -1,0 +1,95 @@
+[[gd-modeling]]
+== Modeling
+
+TODO write overview here
+
+=== Data Loader
+
+.Data Loader Class Diagram
+[plantuml]
+----
+@startuml
+
+class Session
+class DataField
+interface DataRead
+interface DataWrite<T>
+interface DataResultSet<T> 
+
+interface SentenceExec
+interface SentenceFind
+interface SentenceList
+abstract class BaseSentence
+abstract class JDBCBaseSentence
+abstract class BatchSentence
+class JDBCDataResultSet
+interface ISQLBuilderStatic
+class UpdateDataResultSet<T>
+
+interface SerializerWrite {
+  writeValues(DataWrite dp, Object parameters)
+}
+
+interface SerializerRead<T> {
+  T readValues(DataRead dr)
+}
+
+class SerializerReadBasic
+
+
+SentenceExec <-- BaseSentence
+SentenceFind <-- BaseSentence
+SentenceList <-- BaseSentence
+
+BaseSentence <-- JDBCBaseSentence
+BaseSentence <-- BatchSentence
+
+
+DataRead <|-- DataResultSet
+DataResultSet <|-- JDBCDataResultSet
+DataResultSet <-- UpdateDataResultSet
+
+SerializerRead <-- SerializerReadBasic
+
+@enduml
+----
+
+
+=== Ticket Panel
+
+.TicketPanel Class
+[plantuml]
+----
+@startuml
+
+interface TicketSelector
+interface TicketEditor
+
+class JTicketBag
+class JTicketsBagTicket
+class JPanelTicketSales
+class JPanelTicket {
+    abstract getJTicketsBag(): JTicketBag
+}
+
+
+TicketEditor <.. JPanelTicket
+
+JPanelTicket <-- JPanelTicketSales
+
+JTicketBag <-- JTicketsBagTicket
+
+TicketSelector <.. OrderCustomerList
+
+JPanelTicket <.. JPanelTicketEdits
+
+
+@enduml
+----
+
+
+
+=== Reference
+
+* todo
+

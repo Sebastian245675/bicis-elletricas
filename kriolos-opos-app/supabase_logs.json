@@ -1,0 +1,414 @@
+[ {
+  "timestamp" : "Mon Nov 10 12:33:21 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Mon Nov 10 12:33:21 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Mon Nov 10 12:33:21 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Mon Nov 10 12:33:21 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Mon Nov 10 12:33:28 GMT-05:00 2025",
+  "table" : "usuarios",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Mon Nov 10 12:33:28 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Mon Nov 10 12:33:28 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Mon Nov 10 12:33:28 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Mon Nov 10 12:33:28 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Mon Nov 10 12:33:39 GMT-05:00 2025",
+  "table" : "usuarios",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Mon Nov 10 12:33:41 GMT-05:00 2025",
+  "table" : "usuarios",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Mon Nov 10 12:33:48 GMT-05:00 2025",
+  "table" : "usuarios",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Mon Nov 10 13:24:43 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:24:44 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:24:44 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:24:45 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:24:45 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST204\",\"details\":null,\"hint\":null,\"message\":\"Could not find the 'clienteid' column of 'puntos_historial' in the schema cache\"}"
+}, {
+  "timestamp" : "Mon Nov 10 13:24:46 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:24:46 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:24:46 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:24:46 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:24:54 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:24:54 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:24:54 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:24:55 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:24:55 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST204\",\"details\":null,\"hint\":null,\"message\":\"Could not find the 'clienteid' column of 'puntos_historial' in the schema cache\"}"
+}, {
+  "timestamp" : "Mon Nov 10 13:24:56 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:24:56 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:24:56 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:29:51 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:29:52 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:29:52 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:29:53 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:29:53 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST204\",\"details\":null,\"hint\":null,\"message\":\"Could not find the 'clienteid' column of 'puntos_historial' in the schema cache\"}"
+}, {
+  "timestamp" : "Mon Nov 10 13:29:53 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:29:53 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:29:54 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:29:54 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:29:54 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:37:16 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:37:16 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:37:16 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:37:17 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:37:17 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST204\",\"details\":null,\"hint\":null,\"message\":\"Could not find the 'clienteid' column of 'puntos_historial' in the schema cache\"}"
+}, {
+  "timestamp" : "Mon Nov 10 13:37:18 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:37:18 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:37:18 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:37:18 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:37:19 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:52:09 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:52:10 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:52:10 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:52:10 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:52:11 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST204\",\"details\":null,\"hint\":null,\"message\":\"Could not find the 'clienteid' column of 'puntos_historial' in the schema cache\"}"
+}, {
+  "timestamp" : "Mon Nov 10 13:52:11 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:52:11 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:52:12 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:52:12 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Mon Nov 10 13:52:12 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+} ]

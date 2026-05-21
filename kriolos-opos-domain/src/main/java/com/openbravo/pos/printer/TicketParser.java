@@ -1,0 +1,539 @@
+//    KriolOS POS
+//    Copyright (c) 2019-2023 KriolOS
+//
+//    This program is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+package com.openbravo.pos.printer;
+
+import com.openbravo.basic.BasicException;
+import com.openbravo.pos.forms.DataLogicSystem;
+import com.openbravo.pos.ticket.TicketInfo;
+import com.openbravo.pos.util.AudioUtils;
+import com.openbravo.pos.util.SAXParserUtils;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
+
+/**
+ *
+ * @author JG uniCenta
+ */
+public class TicketParser extends DefaultHandler {
+
+    private static final Logger LOGGER = Logger.getLogger(TicketParser.class.getName());
+
+    private final DeviceTicket printer;
+    private final DataLogicSystem dataLogicSystem;
+
+    private StringBuilder currentText;
+
+    private String barcodeType;
+    private String barcodePosition;
+    private int textAlignment;
+    private int textLength;
+    private int textStyle;
+
+    private StringBuilder visorLineBuilder;
+    private int visorAnimation;
+    private String visorLine1;
+    private String visorLine2;
+
+    private double fiscalTicketLinePrice;
+    private double fiscalTicketLineQty;
+    private double fiscalTicketTotalPaid;
+    private int fiscalTicketLineTaxInfo;
+
+    private int outputType;
+    private static final int OUTPUT_NONE = 0;
+    private static final int OUTPUT_DISPLAY = 1;
+    private static final int OUTPUT_TICKET = 2;
+    private static final int OUTPUT_FISCAL = 3;
+    private DevicePrinter outputPrinter;
+    private String currentUser;
+    private String ticketId;
+
+    public TicketParser(DeviceTicket printer, DataLogicSystem system) {
+        this.printer = printer;
+        this.dataLogicSystem = system;
+    }
+
+    public void printTicket(String xmlInput, TicketInfo ticket) throws TicketPrinterException {
+        this.currentUser = ticket.getName();
+        this.ticketId = (ticket.getTicketId() == 0) ? "No Sale" : Integer.toString(ticket.getTicketId());
+
+        try (Reader in = new StringReader(xmlInput)) {
+            printTicket(in);
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "I/O error closing StringReader.", e);
+        }
+
+    }
+
+    public void printTicket(String xmlInput) throws TicketPrinterException {
+        try (Reader in = new StringReader(xmlInput)) {
+            printTicket(in);
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "I/O error closing StringReader.", e);
+        }
+    }
+
+    public void printTicket(Reader in) throws TicketPrinterException {
+        
+        try {
+            SAXParserFactory spf = SAXParserUtils.newSecureInstance();
+            // A new parser instance for each call ensures thread safety
+            SAXParser sp = spf.newSAXParser();
+            sp.parse(new InputSource(in), this);
+
+        } catch (ParserConfigurationException ex) {
+            LOGGER.log(Level.SEVERE, "Parser configuration error.", ex);
+            throw new TicketPrinterException("exception.parserconfig", ex);
+        } catch (SAXException ex) {
+            LOGGER.log(Level.SEVERE, "XML parsing error.", ex);
+            throw new TicketPrinterException("exception.xmlfile", ex);
+        } catch (IOException ex) {
+            LOGGER.log(Level.SEVERE, "I/O error during parsing.", ex);
+            throw new TicketPrinterException("exception.iofile", ex);
+        }
+    }
+
+    @Override
+    public void startDocument() throws SAXException {
+        currentText = null;
+        barcodeType = null;
+        barcodePosition = null;
+        visorLineBuilder = null;
+        visorAnimation = DeviceDisplayBase.ANIMATION_NULL;
+        visorLine1 = null;
+        visorLine2 = null;
+        outputType = OUTPUT_NONE;
+        outputPrinter = null;
+    }
+
+    @Override
+    public void endDocument() throws SAXException {
+    }
+
+    @Override
+    public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
+
+        switch (outputType) {
+            case OUTPUT_NONE:
+                handleNoOutputStart(qName, attributes);
+                break;
+            case OUTPUT_TICKET:
+                handleTicketOutputStart(qName, attributes);
+                break;
+            case OUTPUT_DISPLAY:
+                handleDisplayOutputStart(qName, attributes);
+                break;
+            case OUTPUT_FISCAL:
+                handleFiscalOutputStart(qName, attributes);
+                break;
+        }
+    }
+
+    @Override
+    public void endElement(String uri, String localName, String qName) throws SAXException {
+
+        switch (outputType) {
+            case OUTPUT_NONE:
+                handleNoOutputEnd(qName);
+                break;
+
+            case OUTPUT_TICKET:
+                handleTicketOutputEnd(qName);
+                break;
+            case OUTPUT_DISPLAY:
+                handleDisplayOutputEnd(qName);
+                break;
+            case OUTPUT_FISCAL:
+                handleFiscalOutputEnd(qName);
+                break;
+        }
+    }
+
+    @Override
+    public void characters(char[] ch, int start, int length) throws SAXException {
+        if (currentText != null) {
+            currentText.append(ch, start, length);
+        }
+    }
+
+    private void handleNoOutputStart(String qName, Attributes attributes) throws SAXException {
+        switch (qName) {
+            case "opendrawer":
+                printer.getDevicePrinter(readString(attributes.getValue("printer"), "1")).openDrawer();
+                // Cashdrawer has been activated record the data in the table
+                try {
+                    dataLogicSystem.execDrawerOpened(
+                            new Object[]{currentUser, ticketId});
+                } catch (BasicException ex) {
+                    LOGGER.log(Level.SEVERE, "Failed to log drawer opened event.", ex);
+                }
+                break;
+            case "play":
+                currentText = new StringBuilder();
+                break;
+            case "ticket":
+                // #region agent log
+                try {
+                    java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\USUARIO\\Downloads\\bicis_mx\\bici\\punto-mx\\app-errors.log", true);
+                    fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_start\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"TicketParser.java:203\",\"message\":\"Ticket tag found, setting OUTPUT_TICKET\",\"data\":{\"outputType\":2,\"printer\":\"" + readString(attributes.getValue("printer"), "1") + "\"},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"E\"}\n");
+                    fw.close();
+                } catch (Exception ex) {}
+                // #endregion
+                outputType = OUTPUT_TICKET;
+                outputPrinter = printer.getDevicePrinter(readString(attributes.getValue("printer"), "1"));
+                outputPrinter.beginReceipt();
+                break;
+            case "display":
+                // #region agent log
+                try {
+                    java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\USUARIO\\Downloads\\bicis_mx\\bici\\punto-mx\\app-errors.log", true);
+                    fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_display_start\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"TicketParser.java:208\",\"message\":\"Display tag found, setting OUTPUT_DISPLAY\",\"data\":{\"outputType\":1,\"currentOutputTypeBefore\":" + outputType + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"E\"}\n");
+                    fw.close();
+                } catch (Exception ex) {}
+                // #endregion
+                outputType = OUTPUT_DISPLAY;
+                String animation = attributes.getValue("animation");
+
+                visorAnimation = parseAnimation(animation);
+                visorLine1 = null;
+                visorLine2 = null;
+                outputPrinter = null;
+                break;
+            case "fiscalreceipt":
+                outputType = OUTPUT_FISCAL;
+                printer.getFiscalPrinter().beginReceipt();
+                break;
+            case "fiscalzreport":
+                printer.getFiscalPrinter().printZReport();
+                break;
+            case "fiscalxreport":
+                printer.getFiscalPrinter().printXReport();
+                break;
+        }
+    }
+
+    private void handleNoOutputEnd(String qName) {
+
+        String textContent = (currentText != null) ? currentText.toString() : null;
+        if ("play".equals(qName) && textContent != null) {
+            AudioUtils.play(textContent);
+            currentText = null;
+        }
+    }
+
+    private void handleTicketOutputStart(String qName, Attributes attributes) throws SAXException {
+        switch (qName) {
+            case "logo":
+                currentText = new StringBuilder();
+                break;
+            case "image":
+                currentText = new StringBuilder();
+                break;
+            case "barcode":
+                currentText = new StringBuilder();
+                barcodeType = attributes.getValue("type");
+                barcodePosition = attributes.getValue("position");
+                break;
+            case "line":
+                outputPrinter.beginLine(parseInt(attributes.getValue("size"), DevicePrinter.SIZE_0));
+                break;
+            case "text":
+                currentText = new StringBuilder();
+                textStyle = ("true".equals(attributes.getValue("bold"))
+                        ? DevicePrinter.STYLE_BOLD : DevicePrinter.STYLE_PLAIN)
+                        | ("true".equals(attributes.getValue("underline"))
+                        ? DevicePrinter.STYLE_UNDERLINE : DevicePrinter.STYLE_PLAIN);
+                String sAlign = attributes.getValue("align");
+                textAlignment = parseTextAlignment(sAlign);
+                textLength = parseInt(attributes.getValue("length"), 0);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void handleTicketOutputEnd(String qName) throws SAXException {
+        //String textContent = (currentText != null) ? currentText.toString() : null;
+        switch (qName) {
+            case "logo":
+                //Star TSP700 to print stored logo image JDL
+                outputPrinter.printLogo();
+                break;
+            case "image":
+                try {
+                    String imageName = (currentText != null) ? currentText.toString() : "";
+                    if (!imageName.isEmpty()) {
+                        BufferedImage image = dataLogicSystem.getResourceAsImage(imageName);
+                        if (image != null) {
+                            outputPrinter.printImage(image);
+                        }
+                    }
+                } catch (Exception ex) {
+                    LOGGER.log(Level.SEVERE, "Failed to load image resource.", ex);
+                }
+                currentText = null;
+                break;
+            case "barcode":
+                String barcodeContent = (currentText != null) ? currentText.toString() : "";
+                outputPrinter.printBarCode(barcodeType,
+                        barcodePosition,
+                        barcodeContent);
+                currentText = null;
+                break;
+            case "text":
+                String textContent = (currentText != null) ? currentText.toString() : "";
+                if (textLength > 0) {
+                    outputPrinter.printText(textStyle, DeviceTicket.alignText(textAlignment, textContent, textLength));
+                } else {
+                    outputPrinter.printText(textStyle, textContent);
+                }
+                currentText = null;
+                break;
+            case "line":
+                outputPrinter.endLine();
+                break;
+            case "ticket":
+                // #region agent log
+                try {
+                    java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\USUARIO\\Downloads\\bicis_mx\\bici\\punto-mx\\app-errors.log", true);
+                    fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_end\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"TicketParser.java:320\",\"message\":\"Ticket tag closed, calling endReceipt\",\"data\":{\"outputTypeBefore\":2},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"E\"}\n");
+                    fw.close();
+                } catch (Exception ex) {}
+                // #endregion
+                outputPrinter.endReceipt();
+                outputType = OUTPUT_NONE;
+                outputPrinter = null;
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void handleDisplayOutputStart(String qName, Attributes attributes) {
+        switch (qName) {
+            case "line":
+                // line 1 or 2 of the display
+                visorLineBuilder = new StringBuilder();
+                break;
+            case "line1":
+                // linea 1 del visor
+                visorLineBuilder = new StringBuilder();
+                break;
+            case "line2":
+                // linea 2 del visor
+                visorLineBuilder = new StringBuilder();
+                break;
+            case "text":
+                currentText = new StringBuilder();
+                String sAlign = attributes.getValue("align");
+                textAlignment = parseTextAlignment(sAlign);
+                textLength = parseInt(attributes.getValue("length"));
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void handleDisplayOutputEnd(String qName) {
+        switch (qName) {
+            case "line":
+                // line 1 or 2 of the display
+                if (visorLine1 == null) {
+                    visorLine1 = visorLineBuilder.toString();
+                } else {
+                    visorLine2 = visorLineBuilder.toString();
+                }
+                visorLineBuilder = null;
+                break;
+            case "line1":
+                // linea 1 del visor
+                visorLine1 = visorLineBuilder.toString();
+                visorLineBuilder = null;
+                break;
+            case "line2":
+                // linea 2 del visor
+                visorLine2 = visorLineBuilder.toString();
+                visorLineBuilder = null;
+                break;
+            case "text":
+                String displayTextContent = (currentText != null) ? currentText.toString() : "";
+                if (textLength > 0) {
+                    switch (textAlignment) {
+                        case DevicePrinter.ALIGN_RIGHT:
+                            visorLineBuilder.append(DeviceTicket.alignRight(displayTextContent, textLength));
+                            break;
+                        case DevicePrinter.ALIGN_CENTER:
+                            visorLineBuilder.append(DeviceTicket.alignCenter(displayTextContent, textLength));
+                            break;
+                        default: // DevicePrinter.ALIGN_LEFT
+                            visorLineBuilder.append(DeviceTicket.alignLeft(displayTextContent, textLength));
+                            break;
+                    }
+                } else {
+                    visorLineBuilder.append(displayTextContent);
+                }
+                // Verificar si es DeviceDisplayLED8 usando el nombre de clase para evitar dependencia directa
+                if (this.textStyle > -1) {
+                    DeviceDisplay display = this.printer.getDeviceDisplay();
+                    if (display != null && display.getClass().getName().equals("com.openbravo.pos.printer.escpos.DeviceDisplayLED8")) {
+                        try {
+                            // Usar reflexión para llamar al método displayLight sin importar la clase
+                            java.lang.reflect.Method displayLightMethod = display.getClass().getMethod("displayLight", int.class);
+                            displayLightMethod.invoke(display, this.textStyle);
+                        } catch (Exception ex) {
+                            // Si no se puede invocar el método, ignorar silenciosamente
+                            LOGGER.log(Level.FINEST, "Could not invoke displayLight method", ex);
+                        }
+                    }
+                }
+                currentText = null;
+                break;
+            case "display":
+                printer.getDeviceDisplay().writeVisor(visorAnimation, visorLine1, visorLine2);
+                visorAnimation = DeviceDisplayBase.ANIMATION_NULL;
+                visorLine1 = null;
+                visorLine2 = null;
+                outputType = OUTPUT_NONE;
+                outputPrinter = null;
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void handleFiscalOutputStart(String qName, Attributes attributes) {
+
+        switch (qName) {
+            case "line":
+                currentText = new StringBuilder();
+                fiscalTicketLinePrice = parseDouble(attributes.getValue("price"));
+                fiscalTicketLineQty = parseDouble(attributes.getValue("units"), 1.0);
+                fiscalTicketLineTaxInfo = parseInt(attributes.getValue("tax"));
+                break;
+            case "message":
+                currentText = new StringBuilder();
+                break;
+            case "total":
+                currentText = new StringBuilder();
+                fiscalTicketTotalPaid = parseDouble(attributes.getValue("paid"));
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void handleFiscalOutputEnd(String qName) {
+        switch (qName) {
+            case "fiscalreceipt":
+                printer.getFiscalPrinter().endReceipt();
+                outputType = OUTPUT_NONE;
+                break;
+            case "line":
+                printer.getFiscalPrinter().printLine(currentText.toString(), fiscalTicketLinePrice, fiscalTicketLineQty, fiscalTicketLineTaxInfo);
+                currentText = null;
+                break;
+            case "message":
+                printer.getFiscalPrinter().printMessage(currentText.toString());
+                currentText = null;
+                break;
+            case "total":
+                printer.getFiscalPrinter().printTotal(currentText.toString(), fiscalTicketTotalPaid);
+                currentText = null;
+                break;
+            default:
+                break;
+        }
+    }
+
+    /**
+     * Helper to parse text alignment attribute.
+     */
+    private int parseTextAlignment(String align) {
+        return switch (readString(align, "left")) {
+            case "right" ->
+                DevicePrinter.ALIGN_RIGHT;
+            case "center" ->
+                DevicePrinter.ALIGN_CENTER;
+            default ->
+                DevicePrinter.ALIGN_LEFT;
+        };
+    }
+
+    /**
+     * Parses the animation attribute string.
+     *
+     * @param animationString The animation string from XML.
+     * @return The corresponding animation constant.
+     */
+    private int parseAnimation(String animationString) {
+        return switch (readString(animationString, "none")) {
+            case "scroll" ->
+                DeviceDisplayBase.ANIMATION_SCROLL;
+            case "flyer" ->
+                DeviceDisplayBase.ANIMATION_FLYER;
+            case "blink" ->
+                DeviceDisplayBase.ANIMATION_BLINK;
+            case "curtain" ->
+                DeviceDisplayBase.ANIMATION_CURTAIN;
+            default ->
+                DeviceDisplayBase.ANIMATION_NULL;
+        };
+    }
+
+    private int parseInt(String sValue, int iDefault) {
+        try {
+            return Integer.parseInt(sValue);
+        } catch (NumberFormatException eNF) {
+            return iDefault;
+        }
+    }
+
+    private int parseInt(String sValue) {
+        return parseInt(sValue, 0);
+    }
+
+    private double parseDouble(String sValue, double ddefault) {
+        try {
+            return Double.parseDouble(sValue);
+        } catch (NumberFormatException eNF) {
+            return ddefault;
+        }
+    }
+
+    private double parseDouble(String sValue) {
+        return parseDouble(sValue, 0.0);
+    }
+
+    private String readString(String value, String defaultValue) {
+        return (value == null) ? defaultValue : value;
+    }
+}

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch4jConfig>
+  <dontWrapJar>false</dontWrapJar>
+  <headerType>gui</headerType>
+  <jar>D:\punto-mx\kriolos-opos-app\target\kriolos-pos.jar</jar>
+  <outfile>D:\punto-mx\target\CONNECTING-POS.exe</outfile>
+  <errTitle>CONNECTING POS Error</errTitle>
+  <cmdLine></cmdLine>
+  <chdir>.</chdir>
+  <priority>normal</priority>
+  <downloadUrl>https://adoptium.net/</downloadUrl>
+  <supportUrl>https://github.com/Sebastian245675/punto-mx</supportUrl>
+  <stayAlive>false</stayAlive>
+  <restartOnCrash>false</restartOnCrash>
+  <manifest></manifest>
+  <icon>icono.ico</icon>
+  <jre>
+    <path>jre</path>
+    <requiresJdk>false</requiresJdk>
+    <requires64Bit>false</requires64Bit>
+    <minVersion>21</minVersion>
+    <maxVersion></maxVersion>
+    <opt>-Xmx2048m</opt>
+    <opt>-Djava.util.logging.config.file=logging.properties</opt>
+  </jre>
+  <versionInfo>
+    <fileVersion>1.0.0.0</fileVersion>
+    <txtFileVersion>1.0.0</txtFileVersion>
+    <fileDescription>CONNECTING POS - Sistema de Punto de Venta</fileDescription>
+    <copyright>2025 CONNECTING POS</copyright>
+    <productVersion>1.0.0.0</productVersion>
+    <txtProductVersion>1.0.0</txtProductVersion>
+    <productName>CONNECTING POS</productName>
+    <companyName>CONNECTING POS</companyName>
+    <internalName>CONNECTING-POS</internalName>
+    <originalFilename>CONNECTING-POS.exe</originalFilename>
+  </versionInfo>
+</launch4jConfig>

@@ -1,0 +1,40 @@
+// Global settings
+:ascii-ids:
+:encoding: UTF-8
+:lang: en
+:icons: font
+:toc:
+:toc-placement!:
+:toclevels: 3
+:numbered:
+:stem:
+
+ifdef::env-github[]
+:imagesdir: https://raw.githubusercontent.com/poolborges/unicenta-pos/main/docs/images/
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+:badges:
+:doc-dir: https://github.com/poolborges/unicenta-pos/tree/main/docs
+endif::[]
+
+[[doc]]
+= Project Documentation
+:author: Copyright (c) 2020-2022 KriolOS.
+:revnumber: 2022-08-23
+:revdate: {last-update-label} {docdatetime}
+:version-label!:
+
+== Docs
+
+* link:{doc-dir}/guide-devel/[Developer Guide]
+
+
+
+== References
+
+* AsciiDoc Home Page, http://www.methods.co.nz/asciidoc/
+* AsciiDoc cheatsheet, https://powerman.name/doc/asciidoc
+* Asciidoctor User Manual, https://asciidoctor.org/docs/user-manual/

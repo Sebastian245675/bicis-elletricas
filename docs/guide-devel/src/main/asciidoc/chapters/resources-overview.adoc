@@ -1,0 +1,47 @@
+[[gd-resources]]
+== Resources
+
+Resource for POS Customization
+
+=== Overview
+
+.Acronimous
+[%header]
+|====
+|Acron |Descr
+
+|UPC |Universal Price Codes
+|====
+
+List of resources 
+
+.Kind of Resources 
+[%header]
+|====
+|Name   |Descr
+
+|ICONS
+|for Region/Culture (Money, COINS) (KRPOS\assets\currenc)
+
+|FONT
+|for fonts (KRPOS\assets\fonts)
+
+|Geo MAP
+|for region, country
+
+|Floor Plan
+|(for Restaurant)
+
+|Default Entities 
+|(Product Category, Leave, Tax): CSV,XML,
+
+|====
+
+
+
+=== References 
+
+* https://candyfonts.com/font/new-19.htm
+* https://fonts2u.com/free-3-of-9-regular.font
+* https://www.free-barcode-font.com/
+* https://www.fontsupply.com/fonts/F/Fre3of9x.html

@@ -1,0 +1,125 @@
+<jasperReport name="quotation" language="java" pageWidth="595" pageHeight="842" columnWidth="535" leftMargin="30" rightMargin="30" topMargin="20" bottomMargin="20" uuid="7a1e2d3b-4c5d-6e7f-8a9b-0c1d2e3f4a5b">
+	<property name="ireport.zoom" value="1.5"/>
+	<parameter name="CLIENT_NAME" class="java.lang.String"/>
+	<parameter name="CLIENT_PHONE" class="java.lang.String"/>
+	<parameter name="QUOTE_NO" class="java.lang.String"/>
+	<parameter name="QUOTE_DATE" class="java.lang.String"/>
+	<parameter name="SUBTOTAL" class="java.lang.String"/>
+	<parameter name="SHIPPING" class="java.lang.String"/>
+	<parameter name="TOTAL" class="java.lang.String"/>
+	<parameter name="LOGO_PATH" class="java.lang.String"/>
+	<field name="REFERENCE" class="java.lang.String"/>
+	<field name="NAME" class="java.lang.String"/>
+	<field name="COLOR" class="java.lang.String"/>
+	<field name="PRICE" class="java.lang.Double"/>
+	<field name="UNITS" class="java.lang.Double"/>
+	<field name="TOTAL" class="java.lang.Double"/>
+	<background/>
+	<title height="130">
+		<element kind="image" uuid="e1f2a3b4-c5d6-e7f8-a0b0-c1d2e3f4a5b6" x="0" y="0" width="150" height="50">
+			<expression><![CDATA[$P{LOGO_PATH}]]></expression>
+		</element>
+		<element kind="textField" uuid="f1e2d3c4-b5a6-9788-c9d0-e1f2a3b4c5d6" mode="Transparent" x="250" y="5" width="100" height="20" forecolor="#7F8C8D" fontSize="12.0" bold="false" hTextAlign="Center">
+			<expression><![CDATA["Cotización"]]></expression>
+		</element>
+		<element kind="textField" uuid="a1b2c3d4-e5f6-a7b8-c901-d1e2f3a4b5c6" x="400" y="5" width="135" height="15" forecolor="#2C3E50" bold="false" hTextAlign="Right">
+			<expression><![CDATA[$P{QUOTE_NO}]]></expression>
+		</element>
+		<element kind="textField" uuid="b2c3d4e5-f6a7-b8c9-d012-e3f4a5b6c7d8" x="400" y="20" width="135" height="15" forecolor="#7F8C8D" hTextAlign="Right">
+			<expression><![CDATA[$P{QUOTE_DATE}]]></expression>
+		</element>
+		
+		<element kind="textField" uuid="c3d4e5f6-a7b8-b9a0-b1c2-d3e4f5a6b7c8" x="0" y="70" width="100" height="15" forecolor="#2C3E50" fontSize="11.0" bold="true">
+			<expression><![CDATA["Cliente"]]></expression>
+		</element>
+		<element kind="textField" uuid="d4e5f6a7-b8c9-a0b1-c2d3-e4f5a6b7c8d9" x="0" y="85" width="400" height="18" fontSize="11.0" bold="false">
+			<expression><![CDATA[$P{CLIENT_NAME}]]></expression>
+		</element>
+		<element kind="textField" uuid="e5f6a7b8-c9a0-b1c2-d3e4-e5f6a7b8c9d0" x="0" y="105" width="400" height="15" forecolor="#34495E">
+			<expression><![CDATA[$P{CLIENT_PHONE}]]></expression>
+		</element>
+	</title>
+	
+	<columnHeader height="60">
+		<element kind="textField" uuid="550e8400-e29b-41d4-a716-446655440001" x="0" y="0" width="535" height="25" forecolor="#34495E" fontSize="9.0" hTextAlign="Center">
+			<expression><![CDATA["Cada modelo Bicicletas incluye: pedales, cargador, espejos, 2 llaves, 2 controladores, manual. Scooter incluye cargador y manual"]]></expression>
+		</element>
+		
+		<element kind="textField" uuid="a7b8c9d0-a1b2-c3d4-e5f6-a7b8c9d0e1f2" x="0" y="35" width="70" height="15" forecolor="#2C3E50" bold="false">
+			<expression><![CDATA["ARTÍCULOS"]]></expression>
+		</element>
+		<element kind="textField" uuid="b8c9d0e1-b2c3-d4e5-f6a7-b8c9d0e1f2a3" x="75" y="35" width="180" height="15" forecolor="#2C3E50" bold="false">
+			<expression><![CDATA["Nombre del producto"]]></expression>
+		</element>
+		<element kind="textField" uuid="550e8400-e29b-41d4-a716-446655440002" x="260" y="35" width="80" height="15" forecolor="#2C3E50" bold="false">
+			<expression><![CDATA["Color"]]></expression>
+		</element>
+		<element kind="textField" uuid="c9d0e1f2-c3d4-e5f6-a7b8-c9d0e1f2a3b4" x="345" y="35" width="70" height="15" forecolor="#2C3E50" bold="false" hTextAlign="Right">
+			<expression><![CDATA["PRECIO"]]></expression>
+		</element>
+		<element kind="textField" uuid="d0e1f2a3-d4e5-f6a7-b8c9-d0e1f2a3b4c5" x="420" y="35" width="50" height="15" forecolor="#2C3E50" bold="false" hTextAlign="Center">
+			<expression><![CDATA["CANTIDAD"]]></expression>
+		</element>
+		<element kind="textField" uuid="e1f2a3b4-e5f6-a7b8-b9c0-d1e2f3a4b5c6" x="475" y="35" width="60" height="15" forecolor="#2C3E50" bold="false" hTextAlign="Right">
+			<expression><![CDATA["TOTAL"]]></expression>
+		</element>
+	</columnHeader>
+	<detail>
+		<band height="20">
+			<element kind="textField" uuid="a2b3c4d5-e6f7-a8b9-c0d1-e2f3a4b5c6d7" x="0" y="0" width="70" height="15" fontSize="9.0">
+				<expression><![CDATA[$F{REFERENCE}]]></expression>
+			</element>
+			<element kind="textField" uuid="b3c4d5e6-f7a8-b9c0-d1e2-f3a4b5c6d7e8" x="75" y="0" width="180" height="15" fontSize="9.0">
+				<expression><![CDATA[$F{NAME}]]></expression>
+			</element>
+			<element kind="textField" uuid="550e8400-e29b-41d4-a716-446655440003" x="260" y="0" width="80" height="15" fontSize="9.0">
+				<expression><![CDATA[$F{COLOR}]]></expression>
+			</element>
+			<element kind="textField" uuid="c4d5e6f7-a8b9-c0d1-e2f3-a4b5c6d7e8f9" x="345" y="0" width="70" height="15" pattern="#,##0.00" fontSize="9.0" hTextAlign="Right">
+				<expression><![CDATA[$F{PRICE}]]></expression>
+			</element>
+			<element kind="textField" uuid="d5e6f7a8-b9c0-d1e2-f3a4-b5c6d7e8f9a0" x="420" y="0" width="50" height="15" pattern="#,##0" fontSize="9.0" hTextAlign="Center">
+				<expression><![CDATA[$F{UNITS}]]></expression>
+			</element>
+			<element kind="textField" uuid="e6f7a8b9-c0d1-e2f3-a4b5-c6d7e8f9a0b1" x="475" y="0" width="60" height="15" pattern="#,##0.00" fontSize="9.0" hTextAlign="Right">
+				<expression><![CDATA[$F{TOTAL}]]></expression>
+			</element>
+		</band>
+	</detail>
+	<summary height="250">
+		<element kind="textField" uuid="a8b9c0d1-e2f3-a4b5-c6d7-e8f9a0b1c2d3" x="350" y="20" width="100" height="15" forecolor="#2C3E50" fontSize="10.0" bold="true" hTextAlign="Right">
+			<expression><![CDATA["Importe total"]]></expression>
+		</element>
+		<element kind="textField" uuid="b9c0d1e2-f3a4-b5c6-d7e8-f9a0b1c2d3e4" x="455" y="20" width="80" height="15" fontSize="10.0" hTextAlign="Right">
+			<expression><![CDATA[$P{SUBTOTAL}]]></expression>
+		</element>
+		<element kind="textField" uuid="c0d1e2f3-a4b5-c6d7-e8f9-a0b1c2d3e4f5" x="330" y="35" width="120" height="15" forecolor="#2980B9" fontSize="9.0" bold="false" hTextAlign="Right">
+			<expression><![CDATA["Gastos de envío"]]></expression>
+		</element>
+		<element kind="textField" uuid="d1e2f3a4-b5c6-d7e8-f9a0-b1c2d3e4f5a6" x="455" y="35" width="80" height="15" fontSize="9.0" hTextAlign="Right">
+			<expression><![CDATA[$P{SHIPPING}]]></expression>
+		</element>
+		<element kind="textField" uuid="f3a4b5c6-d7e8-f9a0-b1c2-d3e4f5a6b7c8" x="350" y="50" width="100" height="15" forecolor="#2C3E50" fontSize="10.0" bold="true" hTextAlign="Right">
+			<expression><![CDATA["Precio total"]]></expression>
+		</element>
+		<element kind="textField" uuid="a4b5c6d7-e8f9-a0b1-c2d3-e4f5a6b7c8d9" x="455" y="50" width="80" height="15" forecolor="#2C3E50" fontSize="10.0" bold="false" hTextAlign="Right">
+			<expression><![CDATA[$P{TOTAL}]]></expression>
+		</element>
+		
+		<element kind="line" uuid="b5c6d7e8-f9a0-b1c2-d3e4-e5f6a7b8c9d1" x="120" y="140" width="220" height="1" forecolor="#2C3E50"/>
+		<element kind="textField" uuid="b5c6d7e8-f9a0-b1c2-d3e4-e5f6a7b8c9d2" x="120" y="145" width="220" height="15" forecolor="#2C3E50" fontSize="9.0" bold="false" hTextAlign="Center">
+			<expression><![CDATA["Firma de Recibido"]]></expression>
+		</element>
+
+		<element kind="textField" uuid="c6d7e8f9-a0b1-c2d3-e4f5-a6b7c8d9e0a1" x="0" y="165" width="460" height="60" forecolor="#34495E" fontSize="9.0" hTextAlign="Center">
+			<expression><![CDATA["Consulta nuestros términos y condiciones en nuestro sitio web\nRepararaciones: Telefono 55 3459 2993\nwww.evobike.com.mx"]]></expression>
+		</element>
+		
+		<element kind="rectangle" uuid="550e8400-e29b-41d4-a716-446655440004" x="450" y="130" width="80" height="80" forecolor="#27AE60">
+			<pen lineWidth="1.0" lineStyle="Dashed"/>
+		</element>
+		<element kind="textField" uuid="550e8400-e29b-41d4-a716-446655440005" x="430" y="215" width="105" height="15" forecolor="#34495E" fontSize="8.0" hTextAlign="Center">
+			<expression><![CDATA["Politicas de garantia"]]></expression>
+		</element>
+	</summary>
+</jasperReport>

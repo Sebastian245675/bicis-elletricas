@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.kriolos.opos</groupId>
+        <artifactId>kriolos-opos-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../</relativePath> 
+    </parent>  
+    <groupId>io.github.kriolos.opos</groupId>
+    <artifactId>kriolos-opos-thirdparty</artifactId>
+    <packaging>pom</packaging>
+    <name>Kriolos.POS.Thirdparty</name>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <executions>
+                    
+                    <!-- OneWireAPI.jar fue eliminado, comentando esta ejecución
+                    <execution>
+                        <id>install-OneWireAPI-0.1</id>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                        <phase>initialize</phase>
+                        <configuration>
+                            <file>${project.basedir}/onewire/OneWireAPI.jar</file>
+                            <groupId>com.dalsemi.onewire</groupId> 
+                            <artifactId>onewire-api</artifactId> 
+                            <version>0.1</version>
+                            <packaging>jar</packaging>
+                        </configuration>
+                    </execution>
+                    -->
+                    
+                    <execution>
+                        <id>install-weblaf-complete-1.29</id>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                        <phase>initialize</phase>
+                        <configuration>
+                            <file>${project.basedir}/weblaf/weblaf-complete-1.29.jar</file>
+                            <groupId>de.sciss</groupId> 
+                            <artifactId>weblaf-complete</artifactId> 
+                            <version>1.29</version>
+                            <packaging>jar</packaging>
+                        </configuration>
+                    </execution>
+                    
+                    <!-- uk.co.pos_apps:PosApps from https://posapps.io/ -->
+                                    
+                </executions>
+            </plugin>
+                                    
+        </plugins>
+    </build>
+</project>

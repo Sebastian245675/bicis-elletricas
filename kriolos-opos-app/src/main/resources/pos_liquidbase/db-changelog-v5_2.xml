@@ -1,0 +1,152 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" 
+                   xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" 
+                   xmlns:pro="http://www.liquibase.org/xml/ns/pro" 
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext 
+                    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd 
+                    http://www.liquibase.org/xml/ns/pro 
+                    http://www.liquibase.org/xml/ns/pro/liquibase-pro-4.8.xsd 
+                    http://www.liquibase.org/xml/ns/dbchangelog 
+                    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.8.xsd">
+    <changeSet author="antigravity" id="add-phone-to-locations">
+        <addColumn tableName="locations">
+            <column name="phone" type="VARCHAR(255)"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet author="codex" id="create-hr-employees-table">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="HR_EMPLOYEES"/>
+            </not>
+        </preConditions>
+
+        <createTable tableName="HR_EMPLOYEES">
+            <column name="ID" type="VARCHAR(255)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="PK_HR_EMPLOYEES"/>
+            </column>
+            <column name="EMPLOYEE_CODE" type="VARCHAR(64)"/>
+            <column name="DEPARTMENT" type="VARCHAR(100)"/>
+            <column name="POSITION_TITLE" type="VARCHAR(100)"/>
+            <column name="CONTRACT_TYPE" type="VARCHAR(60)"/>
+            <column name="STATUS" type="VARCHAR(40)"/>
+            <column name="HIRE_DATE" type="TIMESTAMP"/>
+            <column name="PAYROLL_FREQUENCY" type="VARCHAR(40)"/>
+            <column name="BASE_SALARY" type="DOUBLE PRECISION" defaultValueNumeric="0.0"/>
+            <column name="COMMISSION_RATE" type="DOUBLE PRECISION" defaultValueNumeric="0.0"/>
+            <column name="TRANSPORT_ALLOWANCE" type="DOUBLE PRECISION" defaultValueNumeric="0.0"/>
+            <column name="OTHER_ALLOWANCES" type="DOUBLE PRECISION" defaultValueNumeric="0.0"/>
+            <column name="BONUS_AMOUNT" type="DOUBLE PRECISION" defaultValueNumeric="0.0"/>
+            <column name="DEDUCTION_RATE" type="DOUBLE PRECISION" defaultValueNumeric="9.0"/>
+            <column name="PENSION_TYPE" type="VARCHAR(100)"/>
+            <column name="HEALTH_INSURANCE" type="VARCHAR(100)"/>
+            <column name="SOCIAL_SECURITY_ID" type="VARCHAR(100)"/>
+            <column name="BANK_NAME" type="VARCHAR(100)"/>
+            <column name="BANK_ACCOUNT" type="VARCHAR(100)"/>
+            <column name="TAX_ID" type="VARCHAR(100)"/>
+            <column name="EMERGENCY_CONTACT" type="VARCHAR(255)"/>
+            <column name="NOTES" type="VARCHAR(2000)"/>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="HR_EMPLOYEES"
+                baseColumnNames="ID"
+                constraintName="FK_HR_EMPLOYEES_PEOPLE"
+                referencedTableName="people"
+                referencedColumnNames="ID"/>
+    </changeSet>
+
+    <changeSet author="codex" id="create-hr-payroll-table">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="HR_PAYROLL"/>
+            </not>
+        </preConditions>
+
+        <createTable tableName="HR_PAYROLL">
+            <column name="ID" type="VARCHAR(255)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="PK_HR_PAYROLL"/>
+            </column>
+            <column name="EMPLOYEE_ID" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="PERIOD_LABEL" type="VARCHAR(120)"/>
+            <column name="PERIOD_START" type="TIMESTAMP"/>
+            <column name="PERIOD_END" type="TIMESTAMP"/>
+            <column name="PAYMENT_DATE" type="TIMESTAMP"/>
+            <column name="BASE_AMOUNT" type="DOUBLE PRECISION" defaultValueNumeric="0.0"/>
+            <column name="ALLOWANCES" type="DOUBLE PRECISION" defaultValueNumeric="0.0"/>
+            <column name="BONUS_AMOUNT" type="DOUBLE PRECISION" defaultValueNumeric="0.0"/>
+            <column name="GROSS_AMOUNT" type="DOUBLE PRECISION"/>
+            <column name="COMMISSIONS" type="DOUBLE PRECISION" defaultValueNumeric="0.0"/>
+            <column name="DEDUCTIONS" type="DOUBLE PRECISION" defaultValueNumeric="0.0"/>
+            <column name="NET_AMOUNT" type="DOUBLE PRECISION"/>
+            <column name="PAYMENT_METHOD" type="VARCHAR(60)"/>
+            <column name="STATUS" type="VARCHAR(40)"/>
+            <column name="NOTES" type="VARCHAR(2000)"/>
+            <column name="PROCESSED_BY" type="VARCHAR(255)"/>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="HR_PAYROLL"
+                baseColumnNames="EMPLOYEE_ID"
+                constraintName="FK_HR_PAYROLL_PEOPLE"
+                referencedTableName="people"
+                referencedColumnNames="ID"/>
+    </changeSet>
+
+    <changeSet author="codex" id="expand-hr-employees-table">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <tableExists tableName="HR_EMPLOYEES"/>
+                <not>
+                    <columnExists tableName="HR_EMPLOYEES" columnName="EMPLOYEE_CODE"/>
+                </not>
+            </and>
+        </preConditions>
+
+        <addColumn tableName="HR_EMPLOYEES">
+            <column name="EMPLOYEE_CODE" type="VARCHAR(64)"/>
+            <column name="DEPARTMENT" type="VARCHAR(100)"/>
+            <column name="POSITION_TITLE" type="VARCHAR(100)"/>
+            <column name="CONTRACT_TYPE" type="VARCHAR(60)"/>
+            <column name="STATUS" type="VARCHAR(40)"/>
+            <column name="HIRE_DATE" type="TIMESTAMP"/>
+            <column name="PAYROLL_FREQUENCY" type="VARCHAR(40)"/>
+            <column name="TRANSPORT_ALLOWANCE" type="DOUBLE PRECISION" defaultValueNumeric="0.0"/>
+            <column name="OTHER_ALLOWANCES" type="DOUBLE PRECISION" defaultValueNumeric="0.0"/>
+            <column name="BONUS_AMOUNT" type="DOUBLE PRECISION" defaultValueNumeric="0.0"/>
+            <column name="DEDUCTION_RATE" type="DOUBLE PRECISION" defaultValueNumeric="9.0"/>
+            <column name="BANK_NAME" type="VARCHAR(100)"/>
+            <column name="BANK_ACCOUNT" type="VARCHAR(100)"/>
+            <column name="TAX_ID" type="VARCHAR(100)"/>
+            <column name="EMERGENCY_CONTACT" type="VARCHAR(255)"/>
+            <column name="NOTES" type="VARCHAR(2000)"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet author="codex" id="expand-hr-payroll-table">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <tableExists tableName="HR_PAYROLL"/>
+                <not>
+                    <columnExists tableName="HR_PAYROLL" columnName="PERIOD_LABEL"/>
+                </not>
+            </and>
+        </preConditions>
+
+        <addColumn tableName="HR_PAYROLL">
+            <column name="PERIOD_LABEL" type="VARCHAR(120)"/>
+            <column name="PERIOD_START" type="TIMESTAMP"/>
+            <column name="PERIOD_END" type="TIMESTAMP"/>
+            <column name="BASE_AMOUNT" type="DOUBLE PRECISION" defaultValueNumeric="0.0"/>
+            <column name="ALLOWANCES" type="DOUBLE PRECISION" defaultValueNumeric="0.0"/>
+            <column name="BONUS_AMOUNT" type="DOUBLE PRECISION" defaultValueNumeric="0.0"/>
+            <column name="PAYMENT_METHOD" type="VARCHAR(60)"/>
+            <column name="STATUS" type="VARCHAR(40)"/>
+            <column name="NOTES" type="VARCHAR(2000)"/>
+            <column name="PROCESSED_BY" type="VARCHAR(255)"/>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

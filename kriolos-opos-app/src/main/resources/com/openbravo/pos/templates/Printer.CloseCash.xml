@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    KriolOS POS - Reporte de Cierre
+    Sebastian - Template mejorado: turno normal + corte del dia completo
+-->
+<output>
+  <ticket>
+        <line></line>
+        <line></line>
+        <line size="1">
+            <text align ="center" bold="true" length="42">REPORTE CIERRE DE TURNO</text>
+        </line>
+        <line><text>==========================================</text></line>
+        <line></line>
+
+        #if ($isDayClose && $allShifts && !$allShifts.isEmpty())
+        <!-- ======= CORTE DEL DIA ======= -->
+        <line size="1">
+            <text align ="center" bold="true" length="42">== CORTE DEL DIA ==</text>
+        </line>
+        <line></line>
+
+        <!-- VENTAS POR FORMA DE PAGO -->
+        <line size="1">
+            <text align ="center" bold="true" length="42">== VENTAS DEL DIA ==</text>
+        </line>
+        <line>
+            <text align="left" length="25">Efectivo:</text>
+            <text align="right" length="17">$totalDayCashSales</text>
+        </line>
+        <line>
+            <text align="left" length="25">Tarjeta:</text>
+            <text align="right" length="17">$totalDayCardSales</text>
+        </line>
+        <line>
+            <text align="left" length="25">Credito:</text>
+            <text align="right" length="17">$totalDayCreditSales</text>
+        </line>
+        <line>
+            <text align="left" length="25">Vales Despensa:</text>
+            <text align="right" length="17">$totalDayVoucherSales</text>
+        </line>
+        <line><text>------------------------------------------</text></line>
+        <line>
+            <text align="left" length="25" bold="true">TOTAL VENTAS:</text>
+            <text align="right" length="17" bold="true">$totalDaySales</text>
+        </line>
+        <line>
+            <text align="left" length="25" bold="true">GANANCIA TOTAL:</text>
+            <text align="right" length="17" bold="true">$totalDayProfit</text>
+        </line>
+        <line></line>
+
+        <!-- MOVIMIENTOS DE EFECTIVO -->
+        <line size="1">
+            <text align ="center" bold="true" length="42">== EFECTIVO EN CAJA ==</text>
+        </line>
+        <line>
+            <text align="left" length="25">(+) Fondo Inicial:</text>
+            <text align="right" length="17">$totalDayInitialAmount</text>
+        </line>
+        <line>
+            <text align="left" length="25">(+) Ventas Efectivo:</text>
+            <text align="right" length="17">$totalDayCashSales</text>
+        </line>
+        <line>
+            <text align="left" length="25">(+) Abonos Credito:</text>
+            <text align="right" length="17">$totalDayCreditPay</text>
+        </line>
+        <line>
+            <text align="left" length="25">(+) Total Entradas:</text>
+            <text align="right" length="17">$totalDayCashIn</text>
+        </line>
+        <line>
+            <text align="left" length="25">(-) Total Salidas:</text>
+            <text align="right" length="17">$totalDayCashOut</text>
+        </line>
+        <line>
+            <text align="left" length="25">(-) Devoluciones:</text>
+            <text align="right" length="17">$totalDayReturns</text>
+        </line>
+        <line><text>------------------------------------------</text></line>
+        <line>
+            <text align="left" length="25" bold="true">EFECTIVO ESPERADO:</text>
+            <text align="right" length="17" bold="true">$totalDayCashTotal</text>
+        </line>
+        <line></line>
+
+        <!-- VENTAS POR DEPARTAMENTO -->
+        #if ($dayDeptLines && !$dayDeptLines.isEmpty())
+        <line size="1">
+            <text align ="center" bold="true" length="42">== VENTAS POR DEPARTAMENTO ==</text>
+        </line>
+        <line>
+            <text align="left" bold="true" length="22">Departamento</text>
+            <text align="right" bold="true" length="10">Ventas</text>
+            <text align="right" bold="true" length="10">Ganancia</text>
+        </line>
+        <line><text>------------------------------------------</text></line>
+        #foreach ($dept in $dayDeptLines)
+        <line>
+            <text align="left" length="22">$dept.get('name')</text>
+            <text align="right" length="10">$dept.get('sales')</text>
+            <text align="right" length="10">$dept.get('profit')</text>
+        </line>
+        #end
+        <line><text>------------------------------------------</text></line>
+        <line></line>
+        #end
+
+        <!-- DEVOLUCIONES DEL DIA -->
+        #if($refundLines && $refundLines.size() > 0)
+        <line size="1">
+            <text align ="center" bold="true" length="42">== DEVOLUCIONES DEL DIA ==</text>
+        </line>
+        <line>
+            <text align ="left" bold="true" length="8">Hora</text>
+            <text align ="left" bold="true" length="12">Recibo #</text>
+            <text align ="right" bold="true" length="22">Monto</text>
+        </line>
+        <line><text>------------------------------------------</text></line>
+        #foreach ($ref in $refundLines)
+        <line>
+            <text align ="left" length="8">${ref.printTime()}</text>
+            <text align ="left" length="12">${ref.printTicketId()}</text>
+            <text align ="right" length="22">${ref.printAmount()}</text>
+        </line>
+        #end
+        <line><text>------------------------------------------</text></line>
+        <line></line>
+        #end
+
+        <!-- RESUMEN DE TURNOS -->
+        <line size="1">
+            <text align ="center" bold="true" length="42">== TURNOS DEL DIA ==</text>
+        </line>
+        #foreach ($shift in $allShifts)
+        <line>
+            <text align="left" bold="true" length="6">T#$shift.sequence</text>
+            <text align="left" length="20">$shift.printUser()</text>
+            <text align="right" length="16">$shift.printTotalSales()</text>
+        </line>
+        <line>
+            <text align="left" length="42">  Inicio: $shift.printDateStart()</text>
+        </line>
+        <line><text>  ----------------------------------------</text></line>
+        #end
+        <line></line>
+
+        #else
+        <!-- ======= CIERRE DE TURNO NORMAL ======= -->
+
+        <!-- 1. DATOS DEL TURNO -->
+        <line>
+            <text align ="left" bold="true" length="15">Cajero:</text>
+            <text align ="right" length="27">${payments.printUser()}</text>
+        </line>
+        <line>
+            <text align ="left" bold="true" length="15">Turno #:</text>
+            <text align ="right" length="27">${payments.printSequence()}</text>
+        </line>
+        <line>
+            <text align ="left" bold="true" length="15">Inicio:</text>
+            <text align ="right" length="27">${payments.printDateStart()}</text>
+        </line>
+        <line>
+            <text align ="left" bold="true" length="15">Fin:</text>
+            <text align ="right" length="27">${payments.printDateEnd()}</text>
+        </line>
+        <line><text>------------------------------------------</text></line>
+        <line></line>
+
+        <!-- 2. VENTAS POR METODO DE PAGO -->
+        <line size="1">
+            <text align ="center" bold="true" length="42">== VENTAS DEL TURNO ==</text>
+        </line>
+        <line>
+            <text align ="left" bold="true" length="25">Forma de Pago</text>
+            <text align ="right" bold="true" length="17">Monto</text>
+        </line>
+        <line><text>------------------------------------------</text></line>
+        #foreach ($line in $payments.getPaymentLines())
+        #if (${line.getType()} != "cashin" && ${line.getType()} != "cashout")
+        <line>
+            <text align ="left" length="25">${line.printType()}</text>
+            <text align ="right" length="17">${line.printValue()}</text>
+        </line>
+        #end
+        #end
+        <line><text>------------------------------------------</text></line>
+        <line>
+            <text align ="left" length="25" bold="true">TOTAL VENTAS:</text>
+            <text align ="right" length="17" bold="true">${payments.printPaymentsTotal()}</text>
+        </line>
+        <line>
+            <text align ="left" length="25">Num. Recibos:</text>
+            <text align ="right" length="17">${payments.printSales()}</text>
+        </line>
+        <line></line>
+
+        <!-- 3. VENTAS POR CATEGORIA -->
+        #set($catLines = $payments.getCategorySalesLines())
+        #if($catLines.size() > 0)
+        <line size="1">
+            <text align ="center" bold="true" length="42">== VENTAS POR CATEGORIA ==</text>
+        </line>
+        <line>
+            <text align ="left" bold="true" length="25">Categoria</text>
+            <text align ="right" bold="true" length="8">Cant</text>
+            <text align ="right" bold="true" length="9">Total</text>
+        </line>
+        <line><text>------------------------------------------</text></line>
+        #foreach ($cat in $catLines)
+        <line>
+            <text align ="left" length="25">${cat.printCategoryName()}</text>
+            <text align ="right" length="8">${cat.printCategoryUnits()}</text>
+            <text align ="right" length="9">${cat.printCategorySum()}</text>
+        </line>
+        #end
+        <line><text>------------------------------------------</text></line>
+        <line>
+            <text align ="left" length="25" bold="true">TOTAL VENTAS:</text>
+            <text align ="right" length="17" bold="true">${payments.printSalesTotal()}</text>
+        </line>
+        <line></line>
+        #end
+
+        <!-- 4. DEVOLUCIONES -->
+        #set($refundLines = $payments.getRefundLines())
+        #if($refundLines.size() > 0)
+        <line size="1">
+            <text align ="center" bold="true" length="42">== DEVOLUCIONES ==</text>
+        </line>
+        <line>
+            <text align ="left" bold="true" length="8">Hora</text>
+            <text align ="left" bold="true" length="12">Recibo #</text>
+            <text align ="right" bold="true" length="22">Monto</text>
+        </line>
+        <line><text>------------------------------------------</text></line>
+        #foreach ($ref in $refundLines)
+        <line>
+            <text align ="left" length="8">${ref.printTime()}</text>
+            <text align ="left" length="12">${ref.printTicketId()}</text>
+            <text align ="right" length="22">${ref.printAmount()}</text>
+        </line>
+        #end
+        <line><text>------------------------------------------</text></line>
+        <line></line>
+        #end
+
+        <!-- 5. MOVIMIENTOS DE EFECTIVO -->
+        <line size="1">
+            <text align ="center" bold="true" length="42">== MOVIMIENTOS EFECTIVO ==</text>
+        </line>
+        <line><text>------------------------------------------</text></line>
+        <line>
+            <text align ="left" length="25">(+) Fondo Inicial:</text>
+            <text align ="right" length="17">${payments.printInitialAmount()}</text>
+        </line>
+        <line>
+            <text align ="left" length="25">(+) Ventas Efectivo:</text>
+            <text align ="right" length="17">${payments.printCashTotal()}</text>
+        </line>
+        #foreach ($line in $payments.getPaymentLines())
+        #if (${line.getType()} == "cashin")
+        <line>
+            <text align ="left" length="25">(+) ${line.printReason()}</text>
+            <text align ="right" length="17">${line.printValue()}</text>
+        </line>
+        #end
+        #end
+        #foreach ($line in $payments.getPaymentLines())
+        #if (${line.getType()} == "cashout")
+        <line>
+            <text align ="left" length="25">(-) ${line.printReason()}</text>
+            <text align ="right" length="17">${line.printValue()}</text>
+        </line>
+        #end
+        #end
+        <line><text>------------------------------------------</text></line>
+        <line>
+            <text align ="left" length="25" bold="true">Efectivo Esperado:</text>
+            <text align ="right" length="17" bold="true">${payments.printExpectedCash()}</text>
+        </line>
+        <line></line>
+
+        #end
+
+    </ticket>
+</output>

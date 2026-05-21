@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+    KriolOS POS - Open Source Point Of Sale
+    Copyright (c) 2019-2023 KriolOS.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ -->
+ 
+<output>
+    <ticket>
+        <line></line>
+        <line><text align="center" bold="true" length="42">Registro de Inventario</text></line>
+        <line>
+            <text align ="left" bold="true" length="12">Fecha: </text>
+	<text align ="left" length="30">${inventoryrecord.printDate()}</text></line>
+        <line><text  align ="left" bold="true" length="12">Motivo: </text>
+	<text align ="left" length="30">${inventoryrecord.printReason()}</text></line>
+        <line><text  align ="left" bold="true" length="12">Usuario: </text>
+	<text align ="left" length="30">${inventoryrecord.printUser()}</text></line>
+        <line><text  align ="left" bold="true" length="12">Ubicación: </text>
+	<text align ="left" length="30">${inventoryrecord.printLocation()}</text></line>
+        <line><text  align ="left" bold="true" length="12">Proveedor: </text> 
+	<text align ="left" length="30">${inventoryrecord.printSupplier()}</text></line>
+        <line><text align ="left" bold="true" length="12">Documento: </text>
+	<text align ="left" length="30">${inventoryrecord.printSupplierDoc()}</text></line>
+
+        <line size="1">
+            #if ($inventoryrecord.isInput())
+                <text align ="center" bold="true" length="42">Entrada</text>
+            #else
+                <text align ="center" bold="true" length="42">Salida</text>
+            #end
+        </line>
+        <line></line>    
+        <line>
+            <text align ="left" bold="true" length="17">Artículo</text>
+            <text align ="right" bold="true" length="10">Precio</text>
+            <text align ="right" bold="true" length="5">Cant</text>
+            <text align ="right" bold="true" length="10">Importe</text>
+        </line>      
+        <line>
+            <text>------------------------------------------</text>
+        </line>   
+        #foreach ($inventoryline in $inventoryrecord.getLines())
+            <line>
+                <text align ="left" length="17">${inventoryline.printName()}</text>
+                <text align ="right" length="10">${inventoryline.printPrice()}</text>
+                <text align ="right" length="5">x${inventoryline.printMultiply()}</text>
+                <text align ="right" length="10">${inventoryline.printSubValue()}</text>
+            </line> 
+            #if ($inventoryline.productAttSetInstId)
+                <line><text align ="left" length="42">${inventoryline.productAttSetInstDesc}</text></line>
+            #end
+        #end
+        <line><text>------------------------------------------</text></line>   
+        <line></line>
+        <line>
+            <text align ="left" bold="true" length="27">Total:</text>
+            <text align ="right" bold="true" length="5">${inventoryrecord.printTotalArticles()}</text>
+            <text align ="right" bold="true" length="10">${inventoryrecord.printSubTotal()}</text>
+        </line>
+        <line></line>            
+        <line><text align="center" length="42">Conserve este ticket</text></line>   
+    </ticket>
+</output>
