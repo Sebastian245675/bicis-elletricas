@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -115,28 +116,40 @@ public class JPanelPromotions extends JPanel implements JPanelView, BeanFactoryA
 
     private void initComponents() {
         setLayout(new BorderLayout());
-        setBackground(new Color(245, 245, 245));
+        setBackground(new Color(248, 250, 252)); // Slate 50
 
         // --- HEADER ---
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(new Color(46, 125, 50)); // Emerald
-        header.setPreferredSize(new Dimension(0, 60));
-        JLabel title = new JLabel("   GESTIÓN DE PROMOCIONES Y DESCUENTOS");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        title.setForeground(Color.WHITE);
-        header.add(title, BorderLayout.CENTER);
-        
-        JLabel subtitle = new JLabel("Configura ofertas temporales para productos o categorías   ");
-        subtitle.setFont(new Font("Segoe UI", Font.ITALIC, 12));
-        subtitle.setForeground(new Color(200, 230, 201));
-        subtitle.setHorizontalAlignment(SwingConstants.RIGHT);
-        header.add(subtitle, BorderLayout.SOUTH);
+        JPanel header = new JPanel(new GridBagLayout());
+        header.setBackground(Color.WHITE);
+        header.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)), // Slate 200 bottom border
+            BorderFactory.createEmptyBorder(18, 24, 18, 24)
+        ));
+
+        GridBagConstraints gbcH = new GridBagConstraints();
+        gbcH.gridx = 0; gbcH.gridy = 0;
+        gbcH.weightx = 1.0;
+        gbcH.fill = GridBagConstraints.HORIZONTAL;
+        gbcH.anchor = GridBagConstraints.WEST;
+
+        JLabel title = new JLabel("Gestión de Promociones y Descuentos");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        title.setForeground(new Color(15, 23, 42)); // Slate 900
+        header.add(title, gbcH);
+
+        gbcH.gridy = 1;
+        gbcH.insets = new Insets(4, 0, 0, 0);
+        JLabel subtitle = new JLabel("Crea, programa y gestiona ofertas especiales y campañas de descuento para productos o categorías.");
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subtitle.setForeground(new Color(100, 116, 139)); // Slate 500
+        header.add(subtitle, gbcH);
+
         add(header, BorderLayout.NORTH);
 
         // --- MAIN CONTENT ---
-        JPanel mainContent = new JPanel(new BorderLayout(20, 20));
+        JPanel mainContent = new JPanel(new BorderLayout(24, 24));
         mainContent.setOpaque(false);
-        mainContent.setBorder(new EmptyBorder(20, 20, 20, 20));
+        mainContent.setBorder(new EmptyBorder(24, 24, 24, 24));
         add(mainContent, BorderLayout.CENTER);
 
         // --- TOP: FORM PANEL ---
@@ -145,35 +158,40 @@ public class JPanelPromotions extends JPanel implements JPanelView, BeanFactoryA
         
         JPanel formPanel = new JPanel(new GridBagLayout());
         formPanel.setBackground(Color.WHITE);
-        formPanel.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-            new javax.swing.border.LineBorder(new Color(200, 200, 200), 1),
-            new EmptyBorder(20, 20, 20, 20)
+        formPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(226, 232, 240), 1), // Slate 200 border
+            new EmptyBorder(24, 24, 24, 24)
         ));
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(8, 10, 8, 10);
+        gbc.insets = new Insets(10, 12, 10, 12);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.anchor = GridBagConstraints.WEST;
 
-        // Estilo de fuente para etiquetas
         Font labelFont = new Font("Segoe UI", Font.BOLD, 13);
-        Color labelColor = new Color(70, 70, 70);
+        Color labelColor = new Color(71, 85, 105); // Slate 600
+        javax.swing.border.Border inputBorder = BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(203, 213, 225), 1), // Slate 300 line
+            BorderFactory.createEmptyBorder(6, 10, 6, 10)
+        );
+        Font inputFont = new Font("Segoe UI", Font.PLAIN, 14);
 
-        // 1. Nombre
-        gbc.gridx = 0; gbc.gridy = 0;
+        // 1. Nombre de la Campaña
+        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0.0;
         JLabel lblName = new JLabel("Nombre de la Campaña:");
         lblName.setFont(labelFont);
         lblName.setForeground(labelColor);
         formPanel.add(lblName, gbc);
         
         m_jName = new JTextField(25);
-        m_jName.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        m_jName.setFont(inputFont);
+        m_jName.setBorder(inputBorder);
         m_jName.setToolTipText("Ejemplo: Oferta de Verano, Descuento Especial...");
-        gbc.gridx = 1; gbc.gridwidth = 1;
+        gbc.gridx = 1; gbc.weightx = 1.0;
         formPanel.add(m_jName, gbc);
 
-        // 2. Descuento
-        gbc.gridx = 2; gbc.gridy = 0;
+        // 2. Porcentaje de Descuento
+        gbc.gridx = 2; gbc.gridy = 0; gbc.weightx = 0.0;
         JLabel lblDiscount = new JLabel("Porcentaje de Descuento:");
         lblDiscount.setFont(labelFont);
         lblDiscount.setForeground(labelColor);
@@ -181,14 +199,15 @@ public class JPanelPromotions extends JPanel implements JPanelView, BeanFactoryA
         
         m_jDiscount = new JTextField(8);
         m_jDiscount.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        m_jDiscount.setForeground(new Color(183, 28, 28));
+        m_jDiscount.setForeground(new Color(37, 99, 235)); // Modern primary blue text
         m_jDiscount.setHorizontalAlignment(JTextField.CENTER);
+        m_jDiscount.setBorder(inputBorder);
         m_jDiscount.setToolTipText("Ingrese solo el número (ej: 15 para 15%)");
-        gbc.gridx = 3;
+        gbc.gridx = 3; gbc.weightx = 1.0;
         formPanel.add(m_jDiscount, gbc);
 
-        // 3. Aplicar a (Radio Buttons)
-        gbc.gridx = 0; gbc.gridy = 1;
+        // 3. Aplicar Descuento a
+        gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0.0;
         JLabel lblApplyTo = new JLabel("Aplicar Descuento a:");
         lblApplyTo.setFont(labelFont);
         lblApplyTo.setForeground(labelColor);
@@ -200,15 +219,19 @@ public class JPanelPromotions extends JPanel implements JPanelView, BeanFactoryA
         m_rbCategory = new JRadioButton("Toda una Categoría");
         m_rbProduct.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         m_rbCategory.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        m_rbProduct.setOpaque(false);
+        m_rbCategory.setOpaque(false);
+        m_rbProduct.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        m_rbCategory.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         ButtonGroup bg = new ButtonGroup();
         bg.add(m_rbProduct); bg.add(m_rbCategory);
         m_rbProduct.setSelected(true);
         typePanel.add(m_rbProduct); typePanel.add(m_rbCategory);
-        gbc.gridx = 1;
+        gbc.gridx = 1; gbc.weightx = 1.0;
         formPanel.add(typePanel, gbc);
 
-        // 4. Fechas (Desde/Hasta)
-        gbc.gridx = 2; gbc.gridy = 1;
+        // 4. Periodo de Validez
+        gbc.gridx = 2; gbc.gridy = 1; gbc.weightx = 0.0;
         JLabel lblDates = new JLabel("Periodo de Validez:");
         lblDates.setFont(labelFont);
         lblDates.setForeground(labelColor);
@@ -218,22 +241,38 @@ public class JPanelPromotions extends JPanel implements JPanelView, BeanFactoryA
         datesPanel.setOpaque(false);
         m_jDateFrom = new JTextField(8);
         m_jDateTo = new JTextField(8);
+        m_jDateFrom.setFont(inputFont);
+        m_jDateTo.setFont(inputFont);
+        m_jDateFrom.setBorder(inputBorder);
+        m_jDateTo.setBorder(inputBorder);
         m_jDateFrom.setText(Formats.DATE.formatValue(new Date()));
         m_jDateTo.setText(Formats.DATE.formatValue(new Date()));
         m_jDateFrom.setEditable(false);
         m_jDateTo.setEditable(false);
+        m_jDateFrom.setBackground(Color.WHITE);
+        m_jDateTo.setBackground(Color.WHITE);
         
         datesPanel.add(new JLabel("Desde: "));
         datesPanel.add(m_jDateFrom);
-        datesPanel.add(createDateButton(m_jDateFrom));
+        JButton btnFrom = createDateButton(m_jDateFrom);
+        btnFrom.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
+        btnFrom.setContentAreaFilled(false);
+        btnFrom.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        datesPanel.add(btnFrom);
+        
         datesPanel.add(new JLabel("  Hasta: "));
         datesPanel.add(m_jDateTo);
-        datesPanel.add(createDateButton(m_jDateTo));
-        gbc.gridx = 3;
+        JButton btnTo = createDateButton(m_jDateTo);
+        btnTo.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
+        btnTo.setContentAreaFilled(false);
+        btnTo.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        datesPanel.add(btnTo);
+        
+        gbc.gridx = 3; gbc.weightx = 1.0;
         formPanel.add(datesPanel, gbc);
 
-        // 5. Selección (Producto o Categoría)
-        gbc.gridx = 0; gbc.gridy = 2;
+        // 5. Seleccionar Destino
+        gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0.0;
         JLabel lblSelect = new JLabel("Seleccionar Destino:");
         lblSelect.setFont(labelFont);
         lblSelect.setForeground(labelColor);
@@ -245,25 +284,38 @@ public class JPanelPromotions extends JPanel implements JPanelView, BeanFactoryA
         gbcSel.fill = GridBagConstraints.HORIZONTAL;
         
         m_jCategoryCombo = new JComboBox<>();
-        m_jCategoryCombo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        m_jCategoryCombo.setFont(inputFont);
+        m_jCategoryCombo.setBorder(BorderFactory.createLineBorder(new Color(203, 213, 225), 1));
+        m_jCategoryCombo.setBackground(Color.WHITE);
         m_jCategoryCombo.setVisible(false);
         
         m_jProductRef = new JTextField(20);
         m_jProductRef.setFont(new Font("Segoe UI", Font.ITALIC, 13));
         m_jProductRef.setEditable(false);
+        m_jProductRef.setBackground(new Color(248, 250, 252));
+        m_jProductRef.setBorder(inputBorder);
         m_jProductRef.setText("Haga clic en buscar...");
         
         JButton btnSearchProd = new JButton("Buscar Producto");
-        btnSearchProd.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btnSearchProd.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnSearchProd.setBackground(Color.WHITE);
+        btnSearchProd.setForeground(new Color(37, 99, 235)); // Primary blue text
+        btnSearchProd.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(37, 99, 235), 1),
+            BorderFactory.createEmptyBorder(6, 12, 6, 12)
+        ));
+        btnSearchProd.setContentAreaFilled(false);
+        btnSearchProd.setFocusPainted(false);
+        btnSearchProd.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         btnSearchProd.addActionListener(e -> searchProduct());
         
         gbcSel.gridx = 0; gbcSel.weightx = 1.0;
         selectionPanel.add(m_jCategoryCombo, gbcSel);
         selectionPanel.add(m_jProductRef, gbcSel);
-        gbcSel.gridx = 1; gbcSel.weightx = 0.0; gbcSel.insets = new Insets(0, 5, 0, 0);
+        gbcSel.gridx = 1; gbcSel.weightx = 0.0; gbcSel.insets = new Insets(0, 8, 0, 0);
         selectionPanel.add(btnSearchProd, gbcSel);
         
-        gbc.gridx = 1;
+        gbc.gridx = 1; gbc.weightx = 1.0;
         formPanel.add(selectionPanel, gbc);
 
         m_rbProduct.addActionListener(e -> {
@@ -282,25 +334,31 @@ public class JPanelPromotions extends JPanel implements JPanelView, BeanFactoryA
         });
 
         // 6. Motivo
-        gbc.gridx = 2; gbc.gridy = 2;
+        gbc.gridx = 2; gbc.gridy = 2; gbc.weightx = 0.0;
         JLabel lblNotes = new JLabel("Motivo o Comentario:");
         lblNotes.setFont(labelFont);
         lblNotes.setForeground(labelColor);
         formPanel.add(lblNotes, gbc);
         
         m_jNotes = new JTextField(20);
-        m_jNotes.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        m_jNotes.setFont(inputFont);
+        m_jNotes.setBorder(inputBorder);
         m_jNotes.setToolTipText("Razón de la promoción (opcional)");
-        gbc.gridx = 3;
+        gbc.gridx = 3; gbc.weightx = 1.0;
         formPanel.add(m_jNotes, gbc);
 
         // 7. Botón Guardar
-        gbc.gridy = 3; gbc.gridx = 3;
-        JButton btnSave = new JButton("   CREAR PROMOCIÓN   ");
+        gbc.gridy = 3; gbc.gridx = 3; gbc.weightx = 0.0;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.EAST;
+        JButton btnSave = new JButton("Crear Promoción");
         btnSave.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnSave.setBackground(new Color(46, 125, 50));
+        btnSave.setBackground(new Color(37, 99, 235)); // Primary blue background
         btnSave.setForeground(Color.WHITE);
-        btnSave.setPreferredSize(new Dimension(200, 40));
+        btnSave.setPreferredSize(new Dimension(180, 38));
+        btnSave.setBorder(BorderFactory.createEmptyBorder(6, 16, 6, 16));
+        btnSave.setFocusPainted(false);
+        btnSave.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         btnSave.addActionListener(e -> savePromotion());
         formPanel.add(btnSave, gbc);
 
@@ -308,13 +366,40 @@ public class JPanelPromotions extends JPanel implements JPanelView, BeanFactoryA
         mainContent.add(formWrapper, BorderLayout.NORTH);
 
         // --- CENTER: TABLE PANEL ---
-        JPanel tablePanel = new JPanel(new BorderLayout());
-        tablePanel.setOpaque(false);
-        tablePanel.setBorder(javax.swing.BorderFactory.createTitledBorder(
-            javax.swing.BorderFactory.createEtchedBorder(), "Promociones Activas y Programadas", 
-            javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP, 
-            new Font("Segoe UI", Font.BOLD, 12), new Color(46, 125, 50)
+        JPanel tableCard = new JPanel(new BorderLayout(15, 15));
+        tableCard.setBackground(Color.WHITE);
+        tableCard.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
+            BorderFactory.createEmptyBorder(20, 20, 20, 20)
         ));
+
+        // Subheader inside the card
+        JPanel tableHeaderPanel = new JPanel(new BorderLayout());
+        tableHeaderPanel.setOpaque(false);
+
+        JLabel tableTitle = new JLabel("Promociones Activas y Programadas");
+        tableTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        tableTitle.setForeground(new Color(15, 23, 42)); // Slate 900
+        tableHeaderPanel.add(tableTitle, BorderLayout.WEST);
+
+        JLabel tableSubtitle = new JLabel("Lista de campañas vigentes y programadas en el sistema");
+        tableSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        tableSubtitle.setForeground(new Color(100, 116, 139)); // Slate 500
+        tableHeaderPanel.add(tableSubtitle, BorderLayout.SOUTH);
+
+        // Destructive delete button right next to the title or aligned cleanly on the right
+        JButton btnDelete = new JButton("Eliminar Promoción");
+        btnDelete.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnDelete.setBackground(new Color(220, 38, 38)); // Slate Red 600
+        btnDelete.setForeground(Color.WHITE);
+        btnDelete.setPreferredSize(new Dimension(160, 32));
+        btnDelete.setBorder(BorderFactory.createEmptyBorder(4, 12, 4, 12));
+        btnDelete.setFocusPainted(false);
+        btnDelete.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnDelete.addActionListener(e -> deletePromotion());
+        tableHeaderPanel.add(btnDelete, BorderLayout.EAST);
+
+        tableCard.add(tableHeaderPanel, BorderLayout.NORTH);
 
         m_tableModel = new DefaultTableModel(
                 new Object[] { "Campaña", "Tipo", "Destino", "Dscto %", "Vence", "Motivo", "Autor", "ID" }, 0) {
@@ -325,31 +410,32 @@ public class JPanelPromotions extends JPanel implements JPanelView, BeanFactoryA
         };
         m_table = new JTable(m_tableModel);
         m_table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        m_table.setRowHeight(25);
-        m_table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
-        m_table.getTableHeader().setBackground(new Color(240, 240, 240));
+        m_table.setRowHeight(35); // Padded spacing row height
+        m_table.setShowVerticalLines(false); // Only horizontal gridlines
+        m_table.setShowHorizontalLines(true);
+        m_table.setGridColor(new Color(241, 245, 249)); // Slate 100
+        m_table.setBackground(Color.WHITE);
+        m_table.setSelectionBackground(new Color(239, 246, 255)); // Blue 50 selection tint
+        m_table.setSelectionForeground(new Color(30, 41, 59)); // Slate 800 selection text
+        m_table.setFocusable(false); // Clean focus outline
+        
+        m_table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        m_table.getTableHeader().setBackground(new Color(248, 250, 252)); // Slate 50
+        m_table.getTableHeader().setForeground(new Color(71, 85, 105)); // Slate 600
+        m_table.getTableHeader().setReorderingAllowed(false);
+        m_table.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)));
         
         m_table.getColumnModel().getColumn(7).setMinWidth(0);
         m_table.getColumnModel().getColumn(7).setMaxWidth(0);
         m_table.getColumnModel().getColumn(7).setWidth(0);
-        
-        tablePanel.add(new JScrollPane(m_table), BorderLayout.CENTER);
-        mainContent.add(tablePanel, BorderLayout.CENTER);
 
-        // --- BOTTOM: ACTIONS ---
-        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        footer.setBackground(new Color(230, 230, 230));
-        footer.setPreferredSize(new Dimension(0, 50));
+        JScrollPane scrollPane = new JScrollPane(m_table);
+        scrollPane.setBackground(Color.WHITE);
+        scrollPane.getViewport().setBackground(Color.WHITE);
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(241, 245, 249), 1));
         
-        JButton btnDelete = new JButton("Eliminar Promoción Seleccionada");
-        btnDelete.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnDelete.setBackground(new Color(183, 28, 28)); // Dark red
-        btnDelete.setForeground(Color.WHITE);
-        btnDelete.setPreferredSize(new Dimension(250, 35));
-        btnDelete.addActionListener(e -> deletePromotion());
-        footer.add(btnDelete);
-        
-        add(footer, BorderLayout.SOUTH);
+        tableCard.add(scrollPane, BorderLayout.CENTER);
+        mainContent.add(tableCard, BorderLayout.CENTER);
     }
 
     private void searchProduct() {

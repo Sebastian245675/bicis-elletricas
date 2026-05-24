@@ -117,7 +117,6 @@ public class PermissionsCatalog {
         suppliers.add(new PermissionInfo("/com/openbravo/reports/suppliers_list.bs", "Reporte: Lista de Proveedores", "Proveedores"));
         suppliers.add(new PermissionInfo("/com/openbravo/reports/suppliers_sales.bs", "Reporte: Compras a Proveedores", "Proveedores"));
         suppliers.add(new PermissionInfo("/com/openbravo/reports/suppliers_export.bs", "Reporte: Exportar Proveedores", "Proveedores"));
-        suppliers.add(new PermissionInfo("/com/openbravo/reports/suppliers_products.bs", "Reporte: Productos por Proveedor", "Proveedores"));
         PERMISSIONS.put("Proveedores", suppliers);
         
         // INVENTARIO

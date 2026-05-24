@@ -61,6 +61,7 @@ public final class SuppliersView extends com.openbravo.pos.panels.ValidationPane
 
     private AppView appView;
     private SupplierInfo supplierInfo;
+    private JPanelSupplierDocuments documentsPanel;
 
     /**
      * Creates new form SuppliersView
@@ -75,6 +76,16 @@ public final class SuppliersView extends com.openbravo.pos.panels.ValidationPane
             dlSuppliers = (DataLogicSuppliers) app.getBean("com.openbravo.pos.suppliers.DataLogicSuppliers");
 
             initComponents();
+
+            documentsPanel = new JPanelSupplierDocuments(app);
+            String documentsLabel = "Documentos";
+            try {
+                String loc = AppLocal.getIntString("label.documents");
+                if (loc != null && !loc.isEmpty() && !loc.startsWith("label.")) {
+                    documentsLabel = loc;
+                }
+            } catch (Exception e) {}
+            formTabbedPane.addTab(documentsLabel, documentsPanel);
             
             m_jTaxID.getDocument().addDocumentListener(dirty);
             m_jVATID.getDocument().addDocumentListener(dirty);
@@ -182,6 +193,10 @@ public final class SuppliersView extends com.openbravo.pos.panels.ValidationPane
 
         jTableSupplierTransactions.setEnabled(false);
 
+        if (documentsPanel != null) {
+            documentsPanel.setSupplierId(null);
+        }
+
         repaint();
         refresh();
     }
@@ -241,6 +256,10 @@ public final class SuppliersView extends com.openbravo.pos.panels.ValidationPane
         m_jVisible.setEnabled(true);
         jTableSupplierTransactions.setEnabled(false);
 
+        if (documentsPanel != null) {
+            documentsPanel.setSupplierId(null);
+        }
+
         repaint();
         refresh();
     }
@@ -254,6 +273,10 @@ public final class SuppliersView extends com.openbravo.pos.panels.ValidationPane
     public void writeValueDelete(Object value) {
 
         setValues(value);
+
+        if (documentsPanel != null) {
+            documentsPanel.setSupplierId(m_oId);
+        }
 
         m_jTaxID.setEnabled(false);
         m_jVATID.setEnabled(false);
@@ -329,6 +352,10 @@ public final class SuppliersView extends com.openbravo.pos.panels.ValidationPane
     public void writeValueEdit(Object value) {
         
         setValues(value);
+
+        if (documentsPanel != null) {
+            documentsPanel.setSupplierId(m_oId);
+        }
 
         m_jSearchkey.setEnabled(true);
         m_jTaxID.setEnabled(true);

@@ -194,5 +194,10 @@ public class PanelReportBean extends JPanelReport {
      */
     public void addQBFFilter(ReportEditorCreator qbff) {
         qbffilter.addEditor(qbff);
-    }    
+    }
+
+    @Override
+    public List<String> getFieldNames() {
+        return fieldnames;
+    }
 }

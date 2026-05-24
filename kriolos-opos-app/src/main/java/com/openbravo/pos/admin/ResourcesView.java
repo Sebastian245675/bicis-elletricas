@@ -38,6 +38,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JPanel;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
+import org.fife.ui.rsyntaxtextarea.Theme;
 import org.fife.ui.rtextarea.RTextScrollPane;
 
 /**
@@ -63,7 +64,29 @@ public final class ResourcesView extends JPanel implements EditorRecord {
         JPanel cp = new JPanel(new BorderLayout());
         m_RSyntaxTextArea = new RSyntaxTextArea(20, 60);
         m_RSyntaxTextArea.setCodeFoldingEnabled(true);
+        m_RSyntaxTextArea.setAntiAliasingEnabled(true);
+        m_RSyntaxTextArea.setTabSize(4);
+        m_RSyntaxTextArea.setAnimateBracketMatching(true);
+        m_RSyntaxTextArea.setBracketMatchingEnabled(true);
+        m_RSyntaxTextArea.setAutoIndentEnabled(true);
+        m_RSyntaxTextArea.setCloseCurlyBraces(true);
+        m_RSyntaxTextArea.setCloseMarkupTags(true);
+        m_RSyntaxTextArea.setClearWhitespaceLinesEnabled(false);
+        m_RSyntaxTextArea.setHighlightCurrentLine(true);
+        m_RSyntaxTextArea.setMarginLineEnabled(false);
+        m_RSyntaxTextArea.setFont(new java.awt.Font("Consolas", java.awt.Font.PLAIN, 14));
+        
         m_RTextScrollPane = new RTextScrollPane(m_RSyntaxTextArea);
+        m_RTextScrollPane.setLineNumbersEnabled(true);
+        m_RTextScrollPane.setFoldIndicatorEnabled(true);
+        
+        try {
+            Theme theme = Theme.load(getClass().getResourceAsStream("/org/fife/ui/rsyntaxtextarea/themes/monokai.xml"));
+            theme.apply(m_RSyntaxTextArea);
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Failed to load RSyntaxTextArea theme: monokai.xml", e);
+        }
+        
         cp.add(m_RTextScrollPane);
         
         //Overview Editor with on CardLayout with "text" Identifier
@@ -136,8 +159,9 @@ public final class ResourcesView extends JPanel implements EditorRecord {
         
         ResourceType restype = (ResourceType) m_ResourceModel.getSelectedItem();
         if (restype == ResourceType.TEXT) {
-            m_RSyntaxTextArea.setText(Formats.BYTEA.formatValue((byte[])resource[3]));
-            m_RSyntaxTextArea.setSyntaxEditingStyle(getResourceSyntaxStyle(m_RSyntaxTextArea.getText()));
+            String text = Formats.BYTEA.formatValue((byte[])resource[3]);
+            m_RSyntaxTextArea.setText(text);
+            m_RSyntaxTextArea.setSyntaxEditingStyle(getResourceSyntaxStyle((String) resource[1], text));
             m_RSyntaxTextArea.setCaretPosition(0);
             
             m_jImage.setImage(null);
@@ -176,8 +200,9 @@ public final class ResourcesView extends JPanel implements EditorRecord {
         ResourceType restype = (ResourceType) m_ResourceModel.getSelectedItem();
         if (restype == ResourceType.TEXT) {
             
-            m_RSyntaxTextArea.setText(Formats.BYTEA.formatValue((byte[])resource[3]));
-            m_RSyntaxTextArea.setSyntaxEditingStyle(getResourceSyntaxStyle(m_RSyntaxTextArea.getText()));
+            String text = Formats.BYTEA.formatValue((byte[])resource[3]);
+            m_RSyntaxTextArea.setText(text);
+            m_RSyntaxTextArea.setSyntaxEditingStyle(getResourceSyntaxStyle((String) resource[1], text));
             m_RSyntaxTextArea.setCaretPosition(0);
             
             m_jImage.setImage(null);
@@ -265,17 +290,31 @@ public final class ResourcesView extends JPanel implements EditorRecord {
 	return data; 
     }
     
-    private String getResourceSyntaxStyle(String resource) {
-
-        if (resource.contains("<?xml")) {
-            return SyntaxConstants.SYNTAX_STYLE_XML;
-        } else if (resource.contains("INSERT") || resource.contains("SELECT") 
-                || resource.contains("UPDATE") || resource.contains("DELETE")) {
-            return SyntaxConstants.SYNTAX_STYLE_SQL;
-        } else {
-            return SyntaxConstants.SYNTAX_STYLE_JAVA;
+    private String getResourceSyntaxStyle(String name, String content) {
+        if (name != null) {
+            String lowerName = name.toLowerCase();
+            if (lowerName.endsWith(".xml") || lowerName.startsWith("printer.") || lowerName.startsWith("ticket.")) {
+                return SyntaxConstants.SYNTAX_STYLE_XML;
+            }
+            if (lowerName.startsWith("event.") || lowerName.endsWith(".js") || lowerName.endsWith(".bs") || lowerName.contains("script")) {
+                return SyntaxConstants.SYNTAX_STYLE_JAVASCRIPT;
+            }
+            if (lowerName.endsWith(".sql")) {
+                return SyntaxConstants.SYNTAX_STYLE_SQL;
+            }
         }
-
+        if (content != null) {
+            if (content.contains("<?xml") || content.contains("<ticket") || content.contains("<output")) {
+                return SyntaxConstants.SYNTAX_STYLE_XML;
+            }
+            if (content.contains("INSERT ") || content.contains("SELECT ") || content.contains("UPDATE ") || content.contains("DELETE ")) {
+                return SyntaxConstants.SYNTAX_STYLE_SQL;
+            }
+            if (content.contains("function ") || content.contains("var ") || content.contains("import ")) {
+                return SyntaxConstants.SYNTAX_STYLE_JAVASCRIPT;
+            }
+        }
+        return SyntaxConstants.SYNTAX_STYLE_PROPERTIES_FILE;
     }
 
     

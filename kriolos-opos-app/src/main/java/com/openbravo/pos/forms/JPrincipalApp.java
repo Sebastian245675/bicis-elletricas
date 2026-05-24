@@ -127,10 +127,11 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         // Sebastian - Sin icono en el perfil, solo texto
         m_principalnotificator.setIcon(null);
         
-        // Sebastian - Configurar estilo del perfil para el panel superior
-        m_principalnotificator.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 16));
+        // Sebastian - Configurar estilo del perfil para el panel superior (reducido para vertical)
+        m_principalnotificator.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
         m_principalnotificator.setForeground(COLOR_SURFACE);
-        m_principalnotificator.setHorizontalTextPosition(javax.swing.SwingConstants.LEFT);
+        m_principalnotificator.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        m_principalnotificator.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         
         // Agregar el perfil al panel superior (se inicializa en initComponents)
         javax.swing.SwingUtilities.invokeLater(() -> {
@@ -1120,7 +1121,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         javax.swing.JPanel rightTopPanel = new javax.swing.JPanel();
         rightTopPanel.setLayout(new java.awt.BorderLayout());
         rightTopPanel.setOpaque(false);
-        rightTopPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 18, 10, 24));
+        rightTopPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 18, 4, 24));
         
         // Panel contenedor para el texto y el perfil (horizontal)
         javax.swing.JPanel atendidoPanel = new javax.swing.JPanel();
@@ -1137,22 +1138,29 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                 java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
                 g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
                 int w = getWidth(); int h = getHeight();
-                // Fondo circular blanco semitransparente
-                g2.setColor(new java.awt.Color(255, 255, 255, 60));
+                
+                // Fondo circular blanco semitransparente muy sutil y elegante
+                g2.setColor(new java.awt.Color(255, 255, 255, 30));
                 g2.fillOval(0, 0, w - 1, h - 1);
-                g2.setColor(new java.awt.Color(255, 255, 255, 120));
-                g2.setStroke(new java.awt.BasicStroke(1.5f));
+                g2.setColor(new java.awt.Color(255, 255, 255, 90));
+                g2.setStroke(new java.awt.BasicStroke(1.2f));
                 g2.drawOval(0, 0, w - 1, h - 1);
-                // Cabeza
-                int headR = w / 4;
-                int headCX = w / 2; int headCY = h * 5 / 16;
-                g2.setColor(new java.awt.Color(255, 255, 255, 230));
+                
+                // Silueta estilizada y proporcional (evita efecto cabezón)
+                g2.setColor(new java.awt.Color(255, 255, 255, 220));
+                
+                // Cabeza (30% del ancho)
+                int headR = (int)(w * 0.15f);
+                int headCX = w / 2;
+                int headCY = (int)(h * 0.32f);
                 g2.fillOval(headCX - headR, headCY - headR, headR * 2, headR * 2);
-                // Cuerpo (semielipse inferior)
-                int bodyW = w * 10 / 16; int bodyH = h * 6 / 16;
-                int bodyX = (w - bodyW) / 2; int bodyY = h * 9 / 16;
-                g2.setColor(new java.awt.Color(255, 255, 255, 200));
-                // Clip to circle for body
+                
+                // Cuerpo/Hombros elegantes
+                int bodyW = (int)(w * 0.56f);
+                int bodyH = (int)(h * 0.36f);
+                int bodyX = (w - bodyW) / 2;
+                int bodyY = (int)(h * 0.56f);
+                
                 java.awt.geom.Ellipse2D.Double clipCircle = new java.awt.geom.Ellipse2D.Double(0, 0, w, h);
                 g2.setClip(clipCircle);
                 g2.fillArc(bodyX, bodyY, bodyW, bodyH, 0, 180);
@@ -1166,21 +1174,102 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         
         // Label "Le atiende:"
         javax.swing.JLabel lblLeAtiende = new javax.swing.JLabel("Le atiende:");
-        lblLeAtiende.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
-        lblLeAtiende.setForeground(new java.awt.Color(201, 213, 225));
+        lblLeAtiende.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 10));
+        lblLeAtiende.setForeground(new java.awt.Color(241, 245, 249));
+        lblLeAtiende.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         
         // Perfil del usuario - se agregarÃ¡ despuÃ©s de inicializar m_principalnotificator
         profilePanelRef = new javax.swing.JPanel();
-        profilePanelRef.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 0));
+        profilePanelRef.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 0, 0));
         profilePanelRef.setOpaque(false);
         
-        // Panel agrupador de perfil (icono + textos)
-        javax.swing.JPanel profileGroupPanel = new javax.swing.JPanel();
-        profileGroupPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 8, 0));
+        // Panel agrupador de perfil (icono + textos) - Diseño vertical mejor hecho y compacto
+        javax.swing.JPanel profileGroupPanel = new javax.swing.JPanel() {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                Boolean hovered = (Boolean) getClientProperty("hovered");
+                if (hovered != null && hovered) {
+                    java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                    g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(new java.awt.Color(255, 255, 255, 35));
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                    g2.dispose();
+                }
+                super.paintComponent(g);
+            }
+        };
+        profileGroupPanel.setLayout(new java.awt.GridBagLayout());
         profileGroupPanel.setOpaque(false);
-        profileGroupPanel.add(profileIconPanel);
-        profileGroupPanel.add(lblLeAtiende);
-        profileGroupPanel.add(profilePanelRef);
+        profileGroupPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 8, 4, 8));
+        
+        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = java.awt.GridBagConstraints.CENTER;
+        gbc.insets = new java.awt.Insets(0, 0, 2, 0);
+        profileGroupPanel.add(profileIconPanel, gbc);
+        
+        gbc.gridy = 1;
+        gbc.insets = new java.awt.Insets(0, 0, 1, 0);
+        profileGroupPanel.add(lblLeAtiende, gbc);
+        
+        gbc.gridy = 2;
+        gbc.insets = new java.awt.Insets(0, 0, 0, 0);
+        profileGroupPanel.add(profilePanelRef, gbc);
+        
+        // Sebastian - Al hacer clic en el perfil, llevar al panel de perfil del usuario
+        profileGroupPanel.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        profileGroupPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                profileGroupPanel.putClientProperty("hovered", Boolean.TRUE);
+                profileGroupPanel.repaint();
+            }
+            
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                profileGroupPanel.putClientProperty("hovered", Boolean.FALSE);
+                profileGroupPanel.repaint();
+            }
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                if (m_appuser.hasPermission("com.openbravo.pos.config.JPanelConfiguration")) {
+                    showTask("com.openbravo.pos.config.JPanelConfiguration");
+                    // Seleccionar la pestaña de perfil en un invokeLater para esperar que cargue el panel
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        try {
+                            JPanelView viewPanel = rMenu.getViewManager().getCreatedViews().get("com.openbravo.pos.config.JPanelConfiguration");
+                            if (viewPanel instanceof com.openbravo.pos.config.JPanelConfiguration) {
+                                ((com.openbravo.pos.config.JPanelConfiguration) viewPanel).selectProfileTab();
+                            }
+                        } catch (Exception ex) {
+                            LOGGER.log(Level.WARNING, "Error al seleccionar pestaña de perfil", ex);
+                        }
+                    });
+                } else if (m_appuser.hasPermission("com.openbravo.pos.admin.PeoplePanel")) {
+                    showTask("com.openbravo.pos.admin.PeoplePanel");
+                } else {
+                    // Si no tiene permisos de configuración ni de personas, abrir diálogo para cambiar su propia contraseña
+                    String sNewPassword = com.openbravo.beans.JPasswordDialog.changePassword(JPrincipalApp.this, m_appuser.getPassword());
+                    if (sNewPassword != null) {
+                        try {
+                            m_dlSystem.execChangePassword(new Object[]{sNewPassword, m_appuser.getId()});
+                            javax.swing.JOptionPane.showMessageDialog(JPrincipalApp.this,
+                                "Contraseña actualizada correctamente.",
+                                "Éxito",
+                                javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                        } catch (Exception ex) {
+                            LOGGER.log(Level.WARNING, "Error al cambiar contraseña", ex);
+                            javax.swing.JOptionPane.showMessageDialog(JPrincipalApp.this,
+                                "No se pudo cambiar la contraseña.",
+                                "Error",
+                                javax.swing.JOptionPane.ERROR_MESSAGE);
+                        }
+                    }
+                }
+            }
+        });
+
         
         // --- Bandera de Argentina ---
         javax.swing.JPanel flagArPanel = new javax.swing.JPanel() {
@@ -1231,6 +1320,31 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         flagArPanel.setMinimumSize(new java.awt.Dimension(36, 24));
         flagArPanel.setMaximumSize(new java.awt.Dimension(36, 24));
         flagArPanel.setToolTipText("Argentina");
+        flagArPanel.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        flagArPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                if (m_appuser.hasPermission("com.openbravo.pos.config.JPanelConfiguration")) {
+                    showTask("com.openbravo.pos.config.JPanelConfiguration");
+                    // Seleccionar la pestaña de Localización (Idioma)
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        try {
+                            JPanelView viewPanel = rMenu.getViewManager().getCreatedViews().get("com.openbravo.pos.config.JPanelConfiguration");
+                            if (viewPanel instanceof com.openbravo.pos.config.JPanelConfiguration) {
+                                ((com.openbravo.pos.config.JPanelConfiguration) viewPanel).selectLocaleTab();
+                            }
+                        } catch (Exception ex) {
+                            LOGGER.log(Level.WARNING, "Error al seleccionar pestaña de idioma", ex);
+                        }
+                    });
+                } else {
+                    javax.swing.JOptionPane.showMessageDialog(JPrincipalApp.this, 
+                        "No tienes permiso para acceder a la configuración de idioma.", 
+                        "Acceso Denegado", 
+                        javax.swing.JOptionPane.WARNING_MESSAGE);
+                }
+            }
+        });
         
         // Wrapper para centrar verticalmente la bandera
         javax.swing.JPanel flagWrapper = new javax.swing.JPanel();

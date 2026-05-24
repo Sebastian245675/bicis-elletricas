@@ -91,7 +91,7 @@ public class JSaver extends JPanel implements StateListener {
         jbtnNew.setFocusPainted(false);
         jbtnNew.setFocusable(false);
         jbtnNew.setMargin(new java.awt.Insets(2, 2, 2, 2));
-        jbtnNew.setPreferredSize(new java.awt.Dimension(60, 45));
+        jbtnNew.setPreferredSize(new java.awt.Dimension(32, 32));
         jbtnNew.setRequestFocusEnabled(false);
         jbtnNew.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -104,7 +104,7 @@ public class JSaver extends JPanel implements StateListener {
         jbtnDelete.setFocusPainted(false);
         jbtnDelete.setFocusable(false);
         jbtnDelete.setMargin(new java.awt.Insets(2, 2, 2, 2));
-        jbtnDelete.setPreferredSize(new java.awt.Dimension(60, 45));
+        jbtnDelete.setPreferredSize(new java.awt.Dimension(32, 32));
         jbtnDelete.setRequestFocusEnabled(false);
         jbtnDelete.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -117,7 +117,7 @@ public class JSaver extends JPanel implements StateListener {
         jbtnSave.setFocusPainted(false);
         jbtnSave.setFocusable(false);
         jbtnSave.setMargin(new java.awt.Insets(2, 2, 2, 2));
-        jbtnSave.setPreferredSize(new java.awt.Dimension(60, 45));
+        jbtnSave.setPreferredSize(new java.awt.Dimension(32, 32));
         jbtnSave.setRequestFocusEnabled(false);
         jbtnSave.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -178,5 +178,16 @@ public class JSaver extends JPanel implements StateListener {
     private javax.swing.JButton jbtnNew;
     private javax.swing.JButton jbtnSave;
     // End of variables declaration//GEN-END:variables
-    
+
+    public javax.swing.JButton getBtnNew() {
+        return jbtnNew;
+    }
+
+    public javax.swing.JButton getBtnDelete() {
+        return jbtnDelete;
+    }
+
+    public javax.swing.JButton getBtnSave() {
+        return jbtnSave;
+    }
 }

@@ -1,5 +1,5 @@
-//    KriolOS POS - Open Source Point Of Sale
-//    Copyright (c) 2019-2023 KriolOS
+//    websy arg - Open Source Point Of Sale
+//    Copyright (c) 2019-2023 websy arg
 //    
 //
 //     .

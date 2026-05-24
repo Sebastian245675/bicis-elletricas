@@ -57,7 +57,7 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
 
         if (bd.canLoadData()) {
             jbtnReload = new javax.swing.JButton();
-            jbtnReload.setPreferredSize(new java.awt.Dimension(60,45));            
+            jbtnReload.setPreferredSize(new java.awt.Dimension(32,32));            
             jbtnReload.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/reload.png")));
             jbtnReload.setMargin(new java.awt.Insets(2, 2, 2, 2));
             jbtnReload.setFocusPainted(false);

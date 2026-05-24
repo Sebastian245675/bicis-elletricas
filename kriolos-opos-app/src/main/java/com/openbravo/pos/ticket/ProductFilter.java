@@ -65,11 +65,11 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
         Font fontText = new Font("Segoe UI", Font.PLAIN, 14);
         Color colorLabel = new Color(70, 80, 90);
 
-        jLabel1.setFont(fontLabel); jLabel1.setForeground(colorLabel);
-        jLabel2.setFont(fontLabel); jLabel2.setForeground(colorLabel);
-        jLabel3.setFont(fontLabel); jLabel3.setForeground(colorLabel);
-        jLabel4.setFont(fontLabel); jLabel4.setForeground(colorLabel);
-        jLabel5.setFont(fontLabel); jLabel5.setForeground(colorLabel);
+        if (jLabel1 != null) { jLabel1.setFont(fontLabel); jLabel1.setForeground(colorLabel); }
+        if (jLabel2 != null) { jLabel2.setFont(fontLabel); jLabel2.setForeground(colorLabel); }
+        if (jLabel3 != null) { jLabel3.setFont(fontLabel); jLabel3.setForeground(colorLabel); }
+        if (jLabel4 != null) { jLabel4.setFont(fontLabel); jLabel4.setForeground(colorLabel); }
+        if (jLabel5 != null) { jLabel5.setFont(fontLabel); jLabel5.setForeground(colorLabel); }
 
         m_jBarcode.setFont(fontText);
         m_jName.setFont(fontText);
@@ -80,6 +80,9 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
         m_jCboName.setFont(fontText);
         m_jCboPriceBuy.setFont(fontText);
         m_jCboPriceSell.setFont(fontText);
+        if (m_jFilterType != null) {
+            m_jFilterType.setFont(fontText);
+        }
         
         javax.swing.JTextField[] tfs = {m_jBarcode, m_jName, m_jPriceBuy, m_jPriceSell};
         for (javax.swing.JTextField tf : tfs) {
@@ -154,18 +157,16 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
      */
     @Override
     public Object createValue() throws BasicException {
-        
-        if (m_jBarcode.getText() == null || m_jBarcode.getText().equals("")) {
-
+        int index = m_jFilterType.getSelectedIndex();
+        if (index == 1) { // Nombre
             return new Object[] {
                 m_jCboName.getSelectedItem(), m_jName.getText(),
-                m_jCboPriceBuy.getSelectedItem(), Formats.CURRENCY.parseValue(m_jPriceBuy.getText()),           
-                m_jCboPriceSell.getSelectedItem(), Formats.CURRENCY.parseValue(m_jPriceSell.getText()),
-                m_CategoryModel.getSelectedKey() == null ? QBFCompareEnum.COMP_NONE : QBFCompareEnum.COMP_EQUALS, m_CategoryModel.getSelectedKey(),
-//                m_SupplierModel.getSelectedKey() == null ? QBFCompareEnum.COMP_NONE : QBFCompareEnum.COMP_EQUALS, m_SupplierModel.getSelectedKey(),                                
-                QBFCompareEnum.COMP_NONE, null         
+                QBFCompareEnum.COMP_NONE, null,
+                QBFCompareEnum.COMP_NONE, null,
+                QBFCompareEnum.COMP_NONE, null,
+                QBFCompareEnum.COMP_NONE, null
             };
-        } else {            
+        } else if (index == 2) { // Código de Barras
             return new Object[] {
                 QBFCompareEnum.COMP_NONE, null,
                 QBFCompareEnum.COMP_NONE, null,
@@ -173,197 +174,172 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
                 QBFCompareEnum.COMP_NONE, null,
                 QBFCompareEnum.COMP_EQUALS, m_jBarcode.getText()
             };
+        } else if (index == 3) { // Categoría
+            return new Object[] {
+                QBFCompareEnum.COMP_NONE, null,
+                QBFCompareEnum.COMP_NONE, null,
+                QBFCompareEnum.COMP_NONE, null,
+                m_CategoryModel.getSelectedKey() == null ? QBFCompareEnum.COMP_NONE : QBFCompareEnum.COMP_EQUALS, m_CategoryModel.getSelectedKey(),
+                QBFCompareEnum.COMP_NONE, null
+            };
+        } else if (index == 4) { // Precio de Compra
+            return new Object[] {
+                QBFCompareEnum.COMP_NONE, null,
+                m_jCboPriceBuy.getSelectedItem(), Formats.CURRENCY.parseValue(m_jPriceBuy.getText()),
+                QBFCompareEnum.COMP_NONE, null,
+                QBFCompareEnum.COMP_NONE, null,
+                QBFCompareEnum.COMP_NONE, null
+            };
+        } else if (index == 5) { // Precio de Venta
+            return new Object[] {
+                QBFCompareEnum.COMP_NONE, null,
+                QBFCompareEnum.COMP_NONE, null,
+                m_jCboPriceSell.getSelectedItem(), Formats.CURRENCY.parseValue(m_jPriceSell.getText()),
+                QBFCompareEnum.COMP_NONE, null,
+                QBFCompareEnum.COMP_NONE, null
+            };
+        } else { // Cualquiera (no filtering)
+            return new Object[] {
+                QBFCompareEnum.COMP_NONE, null,
+                QBFCompareEnum.COMP_NONE, null,
+                QBFCompareEnum.COMP_NONE, null,
+                QBFCompareEnum.COMP_NONE, null,
+                QBFCompareEnum.COMP_NONE, null
+            };
         }
     } 
  
-    
-    /** This method is called from within the constructor to
-     * initialize the form.
-     * WARNING: Do NOT modify this code. The content of this method is
-     * always regenerated by the Form Editor.
-     */
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
-
-        jLabel1 = new javax.swing.JLabel();
-        m_jCategory = new javax.swing.JComboBox();
-        jLabel5 = new javax.swing.JLabel();
+        m_jFilterType = new javax.swing.JComboBox<>();
+        m_jPanelInput = new javax.swing.JPanel();
+        
         m_jBarcode = new javax.swing.JTextField();
-        jLabel2 = new javax.swing.JLabel();
+        m_jCategory = new javax.swing.JComboBox();
         m_jCboName = new javax.swing.JComboBox();
-        m_jName = new javax.swing.JTextField();
-        jLabel4 = new javax.swing.JLabel();
         m_jCboPriceBuy = new javax.swing.JComboBox();
-        m_jPriceBuy = new javax.swing.JTextField();
-        jLabel3 = new javax.swing.JLabel();
         m_jCboPriceSell = new javax.swing.JComboBox();
+        m_jName = new javax.swing.JTextField();
+        m_jPriceBuy = new javax.swing.JTextField();
         m_jPriceSell = new javax.swing.JTextField();
         jBtnReset = new javax.swing.JButton();
+        
+        jLabel1 = new javax.swing.JLabel();
+        jLabel2 = new javax.swing.JLabel();
+        jLabel3 = new javax.swing.JLabel();
+        jLabel4 = new javax.swing.JLabel();
+        jLabel5 = new javax.swing.JLabel();
 
-        setMaximumSize(new java.awt.Dimension(450, 200));
-        setMinimumSize(new java.awt.Dimension(450, 200));
-        setPreferredSize(new java.awt.Dimension(450, 200));
+        setMaximumSize(new java.awt.Dimension(450, 90));
+        setMinimumSize(new java.awt.Dimension(450, 90));
+        setPreferredSize(new java.awt.Dimension(450, 90));
 
-        jLabel1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLabel1.setText(AppLocal.getIntString("label.prodcategory")); // NOI18N
-        jLabel1.setPreferredSize(new java.awt.Dimension(110, 30));
+        // Setup top panel
+        javax.swing.JPanel panelTop = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 10, 5));
+        panelTop.setOpaque(false);
 
-        m_jCategory.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        m_jCategory.setMaximumSize(new java.awt.Dimension(150, 30));
-        m_jCategory.setMinimumSize(new java.awt.Dimension(150, 30));
-        m_jCategory.setPreferredSize(new java.awt.Dimension(150, 30));
+        javax.swing.JLabel labelFilter = new javax.swing.JLabel("Buscar por:");
+        labelFilter.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
+        labelFilter.setForeground(new java.awt.Color(70, 80, 90));
+        panelTop.add(labelFilter);
 
-        jLabel5.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLabel5.setText(AppLocal.getIntString("label.prodbarcode")); // NOI18N
-        jLabel5.setPreferredSize(new java.awt.Dimension(110, 30));
+        m_jFilterType.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] {
+            "Cualquiera",
+            "Nombre",
+            "Código de Barras",
+            "Categoría",
+            "Precio de Compra",
+            "Precio de Venta"
+        }));
+        m_jFilterType.setPreferredSize(new java.awt.Dimension(180, 30));
+        panelTop.add(m_jFilterType);
 
-        m_jBarcode.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        m_jBarcode.setMaximumSize(new java.awt.Dimension(150, 30));
-        m_jBarcode.setMinimumSize(new java.awt.Dimension(150, 30));
-        m_jBarcode.setPreferredSize(new java.awt.Dimension(150, 30));
-
-        jLabel2.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLabel2.setText(AppLocal.getIntString("label.prodname")); // NOI18N
-        jLabel2.setPreferredSize(new java.awt.Dimension(110, 30));
-
-        m_jCboName.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        m_jCboName.setLightWeightPopupEnabled(false);
-        m_jCboName.setMaximumSize(new java.awt.Dimension(150, 30));
-        m_jCboName.setMinimumSize(new java.awt.Dimension(150, 30));
-        m_jCboName.setPreferredSize(new java.awt.Dimension(150, 30));
-
-        m_jName.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        m_jName.setMaximumSize(new java.awt.Dimension(100, 30));
-        m_jName.setMinimumSize(new java.awt.Dimension(100, 30));
-        m_jName.setPreferredSize(new java.awt.Dimension(100, 30));
-
-        jLabel4.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLabel4.setText(AppLocal.getIntString("label.prodpricebuy")); // NOI18N
-        jLabel4.setPreferredSize(new java.awt.Dimension(110, 30));
-
-        m_jCboPriceBuy.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        m_jCboPriceBuy.setMaximumSize(new java.awt.Dimension(150, 30));
-        m_jCboPriceBuy.setMinimumSize(new java.awt.Dimension(150, 30));
-        m_jCboPriceBuy.setPreferredSize(new java.awt.Dimension(150, 30));
-
-        m_jPriceBuy.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        m_jPriceBuy.setMaximumSize(new java.awt.Dimension(60, 30));
-        m_jPriceBuy.setMinimumSize(new java.awt.Dimension(60, 30));
-        m_jPriceBuy.setPreferredSize(new java.awt.Dimension(60, 30));
-
-        jLabel3.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLabel3.setText(AppLocal.getIntString("label.prodpricesell")); // NOI18N
-        jLabel3.setPreferredSize(new java.awt.Dimension(110, 30));
-
-        m_jCboPriceSell.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        m_jCboPriceSell.setMaximumSize(new java.awt.Dimension(150, 30));
-        m_jCboPriceSell.setMinimumSize(new java.awt.Dimension(150, 30));
-        m_jCboPriceSell.setPreferredSize(new java.awt.Dimension(150, 30));
-
-        m_jPriceSell.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        m_jPriceSell.setMaximumSize(new java.awt.Dimension(60, 30));
-        m_jPriceSell.setMinimumSize(new java.awt.Dimension(60, 30));
-        m_jPriceSell.setPreferredSize(new java.awt.Dimension(60, 30));
-
-        jBtnReset.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jBtnReset.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/reload.png"))); // NOI18N
-        jBtnReset.setMaximumSize(new java.awt.Dimension(40, 30));
-        jBtnReset.setMinimumSize(new java.awt.Dimension(40, 30));
-        jBtnReset.setPreferredSize(new java.awt.Dimension(80, 45));
+        jBtnReset.setPreferredSize(new java.awt.Dimension(35, 30));
         jBtnReset.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jBtnResetActionPerformed(evt);
             }
         });
+        panelTop.add(jBtnReset);
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
-        this.setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addGroup(layout.createSequentialGroup()
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                    .addGroup(layout.createSequentialGroup()
-                                        .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(m_jBarcode, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                                    .addGroup(layout.createSequentialGroup()
-                                        .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(m_jCategory, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(jBtnReset, javax.swing.GroupLayout.PREFERRED_SIZE, 52, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(m_jCboName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(m_jName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addContainerGap())
-                    .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(m_jCboPriceBuy, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(m_jPriceBuy, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(m_jCboPriceSell, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(m_jPriceSell, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-                        .addContainerGap())))
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                    .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(m_jCboName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(m_jName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                    .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(m_jBarcode, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jBtnReset, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                    .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(m_jCategory, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                    .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(m_jCboPriceBuy, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(m_jPriceBuy, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                    .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(m_jCboPriceSell, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(m_jPriceSell, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-        );
-    }// </editor-fold>//GEN-END:initComponents
+        // Setup cards
+        javax.swing.JPanel cardNone = new javax.swing.JPanel();
+        cardNone.setOpaque(false);
 
-    private void jBtnResetActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jBtnResetActionPerformed
+        javax.swing.JPanel cardName = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 10, 5));
+        cardName.setOpaque(false);
+        m_jCboName.setPreferredSize(new java.awt.Dimension(150, 30));
+        m_jName.setPreferredSize(new java.awt.Dimension(200, 30));
+        cardName.add(m_jCboName);
+        cardName.add(m_jName);
+
+        javax.swing.JPanel cardBarcode = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 10, 5));
+        cardBarcode.setOpaque(false);
+        m_jBarcode.setPreferredSize(new java.awt.Dimension(200, 30));
+        cardBarcode.add(m_jBarcode);
+
+        javax.swing.JPanel cardCategory = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 10, 5));
+        cardCategory.setOpaque(false);
+        m_jCategory.setPreferredSize(new java.awt.Dimension(200, 30));
+        cardCategory.add(m_jCategory);
+
+        javax.swing.JPanel cardPriceBuy = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 10, 5));
+        cardPriceBuy.setOpaque(false);
+        m_jCboPriceBuy.setPreferredSize(new java.awt.Dimension(150, 30));
+        m_jPriceBuy.setPreferredSize(new java.awt.Dimension(100, 30));
+        cardPriceBuy.add(m_jCboPriceBuy);
+        cardPriceBuy.add(m_jPriceBuy);
+
+        javax.swing.JPanel cardPriceSell = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 10, 5));
+        cardPriceSell.setOpaque(false);
+        m_jCboPriceSell.setPreferredSize(new java.awt.Dimension(150, 30));
+        m_jPriceSell.setPreferredSize(new java.awt.Dimension(100, 30));
+        cardPriceSell.add(m_jCboPriceSell);
+        cardPriceSell.add(m_jPriceSell);
+
+        m_jPanelInput.setLayout(new java.awt.CardLayout());
+        m_jPanelInput.setOpaque(false);
+        m_jPanelInput.add(cardNone, "Cualquiera");
+        m_jPanelInput.add(cardName, "Nombre");
+        m_jPanelInput.add(cardBarcode, "Código de Barras");
+        m_jPanelInput.add(cardCategory, "Categoría");
+        m_jPanelInput.add(cardPriceBuy, "Precio de Compra");
+        m_jPanelInput.add(cardPriceSell, "Precio de Venta");
+
+        m_jFilterType.addItemListener(new java.awt.event.ItemListener() {
+            public void itemStateChanged(java.awt.event.ItemEvent evt) {
+                if (evt.getStateChange() == java.awt.event.ItemEvent.SELECTED) {
+                    java.awt.CardLayout cl = (java.awt.CardLayout)(m_jPanelInput.getLayout());
+                    cl.show(m_jPanelInput, (String)m_jFilterType.getSelectedItem());
+                }
+            }
+        });
+
+        setLayout(new java.awt.BorderLayout(10, 10));
+        add(panelTop, java.awt.BorderLayout.NORTH);
+        add(m_jPanelInput, java.awt.BorderLayout.CENTER);
+    }
+
+    private void jBtnResetActionPerformed(java.awt.event.ActionEvent evt) {
+        m_jFilterType.setSelectedIndex(0);
         m_jBarcode.setText(null);
-        m_jCategory.setSelectedIndex(0);
-        m_jCboName.setSelectedIndex(0);
-        m_jCboPriceBuy.setSelectedIndex(0);
-        m_jCboPriceSell.setSelectedIndex(0);
+        if (m_jCategory.getItemCount() > 0) {
+            m_jCategory.setSelectedIndex(0);
+        }
+        if (m_jCboName.getItemCount() > 0) {
+            m_jCboName.setSelectedIndex(0);
+        }
+        if (m_jCboPriceBuy.getItemCount() > 0) {
+            m_jCboPriceBuy.setSelectedIndex(0);
+        }
+        if (m_jCboPriceSell.getItemCount() > 0) {
+            m_jCboPriceSell.setSelectedIndex(0);
+        }
         m_jName.setText(null);
         m_jPriceBuy.setText(null);
         m_jPriceSell.setText(null);
-    }//GEN-LAST:event_jBtnResetActionPerformed
-   
-    
-    
-    // Variables declaration - do not modify//GEN-BEGIN:variables
+    }
+
     private javax.swing.JButton jBtnReset;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
@@ -378,6 +354,6 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
     private javax.swing.JTextField m_jName;
     private javax.swing.JTextField m_jPriceBuy;
     private javax.swing.JTextField m_jPriceSell;
-    // End of variables declaration//GEN-END:variables
-    
+    private javax.swing.JComboBox<String> m_jFilterType;
+    private javax.swing.JPanel m_jPanelInput;
 }

@@ -208,9 +208,6 @@ public class JRootApp extends JPanel implements AppView {
         setStatusBarPanel();
 
         // showLoginPanel(); // Sebastian - Ahora se usa JLogonDialog desde JRootFrame
-
-        // Sebastian - Verificar actualizaciones en segundo plano (no bloquea el inicio)
-        checkForUpdatesAsync();
     }
     /**
      * Sebastian - Verifica y actualiza el esquema de la base de datos para asegurar
@@ -292,6 +289,266 @@ public class JRootApp extends JPanel implements AppView {
                 } else {
                     LOGGER.info("✔️ Columna " + col + " ya existe en PEOPLE");
                 }
+            }
+
+            // 3. Limpiar marcas obsoletas (branding) en la tabla RESOURCES
+            LOGGER.info("🔧 Sebastian - Limpiando branding en la tabla RESOURCES...");
+            try (java.sql.Statement stmt = conn.createStatement();
+                 java.sql.ResultSet rs = stmt.executeQuery("SELECT ID, NAME, CONTENT FROM resources")) {
+                while (rs.next()) {
+                    String id = rs.getString("ID");
+                    String name = rs.getString("NAME");
+                    String lowerName = name.toLowerCase();
+                    if (lowerName.endsWith(".png") || lowerName.endsWith(".jpg") || lowerName.endsWith(".gif") || 
+                        lowerName.endsWith(".bmp") || lowerName.endsWith(".ico") || lowerName.endsWith(".jar") || 
+                        lowerName.endsWith(".zip") || lowerName.endsWith(".bin") || lowerName.contains("logo")) {
+                        continue;
+                    }
+                    byte[] contentBytes = rs.getBytes("CONTENT");
+                    if (contentBytes != null && contentBytes.length > 0) {
+                        String content = new String(contentBytes, java.nio.charset.StandardCharsets.UTF_8);
+                        boolean modified = false;
+                        if (content.startsWith("\ufeff")) {
+                            content = content.substring(1);
+                            modified = true;
+                        }
+                        String newContent = content;
+                        
+                        if (newContent.contains("KriolOS POS")) {
+                            newContent = newContent.replace("KriolOS POS", "websy arg");
+                            modified = true;
+                        }
+                        if (newContent.contains("KriolOS")) {
+                            newContent = newContent.replace("KriolOS", "websy arg");
+                            modified = true;
+                        }
+                        if (newContent.contains("kriolos")) {
+                            newContent = newContent.replace("kriolos", "websy");
+                            modified = true;
+                        }
+                        if (newContent.contains("uniCenta oPOS")) {
+                            newContent = newContent.replace("uniCenta oPOS", "websy arg");
+                            modified = true;
+                        }
+                        if (newContent.contains("uniCenta")) {
+                            newContent = newContent.replace("uniCenta", "websy");
+                            modified = true;
+                        }
+                        if (newContent.contains("unicenta")) {
+                            newContent = newContent.replace("unicenta", "websy");
+                            modified = true;
+                        }
+                        
+                        if (modified) {
+                            LOGGER.info("🔧 Sebastian - Actualizando marcas en recurso DB: " + name);
+                            byte[] newContentBytes = newContent.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                            try (java.sql.PreparedStatement updateStmt = conn.prepareStatement(
+                                    "UPDATE resources SET CONTENT = ? WHERE ID = ?")) {
+                                updateStmt.setBytes(1, newContentBytes);
+                                updateStmt.setString(2, id);
+                                updateStmt.executeUpdate();
+                            }
+                        }
+                    }
+                }
+                LOGGER.info("✅ Limpieza de branding en RESOURCES finalizada");
+            }
+
+            // 3.5. Sebastian - Forzar actualización de reportes de impuestos en DB desde el classpath
+            LOGGER.info("🔧 Sebastian - Sincronizando reportes de impuestos en DB desde classpath...");
+            String[] syncReports = {
+                "/com/openbravo/reports/sales_taxes.bs",
+                "/com/openbravo/reports/sales_saletaxes.bs"
+            };
+            for (String reportPath : syncReports) {
+                try (java.io.InputStream in = JRootApp.class.getResourceAsStream(reportPath)) {
+                    if (in != null) {
+                        byte[] classpathContent = in.readAllBytes();
+                        boolean exists = false;
+                        String id = null;
+                        try (java.sql.PreparedStatement checkStmt = conn.prepareStatement("SELECT ID FROM resources WHERE NAME = ?")) {
+                            checkStmt.setString(1, reportPath);
+                            try (java.sql.ResultSet checkRs = checkStmt.executeQuery()) {
+                                if (checkRs.next()) {
+                                    exists = true;
+                                    id = checkRs.getString("ID");
+                                }
+                            }
+                        }
+                        if (exists) {
+                            LOGGER.info("🔧 Sebastian - Actualizando recurso DB " + reportPath);
+                            try (java.sql.PreparedStatement updateStmt = conn.prepareStatement("UPDATE resources SET CONTENT = ? WHERE ID = ?")) {
+                                updateStmt.setBytes(1, classpathContent);
+                                updateStmt.setString(2, id);
+                                updateStmt.executeUpdate();
+                            }
+                        } else {
+                            LOGGER.info("🔧 Sebastian - Insertando recurso DB " + reportPath);
+                            try (java.sql.PreparedStatement insertStmt = conn.prepareStatement("INSERT INTO resources (ID, NAME, RESTYPE, CONTENT) VALUES (?, ?, ?, ?)")) {
+                                insertStmt.setString(1, UUID.randomUUID().toString());
+                                insertStmt.setString(2, reportPath);
+                                insertStmt.setInt(3, 0); // Texto/Script
+                                insertStmt.setBytes(4, classpathContent);
+                                insertStmt.executeUpdate();
+                            }
+                        }
+                    } else {
+                        LOGGER.warning("⚠️ Sebastian - No se pudo encontrar " + reportPath + " en el classpath");
+                    }
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "⚠️ Sebastian - Error al sincronizar " + reportPath + " desde classpath: " + e.getMessage(), e);
+                }
+            }
+
+            // 4. Crear tabla AUDIT_LOG si no existe
+            boolean auditTableExists = false;
+            try (java.sql.Statement stmt = conn.createStatement()) {
+                stmt.executeQuery("SELECT ID FROM AUDIT_LOG WHERE 1=0");
+                auditTableExists = true;
+            } catch (SQLException e) {
+                // La tabla no existe
+            }
+
+            if (!auditTableExists) {
+                LOGGER.info("🔧 Sebastian - Creando tabla AUDIT_LOG...");
+                try (java.sql.Statement stmt = conn.createStatement()) {
+                    stmt.execute("CREATE TABLE AUDIT_LOG (" +
+                                 "ID VARCHAR(255) PRIMARY KEY, " +
+                                 "USER_NAME VARCHAR(255), " +
+                                 "EVENT_TYPE VARCHAR(50), " +
+                                 "ENTITY_TYPE VARCHAR(100), " +
+                                 "ENTITY_ID VARCHAR(255), " +
+                                 "ENTITY_NAME VARCHAR(255), " +
+                                 "EVENT_DATE TIMESTAMP, " +
+                                 "DETAILS VARCHAR(4000))");
+                    LOGGER.info("✅ Tabla AUDIT_LOG creada exitosamente");
+                } catch (SQLException e) {
+                    LOGGER.log(Level.WARNING, "⚠️ No se pudo crear la tabla AUDIT_LOG: " + e.getMessage());
+                }
+            }
+
+            // 5. Sebastian - Configurar productos iniciales por defecto (con stock, precio e impuesto) y tasa del 16%
+            try {
+                LOGGER.info("🔧 Sebastian - Configurando productos iniciales por defecto y tasa de impuesto estándar...");
+                
+                // Actualizar tasa de impuesto Standard (id = '001') a 16% (0.16)
+                try (java.sql.PreparedStatement updateTax = conn.prepareStatement(
+                        "UPDATE taxes SET rate = 0.16 WHERE id = '001'")) {
+                    updateTax.executeUpdate();
+                    LOGGER.info("✅ Tasa de Impuesto Estándar (001) actualizada a 16%");
+                }
+                
+                // Producto 1: ID xxx999_999xxx_x9x9x9
+                // Código: 4545, Nombre: Producto Inicial 1, Precio: 100.0 (compra) / 120.0 (venta), Impuesto: 001, isservice: false
+                try (java.sql.PreparedStatement updateProd1 = conn.prepareStatement(
+                        "UPDATE products SET reference = '4545', code = '4545', name = 'Producto Inicial 1', " +
+                        "pricebuy = 100.0, pricesell = 120.0, taxcat = '001', isservice = false, display = 'Producto Inicial 1' " +
+                        "WHERE id = 'xxx999_999xxx_x9x9x9'")) {
+                    int updated = updateProd1.executeUpdate();
+                    if (updated > 0) {
+                        LOGGER.info("✅ Producto Inicial 1 (ID: xxx999...) actualizado (Código: 4545, Precio: 120)");
+                    } else {
+                        try (java.sql.PreparedStatement insertProd1 = conn.prepareStatement(
+                                "INSERT INTO products (id, reference, code, name, pricebuy, pricesell, taxcat, isservice, display, category) " +
+                                "VALUES ('xxx999_999xxx_x9x9x9', '4545', '4545', 'Producto Inicial 1', 100.0, 120.0, '001', false, 'Producto Inicial 1', '000')")) {
+                            insertProd1.executeUpdate();
+                            LOGGER.info("✅ Producto Inicial 1 insertado (Código: 4545, Precio: 120)");
+                        }
+                    }
+                }
+                
+                // Producto 2: ID xxx998_998xxx_x8x8x8
+                // Código: xxx998, Nombre: Producto Inicial 2, Precio: 50.0 (compra) / 60.0 (venta), Impuesto: 001, isservice: false
+                try (java.sql.PreparedStatement updateProd2 = conn.prepareStatement(
+                        "UPDATE products SET reference = 'xxx998', code = 'xxx998', name = 'Producto Inicial 2', " +
+                        "pricebuy = 50.0, pricesell = 60.0, taxcat = '001', isservice = false, display = 'Producto Inicial 2' " +
+                        "WHERE id = 'xxx998_998xxx_x8x8x8'")) {
+                    int updated = updateProd2.executeUpdate();
+                    if (updated > 0) {
+                        LOGGER.info("✅ Producto Inicial 2 (ID: xxx998...) actualizado (Código: xxx998, Precio: 60)");
+                    } else {
+                        try (java.sql.PreparedStatement insertProd2 = conn.prepareStatement(
+                                "INSERT INTO products (id, reference, code, name, pricebuy, pricesell, taxcat, isservice, display, category) " +
+                                "VALUES ('xxx998_998xxx_x8x8x8', 'xxx998', 'xxx998', 'Producto Inicial 2', 50.0, 60.0, '001', false, 'Producto Inicial 2', '000')")) {
+                            insertProd2.executeUpdate();
+                            LOGGER.info("✅ Producto Inicial 2 insertado (Código: xxx998, Precio: 60)");
+                        }
+                    }
+                }
+                
+                // Asegurar que estén en products_cat (catálogo)
+                String[] prodIds = {"xxx999_999xxx_x9x9x9", "xxx998_998xxx_x8x8x8"};
+                for (String pId : prodIds) {
+                    boolean catExists = false;
+                    try (java.sql.PreparedStatement checkCat = conn.prepareStatement(
+                            "SELECT product FROM products_cat WHERE product = ?")) {
+                        checkCat.setString(1, pId);
+                        try (java.sql.ResultSet catRs = checkCat.executeQuery()) {
+                            if (catRs.next()) {
+                                catExists = true;
+                            }
+                        }
+                    }
+                    if (!catExists) {
+                        try (java.sql.PreparedStatement insertCat = conn.prepareStatement(
+                                "INSERT INTO products_cat (product) VALUES (?)")) {
+                            insertCat.setString(1, pId);
+                            insertCat.executeUpdate();
+                            LOGGER.info("✅ Producto " + pId + " asociado a catálogo (products_cat)");
+                        }
+                    }
+                }
+                
+                // Asegurar ubicación por defecto '0'
+                boolean locExists = false;
+                try (java.sql.PreparedStatement checkLoc = conn.prepareStatement("SELECT ID FROM locations WHERE ID = '0'")) {
+                    try (java.sql.ResultSet locRs = checkLoc.executeQuery()) {
+                        if (locRs.next()) locExists = true;
+                    }
+                }
+                if (!locExists) {
+                    try (java.sql.PreparedStatement insertLoc = conn.prepareStatement("INSERT INTO locations (id, name, address) VALUES ('0', 'Location 1', 'Location 1')")) {
+                        insertLoc.executeUpdate();
+                        LOGGER.info("✅ Ubicación por defecto '0' insertada");
+                    }
+                }
+                
+                // Asegurar stockcurrent para ambos productos en la ubicación '0'
+                double[] stocks = {50.0, 100.0};
+                for (int i = 0; i < prodIds.length; i++) {
+                    String pId = prodIds[i];
+                    double units = stocks[i];
+                    boolean stockExists = false;
+                    try (java.sql.PreparedStatement checkStock = conn.prepareStatement(
+                            "SELECT units FROM stockcurrent WHERE product = ? AND location = '0'")) {
+                        checkStock.setString(1, pId);
+                        try (java.sql.ResultSet stockRs = checkStock.executeQuery()) {
+                            if (stockRs.next()) {
+                                stockExists = true;
+                            }
+                        }
+                    }
+                    
+                    if (stockExists) {
+                        try (java.sql.PreparedStatement updateStock = conn.prepareStatement(
+                                "UPDATE stockcurrent SET units = ? WHERE product = ? AND location = '0'")) {
+                            updateStock.setDouble(1, units);
+                            updateStock.setString(2, pId);
+                            updateStock.executeUpdate();
+                            LOGGER.info("✅ Stock de producto " + pId + " actualizado a " + units + " unidades");
+                        }
+                    } else {
+                        try (java.sql.PreparedStatement insertStock = conn.prepareStatement(
+                                "INSERT INTO stockcurrent (location, product, units) VALUES ('0', ?, ?)")) {
+                            insertStock.setString(1, pId);
+                            insertStock.setDouble(2, units);
+                            insertStock.executeUpdate();
+                            LOGGER.info("✅ Stock de producto " + pId + " insertado con " + units + " unidades");
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "⚠️ Sebastian - Error al configurar productos iniciales y stock: " + e.getMessage(), e);
             }
 
             // Restaurar autoCommit original
@@ -1033,6 +1290,8 @@ public class JRootApp extends JPanel implements AppView {
                         "✅ Sebastian - Caja activa ya tiene fondo inicial configurado, omitiendo solicitud");
             }
 
+            // Sebastian - Verificar actualizaciones en segundo plano después de iniciar sesión y cargar la vista principal
+            // checkForUpdatesAsync();
         }
     }
 

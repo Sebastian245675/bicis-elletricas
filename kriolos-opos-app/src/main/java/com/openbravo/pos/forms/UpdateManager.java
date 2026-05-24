@@ -89,34 +89,53 @@ public class UpdateManager {
             // 4. Reemplazar JAR actual con el nuevo
             progressCallback.onProgress(90, "Aplicando actualización...");
             
-            // En Windows, necesitamos renombrar en lugar de reemplazar directamente
-            // Esto funciona tanto si se ejecuta desde JAR como desde cualquier ubicación
+            // En Windows, no podemos reemplazar ni renombrar el archivo JAR en ejecución directamente
+            // debido a que la JVM mantiene un bloqueo exclusivo sobre él.
+            // Para resolver esto, escribimos un script .bat temporal, lo ejecutamos y salimos.
             if (System.getProperty("os.name").toLowerCase().contains("win")) {
-                File tempOld = new File(currentJarPath + ".old");
-                // Eliminar archivo .old anterior si existe
-                if (tempOld.exists()) {
-                    tempOld.delete();
+                File parentDir = currentJar.getParentFile();
+                if (parentDir == null) {
+                    parentDir = new File(".");
                 }
-                // Renombrar JAR actual a .old
-                if (currentJar.exists()) {
-                    if (!currentJar.renameTo(tempOld)) {
-                        // Si falla el rename, intentar copiar y luego eliminar
-                        Files.copy(currentJar.toPath(), tempOld.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                }
-                }
-                // Renombrar nuevo JAR a actual
-                if (!newJar.renameTo(currentJar)) {
-                    // Si falla, intentar copiar
-                    Files.copy(newJar.toPath(), currentJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                    newJar.delete();
-                }
+                File updaterScript = new File(parentDir, "update_helper.bat");
+                String targetPath = currentJar.getAbsolutePath();
+                String newPath = newJar.getAbsolutePath();
+                
+                StringBuilder script = new StringBuilder();
+                script.append("@echo off\r\n");
+                script.append("echo Aplicando actualizacion para KriolOS POS...\r\n");
+                script.append(":loop\r\n");
+                script.append("timeout /t 1 /nobreak >nul\r\n");
+                script.append("move /y \"").append(newPath).append("\" \"").append(targetPath).append("\" >nul 2>&1\r\n");
+                script.append("if errorlevel 1 goto loop\r\n");
+                script.append("\r\n");
+                script.append("echo Actualizacion aplicada con exito.\r\n");
+                script.append("if exist \"").append(targetPath).append(".backup\" del /q \"").append(targetPath).append(".backup\"\r\n");
+                script.append("if exist \"").append(targetPath).append(".old\" del /q \"").append(targetPath).append(".old\"\r\n");
+                script.append("\r\n");
+                script.append("echo Reiniciando la aplicacion...\r\n");
+                script.append("start \"\" java -Xms256m -Xmx2g -XX:+UseG1GC -XX:+UseStringDeduplication -Dsun.java2d.d3d=false -Dsun.java2d.noddraw=true -Djava.awt.headless=false -Xverify:none -XX:TieredStopAtLevel=1 -XX:+TieredCompilation -Dfile.encoding=UTF-8 -Dsplash=true -jar \"").append(targetPath).append("\"\r\n");
+                script.append("\r\n");
+                script.append("(goto) 2>nul & del \"%~f0\"\r\n");
+                
+                // Guardar el script por lotes
+                Files.writeString(updaterScript.toPath(), script.toString(), java.nio.charset.StandardCharsets.UTF_8);
+                
+                // Lanzar el script en un proceso independiente y desacoplado (detached)
+                // Usamos 'start /min' para que el script continúe ejecutándose incluso si el proceso JVM padre termina
+                ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start /min \"\" \"" + updaterScript.getAbsolutePath() + "\"");
+                pb.directory(parentDir);
+                pb.start();
+                
+                LOGGER.info("Script de actualizacion iniciado: " + updaterScript.getAbsolutePath());
             } else {
-                // En Linux/Mac, usar move directamente
+                // En Linux/Mac, usar move directamente ya que el SO permite renombrar archivos abiertos
                 Files.move(newJar.toPath(), currentJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
             }
             
-            // Limpiar archivo temporal si aún existe
-            if (newJar.exists()) {
+            // Limpiar archivo temporal si aún existe (solo en sistemas que no sean Windows,
+            // ya que en Windows el script update_helper.bat se encarga de moverlo/reemplazarlo)
+            if (!System.getProperty("os.name").toLowerCase().contains("win") && newJar.exists()) {
                 newJar.delete();
             }
             
@@ -183,38 +202,86 @@ public class UpdateManager {
      */
     private static String getCurrentJarPath() {
         try {
-            // Obtener la ruta del JAR desde la clase
-            java.net.URL location = UpdateManager.class.getProtectionDomain()
+            // Obtener la ruta del JAR desde la clase principal StartPOS
+            java.net.URL location = StartPOS.class.getProtectionDomain()
                     .getCodeSource().getLocation();
             
             if (location == null) {
-                throw new Exception("No se pudo obtener la ubicación del código");
+                // Intentar con UpdateManager
+                location = UpdateManager.class.getProtectionDomain()
+                        .getCodeSource().getLocation();
             }
             
-            String path = location.toURI().getPath();
-            
-            // Decodificar URL encoding
-            path = java.net.URLDecoder.decode(path, "UTF-8");
-            
-            // En Windows, remover el "/" inicial si existe
-            if (path.startsWith("/") && path.length() > 2 && path.charAt(2) == ':') {
-                path = path.substring(1);
+            if (location != null) {
+                String urlStr = location.toURI().toString();
+                // Decodificar URL
+                urlStr = java.net.URLDecoder.decode(urlStr, "UTF-8");
+                
+                LOGGER.info("Ubicación del código original: " + urlStr);
+                
+                // Si es un nested/jar URL de Spring Boot o similar, extraer el JAR/EXE externo
+                // Ejemplos: 
+                // jar:file:/C:/path/kriolos-pos.jar!/BOOT-INF/lib/...
+                // nested:/C:/path/kriolos-pos.jar/BOOT-INF/lib/...
+                String path = urlStr;
+                
+                // Remover prefijos comunes de protocolo
+                if (path.startsWith("jar:file:")) {
+                    path = path.substring(9);
+                } else if (path.startsWith("file:")) {
+                    path = path.substring(5);
+                } else if (path.startsWith("nested:")) {
+                    path = path.substring(7);
+                }
+                
+                // Si contiene "!/", cortar allí
+                int bangIndex = path.indexOf("!/");
+                if (bangIndex != -1) {
+                    path = path.substring(0, bangIndex);
+                }
+                
+                // Si contiene ".jar" o ".exe" seguido de "/", cortar después de la extensión
+                int jarIndex = path.toLowerCase().indexOf(".jar/");
+                if (jarIndex != -1) {
+                    path = path.substring(0, jarIndex + 4);
+                }
+                int exeIndex = path.toLowerCase().indexOf(".exe/");
+                if (exeIndex != -1) {
+                    path = path.substring(0, exeIndex + 4);
+                }
+                
+                // En Windows, remover el "/" inicial si existe (ej: /C:/path -> C:/path)
+                if (path.startsWith("/") && path.length() > 2 && path.charAt(2) == ':') {
+                    path = path.substring(1);
+                }
+                
+                File jarFile = new File(path);
+                if (jarFile.exists() && (path.toLowerCase().endsWith(".jar") || path.toLowerCase().endsWith(".exe"))) {
+                    if (path.toLowerCase().endsWith(".exe")) {
+                        File jarInSameDir = new File(jarFile.getParent(), "kriolos-pos.jar");
+                        if (jarInSameDir.exists()) {
+                            return jarInSameDir.getAbsolutePath();
+                        }
+                    }
+                    return jarFile.getAbsolutePath();
+                }
             }
             
-            // Verificar que el archivo existe y es un JAR
-            File jarFile = new File(path);
-            if (jarFile.exists() && (path.toLowerCase().endsWith(".jar") || path.toLowerCase().endsWith(".exe"))) {
-                // Si es .exe, buscar el JAR asociado en la misma carpeta
-                if (path.toLowerCase().endsWith(".exe")) {
-                    File jarInSameDir = new File(jarFile.getParent(), "kriolos-pos.jar");
-                    if (jarInSameDir.exists()) {
-                        return jarInSameDir.getAbsolutePath();
+            // Si falló, intentar parsear java.class.path
+            String classpath = System.getProperty("java.class.path");
+            if (classpath != null && !classpath.isEmpty()) {
+                String[] paths = classpath.split(File.pathSeparator);
+                for (String p : paths) {
+                    if (p.toLowerCase().contains("kriolos") && p.toLowerCase().endsWith(".jar")) {
+                        File f = new File(p);
+                        if (f.exists()) {
+                            return f.getAbsolutePath();
+                        }
                     }
                 }
-                return jarFile.getAbsolutePath();
             }
             
-            // Si no es un JAR válido, buscar en ubicaciones comunes
+            // Buscar en ubicaciones comunes
             String[] possiblePaths = {
                 "kriolos-pos.jar",
                 "target/kriolos-pos.jar",
@@ -228,15 +295,19 @@ public class UpdateManager {
                 }
             }
             
-            throw new Exception("No se encontró el archivo JAR");
+            throw new Exception("No se pudo resolver la ruta del JAR actual.");
             
         } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "No se pudo obtener ruta del JAR: " + e.getMessage());
-            // Último recurso: buscar en el directorio actual
-            File currentDir = new File(System.getProperty("user.dir"));
-            File[] jars = currentDir.listFiles((dir, name) -> name.endsWith(".jar") && name.contains("kriolos"));
-            if (jars != null && jars.length > 0) {
-                return jars[0].getAbsolutePath();
+            LOGGER.log(Level.WARNING, "Error al determinar ruta del JAR: " + e.getMessage(), e);
+            // Último recurso: buscar en el directorio actual cualquier JAR con "kriolos"
+            try {
+                File currentDir = new File(System.getProperty("user.dir"));
+                File[] jars = currentDir.listFiles((dir, name) -> name.endsWith(".jar") && name.contains("kriolos"));
+                if (jars != null && jars.length > 0) {
+                    return jars[0].getAbsolutePath();
+                }
+            } catch (Exception ex) {
+                LOGGER.log(Level.WARNING, "Fallo último recurso de búsqueda de JAR: " + ex.getMessage());
             }
             return null;
         }
@@ -248,6 +319,10 @@ public class UpdateManager {
     public static boolean restoreBackup() {
         try {
             String currentJarPath = getCurrentJarPath();
+            if (currentJarPath == null) {
+                LOGGER.warning("No se pudo restaurar el respaldo porque la ruta del JAR es nula");
+                return false;
+            }
             File currentJar = new File(currentJarPath);
             File backupJar = new File(currentJarPath + ".backup");
             

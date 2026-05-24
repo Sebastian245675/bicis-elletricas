@@ -432,15 +432,13 @@ public final class JRViewer400 extends javax.swing.JPanel implements JRHyperlink
 
         if (component instanceof AbstractButton) {
             AbstractButton button = (AbstractButton) component;
-            button.setBackground(surface);
+            button.putClientProperty("JButton.buttonType", "toolBarButton");
+            button.setBackground(toolbarSurface);
             button.setForeground(text);
             button.setFocusPainted(false);
-            button.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(border),
-                    new EmptyBorder(6, 6, 6, 6)
-            ));
+            button.setBorder(new EmptyBorder(6, 8, 6, 8));
             button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            button.setOpaque(true);
+            button.setOpaque(false);
         } else if (component instanceof JComboBox) {
             JComboBox comboBox = (JComboBox) component;
             comboBox.setBackground(surface);
@@ -580,6 +578,7 @@ public final class JRViewer400 extends javax.swing.JPanel implements JRHyperlink
         List<JRSaveContributor> builtinContributors = SaveContributorUtils.createBuiltinContributors(
                 jasperReportsContext, getLocale(), resourceBundle);
         saveContributors.addAll(builtinContributors);
+        saveContributors.add(new JRXlsxSaveContributor(getLocale(), resourceBundle));
     }
 
     /**
@@ -703,6 +702,7 @@ public final class JRViewer400 extends javax.swing.JPanel implements JRHyperlink
 
         jToolBar = new javax.swing.JToolBar();
         btnSave = new javax.swing.JButton();
+        btnExcel = new javax.swing.JButton();
         btnPrint = new javax.swing.JButton();
         btnReload = new javax.swing.JButton();
         jSeparator1 = new javax.swing.JToolBar.Separator();
@@ -758,6 +758,15 @@ public final class JRViewer400 extends javax.swing.JPanel implements JRHyperlink
             }
         });
         jToolBar.add(btnSave);
+
+        btnExcel.setIcon(new ExcelIcon(20, 20));
+        btnExcel.setToolTipText("Exportar a Excel");
+        btnExcel.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnExcelActionPerformed(evt);
+            }
+        });
+        jToolBar.add(btnExcel);
 
         btnPrint.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/yast_printer.png"))); // NOI18N
         btnPrint.setToolTipText(getBundleString("print"));
@@ -1144,6 +1153,35 @@ public final class JRViewer400 extends javax.swing.JPanel implements JRHyperlink
                 }
             }
 	}//GEN-LAST:event_btnSaveActionPerformed
+
+    void btnExcelActionPerformed(java.awt.event.ActionEvent evt) {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setLocale(this.getLocale());
+        fileChooser.updateUI();
+        
+        JRXlsxSaveContributor xlsxContributor = new JRXlsxSaveContributor(getLocale(), resourceBundle);
+        fileChooser.addChoosableFileFilter(xlsxContributor);
+        fileChooser.setFileFilter(xlsxContributor);
+        
+        if (lastFolder != null) {
+            fileChooser.setCurrentDirectory(lastFolder);
+        }
+        
+        int retValue = fileChooser.showSaveDialog(this);
+        if (retValue == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+            lastFolder = file.getParentFile();
+            
+            try {
+                xlsxContributor.save(jasperPrint, file);
+            } catch (JRException e) {
+                if (LOGGER.isLoggable(Level.SEVERE)) {
+                    LOGGER.log(Level.SEVERE, "Save Excel error.", e);
+                }
+                JOptionPane.showMessageDialog(this, getBundleString("error.saving"));
+            }
+        }
+    }
 
 	void pnlLinksMouseDragged(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_pnlLinksMouseDragged
             // Add your handling code here:
@@ -1551,6 +1589,7 @@ public final class JRViewer400 extends javax.swing.JPanel implements JRHyperlink
                 || jasperPrint.getPages().size() == 0) {
             pnlPage.setVisible(false);
             btnSave.setEnabled(false);
+            btnExcel.setEnabled(false);
             btnPrint.setEnabled(false);
             btnActualSize.setEnabled(false);
             btnFitPage.setEnabled(false);
@@ -1568,6 +1607,7 @@ public final class JRViewer400 extends javax.swing.JPanel implements JRHyperlink
 
         pnlPage.setVisible(true);
         btnSave.setEnabled(true);
+        btnExcel.setEnabled(true);
         btnPrint.setEnabled(true);
         btnActualSize.setEnabled(true);
         btnFitPage.setEnabled(true);
@@ -2131,6 +2171,7 @@ public final class JRViewer400 extends javax.swing.JPanel implements JRHyperlink
     protected javax.swing.JButton btnPrint;
     protected javax.swing.JButton btnReload;
     protected javax.swing.JButton btnSave;
+    protected javax.swing.JButton btnExcel;
     protected javax.swing.JButton btnZoomIn;
     protected javax.swing.JButton btnZoomOut;
     protected javax.swing.JComboBox cmbZoom;

@@ -24,7 +24,10 @@ import com.openbravo.pos.forms.AppLocal;
 import com.openbravo.pos.forms.AppUser;
 import com.openbravo.pos.forms.DataLogicSystem;
 import com.openbravo.beans.JPasswordDialog;
-import java.awt.Component;
+import java.awt.*;
+import java.io.File;
+import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.LookAndFeel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
@@ -71,6 +74,8 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
 
         jtxtMachineHostname.getDocument().addDocumentListener(dirty);
         jtxtMachineDepartment.getDocument().addDocumentListener(dirty);
+        jtxtMachineAddress = new javax.swing.JTextField();
+        jtxtMachineAddress.getDocument().addDocumentListener(dirty);
         lblIP_Address.setText(IP.toString());        
         jcboLAF.addActionListener(dirty);
         jcboMachineScreenmode.addActionListener(dirty);
@@ -103,13 +108,29 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
             LOGGER.info("Current LaF: "+UIManager.getLookAndFeel().getClass().getName());
         });
 
-        jcboMachineScreenmode.addItem("window");
-        jcboMachineScreenmode.addItem("fullscreen");
+        jcboMachineScreenmode.addItem(new ComboItem("window", "Ventana"));
+        jcboMachineScreenmode.addItem(new ComboItem("fullscreen", "Pantalla Completa"));
 
-        jcboTicketsBag.addItem("simple");
-        jcboTicketsBag.addItem("standard");
-        jcboTicketsBag.addItem("restaurant");
+        jcboTicketsBag.addItem(new ComboItem("simple", "Simple"));
+        jcboTicketsBag.addItem(new ComboItem("standard", "Estándar"));
+        jcboTicketsBag.addItem(new ComboItem("restaurant", "Restaurante"));
         
+        jtxtStartupLogo.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                updateLogoPreview();
+            }
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                updateLogoPreview();
+            }
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                updateLogoPreview();
+            }
+        });
+
+        buildModernLayout();
     }
 
     /**
@@ -139,6 +160,7 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
 
         jtxtMachineHostname.setText(config.getProperty("machine.hostname"));
         jtxtMachineDepartment.setText(config.getProperty("machine.department"));
+        jtxtMachineAddress.setText(config.getProperty("machine.address"));
         
         String lafclass = config.getProperty("swing.defaultlaf");
         jcboLAF.setSelectedItem(null);
@@ -150,13 +172,14 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
             }
         }
 
-        jcboMachineScreenmode.setSelectedItem(config.getProperty("machine.screenmode"));
-        jcboTicketsBag.setSelectedItem(config.getProperty("machine.ticketsbag"));
+        setSelectedComboValue(jcboMachineScreenmode, config.getProperty("machine.screenmode"));
+        setSelectedComboValue(jcboTicketsBag, config.getProperty("machine.ticketsbag"));
         jchkHideInfo.setSelected(Boolean.parseBoolean(config.getProperty("till.hideinfo")));        
         jtxtStartupLogo.setText(config.getProperty("start.logo"));
         jtxtStartupText.setText(config.getProperty("start.text")); 
         jtxtStartupLogo.setText(config.getProperty("start.logo"));
         jtxtStartupHTML.setText(config.getProperty("start.html"));
+        updateLogoPreview();
         dirty.setDirty(false);
     }
 
@@ -169,14 +192,15 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
 
         config.setProperty("machine.hostname", jtxtMachineHostname.getText());
         config.setProperty("machine.department", jtxtMachineDepartment.getText());      
+        config.setProperty("machine.address", jtxtMachineAddress.getText());      
         
         LafInfo laf = (LafInfo) jcboLAF.getSelectedItem();
         config.setProperty("swing.defaultlaf", laf == null
                 ? System.getProperty("swing.defaultlaf", "javax.swing.plaf.metal.MetalLookAndFeel")
                 : laf.getClassName());
 
-        config.setProperty("machine.screenmode", comboValue(jcboMachineScreenmode.getSelectedItem()));
-        config.setProperty("machine.ticketsbag", comboValue(jcboTicketsBag.getSelectedItem()));
+        config.setProperty("machine.screenmode", getSelectedComboValue(jcboMachineScreenmode));
+        config.setProperty("machine.ticketsbag", getSelectedComboValue(jcboTicketsBag));
         config.setProperty("till.hideinfo", Boolean.toString(jchkHideInfo.isSelected()));         
         config.setProperty("start.logo", jtxtStartupLogo.getText());
         config.setProperty("start.text", jtxtStartupText.getText());
@@ -718,7 +742,605 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         }
     }//GEN-LAST:event_jbtnCheckUpdatesActionPerformed
 
+    private void updateLogoPreview() {
+        if (lblLogoPreview == null) return;
+        String logoPath = jtxtStartupLogo.getText();
+        if (logoPath == null || logoPath.trim().isEmpty()) {
+            lblLogoPreview.setIcon(null);
+            lblLogoPreview.setText("+");
+            lblLogoPreview.setFont(new Font("Segoe UI", Font.PLAIN, 36));
+            lblLogoPreview.setForeground(new Color(156, 163, 175)); // grey
+        } else {
+            File file = new File(logoPath);
+            if (file.exists() && file.isFile()) {
+                try {
+                    ImageIcon originalIcon = new ImageIcon(logoPath);
+                    Image img = originalIcon.getImage();
+                    if (img != null) {
+                        int width = 150;
+                        int height = 85;
+                        Image scaledImg = img.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+                        lblLogoPreview.setIcon(new ImageIcon(scaledImg));
+                        lblLogoPreview.setText("");
+                    } else {
+                        lblLogoPreview.setIcon(null);
+                        lblLogoPreview.setText("Err");
+                        lblLogoPreview.setFont(new Font("Segoe UI", Font.BOLD, 16));
+                    }
+                } catch (Exception ex) {
+                    lblLogoPreview.setIcon(null);
+                    lblLogoPreview.setText("Error");
+                }
+            } else {
+                lblLogoPreview.setIcon(null);
+                lblLogoPreview.setText("?");
+                lblLogoPreview.setFont(new Font("Segoe UI", Font.BOLD, 24));
+            }
+        }
+    }
+
+    private JPanel createCardPanel() {
+        JPanel panel = new JPanel();
+        panel.setBackground(Color.WHITE);
+        Border lineBorder = BorderFactory.createLineBorder(new Color(226, 232, 240), 1, true);
+        Border padding = BorderFactory.createEmptyBorder(20, 24, 20, 24);
+        panel.setBorder(BorderFactory.createCompoundBorder(lineBorder, padding));
+        return panel;
+    }
+
+    private void styleInputField(JTextField field) {
+        field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        field.setForeground(new Color(55, 65, 81));
+        field.setBackground(Color.WHITE);
+        field.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
+            BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
+    }
+
+    private void setSelectedComboValue(JComboBox combo, String value) {
+        for (int i = 0; i < combo.getItemCount(); i++) {
+            Object item = combo.getItemAt(i);
+            if (item instanceof ComboItem) {
+                if (((ComboItem) item).getValue().equals(value)) {
+                    combo.setSelectedIndex(i);
+                    return;
+                }
+            } else if (item != null && item.toString().equals(value)) {
+                combo.setSelectedIndex(i);
+                return;
+            }
+        }
+        combo.setSelectedItem(null);
+    }
+
+    private String getSelectedComboValue(JComboBox combo) {
+        Object item = combo.getSelectedItem();
+        if (item instanceof ComboItem) {
+            return ((ComboItem) item).getValue();
+        }
+        return item == null ? "" : item.toString();
+    }
+
+    private static class ComboItem {
+        private final String value;
+        private final String label;
+
+        public ComboItem(String value, String label) {
+            this.value = value;
+            this.label = label;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        @Override
+        public String toString() {
+            return label;
+        }
+    }
+
+    private void styleComboBox(JComboBox combo) {
+        combo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        combo.setForeground(new Color(55, 65, 81));
+        combo.setBackground(Color.WHITE);
+    }
+
+    private void buildModernLayout() {
+        this.removeAll();
+        this.setLayout(new BorderLayout());
+        this.setOpaque(false);
+
+        // Header Panel
+        JPanel headerPanel = new JPanel();
+        headerPanel.setLayout(new GridBagLayout());
+        headerPanel.setOpaque(false);
+        GridBagConstraints gbcHeader = new GridBagConstraints();
+        gbcHeader.fill = GridBagConstraints.HORIZONTAL;
+        gbcHeader.weightx = 1.0;
+        gbcHeader.gridx = 0;
+
+        lblMainTitle = new JLabel("Configuración del Perfil de la Empresa");
+        lblMainTitle.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        lblMainTitle.setForeground(new Color(17, 24, 39));
+        
+        lblSubtitle = new JLabel("Gestione la información y configuración de su negocio");
+        lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        lblSubtitle.setForeground(new Color(107, 114, 128));
+
+        gbcHeader.gridy = 0;
+        gbcHeader.insets = new Insets(10, 20, 2, 20);
+        headerPanel.add(lblMainTitle, gbcHeader);
+
+        gbcHeader.gridy = 1;
+        gbcHeader.insets = new Insets(0, 20, 20, 20);
+        headerPanel.add(lblSubtitle, gbcHeader);
+
+        // Cards Container Panel
+        JPanel cardsContainer = new JPanel();
+        cardsContainer.setLayout(new GridBagLayout());
+        cardsContainer.setOpaque(false);
+
+        GridBagConstraints gbcCards = new GridBagConstraints();
+        gbcCards.fill = GridBagConstraints.BOTH;
+        gbcCards.weighty = 1.0;
+        gbcCards.weightx = 0.5;
+        gbcCards.gridy = 0;
+
+        // Left Card
+        gbcCards.gridx = 0;
+        gbcCards.insets = new Insets(0, 20, 20, 10);
+        JPanel leftCard = createCardPanel();
+        cardsContainer.add(leftCard, gbcCards);
+
+        // Right Card
+        gbcCards.gridx = 1;
+        gbcCards.insets = new Insets(0, 10, 20, 20);
+        JPanel rightCard = createCardPanel();
+        cardsContainer.add(rightCard, gbcCards);
+
+        // --- POPULATE LEFT CARD ---
+        leftCard.setLayout(new GridBagLayout());
+        GridBagConstraints gbcL = new GridBagConstraints();
+        gbcL.fill = GridBagConstraints.HORIZONTAL;
+        gbcL.weightx = 1.0;
+        gbcL.gridx = 0;
+        int rowL = 0;
+
+        // Card Title & IP Address
+        JPanel leftHeader = new JPanel(new BorderLayout());
+        leftHeader.setOpaque(false);
+
+        lblCard1Title = new JLabel("Información General");
+        lblCard1Title.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lblCard1Title.setForeground(new Color(17, 24, 39));
+        leftHeader.add(lblCard1Title, BorderLayout.WEST);
+
+        JPanel ipPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        ipPanel.setOpaque(false);
+        JLabel lblLocIcon = new JLabel("ID Ubicación / IP: ");
+        lblLocIcon.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblLocIcon.setForeground(new Color(107, 114, 128));
+        ipPanel.add(lblLocIcon);
+        lblIP_Address.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblIP_Address.setForeground(new Color(75, 85, 99));
+        ipPanel.add(lblIP_Address);
+        leftHeader.add(ipPanel, BorderLayout.EAST);
+
+        gbcL.gridy = rowL++;
+        gbcL.gridwidth = 2;
+        gbcL.insets = new Insets(0, 0, 15, 0);
+        leftCard.add(leftHeader, gbcL);
+
+        // Logo Section
+        JPanel logoSection = new JPanel(new GridBagLayout());
+        logoSection.setOpaque(false);
+        GridBagConstraints gbcLogo = new GridBagConstraints();
+
+        lblLogoPreview = new JLabel("+");
+        lblLogoPreview.setHorizontalAlignment(JLabel.CENTER);
+        lblLogoPreview.setVerticalAlignment(JLabel.CENTER);
+        lblLogoPreview.setOpaque(true);
+        lblLogoPreview.setBackground(new Color(243, 244, 246));
+        lblLogoPreview.setPreferredSize(new Dimension(150, 90));
+        lblLogoPreview.setMinimumSize(new Dimension(150, 90));
+        lblLogoPreview.setMaximumSize(new Dimension(150, 90));
+        lblLogoPreview.setBorder(BorderFactory.createLineBorder(new Color(229, 231, 235), 1));
+        lblLogoPreview.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        lblLogoPreview.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                jbtnLogo.doClick();
+            }
+        });
+
+        gbcLogo.gridx = 0;
+        gbcLogo.gridy = 0;
+        gbcLogo.gridheight = 2;
+        gbcLogo.fill = GridBagConstraints.NONE;
+        gbcLogo.anchor = GridBagConstraints.CENTER;
+        gbcLogo.insets = new Insets(0, 0, 0, 15);
+        logoSection.add(lblLogoPreview, gbcLogo);
+
+        JPanel logoDetails = new JPanel(new GridBagLayout());
+        logoDetails.setOpaque(false);
+        GridBagConstraints gbcDetails = new GridBagConstraints();
+        gbcDetails.fill = GridBagConstraints.HORIZONTAL;
+        gbcDetails.weightx = 1.0;
+        gbcDetails.gridx = 0;
+
+        JLabel lblLogoTitle = new JLabel("Logo de la Empresa");
+        lblLogoTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblLogoTitle.setForeground(new Color(17, 24, 39));
+        gbcDetails.gridy = 0;
+        gbcDetails.insets = new Insets(0, 0, 2, 0);
+        logoDetails.add(lblLogoTitle, gbcDetails);
+
+        JLabel lblLogoDesc = new JLabel("Tamaño propuesto: 350px * 180px.");
+        lblLogoDesc.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        lblLogoDesc.setForeground(new Color(156, 163, 175));
+        gbcDetails.gridy = 1;
+        gbcDetails.insets = new Insets(0, 0, 8, 0);
+        logoDetails.add(lblLogoDesc, gbcDetails);
+
+        JPanel logoButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        logoButtons.setOpaque(false);
+
+        jbtnLogo.setText("Subir");
+        jbtnLogo.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        jbtnLogo.setBackground(Color.WHITE);
+        jbtnLogo.setForeground(new Color(59, 130, 246));
+        jbtnLogo.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
+            BorderFactory.createEmptyBorder(6, 12, 6, 12)
+        ));
+        jbtnLogo.setFocusPainted(false);
+        jbtnLogo.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        logoButtons.add(jbtnLogo);
+
+        JButton jbtnRemoveLogo = new JButton("Quitar");
+        jbtnRemoveLogo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        jbtnRemoveLogo.setBackground(Color.WHITE);
+        jbtnRemoveLogo.setForeground(new Color(107, 114, 128));
+        jbtnRemoveLogo.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
+            BorderFactory.createEmptyBorder(6, 12, 6, 12)
+        ));
+        jbtnRemoveLogo.setFocusPainted(false);
+        jbtnRemoveLogo.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        jbtnRemoveLogo.addActionListener(e -> {
+            jtxtStartupLogo.setText("");
+            dirty.setDirty(true);
+        });
+        logoButtons.add(jbtnRemoveLogo);
+
+        gbcDetails.gridy = 2;
+        logoDetails.add(logoButtons, gbcDetails);
+
+        gbcLogo.gridx = 1;
+        gbcLogo.gridy = 0;
+        gbcLogo.gridheight = 1;
+        gbcLogo.fill = GridBagConstraints.HORIZONTAL;
+        gbcLogo.weightx = 1.0;
+        gbcLogo.anchor = GridBagConstraints.WEST;
+        gbcLogo.insets = new Insets(0, 0, 0, 0);
+        logoSection.add(logoDetails, gbcLogo);
+
+        gbcL.gridy = rowL++;
+        gbcL.gridwidth = 2;
+        gbcL.insets = new Insets(0, 0, 10, 0);
+        leftCard.add(logoSection, gbcL);
+
+        // Logo Path read-only field
+        jtxtStartupLogo.setEditable(false);
+        jtxtStartupLogo.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        jtxtStartupLogo.setForeground(new Color(107, 114, 128));
+        jtxtStartupLogo.setBackground(new Color(243, 244, 246));
+        jtxtStartupLogo.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(229, 231, 235), 1),
+            BorderFactory.createEmptyBorder(4, 8, 4, 8)
+        ));
+        gbcL.gridy = rowL++;
+        gbcL.gridwidth = 2;
+        gbcL.insets = new Insets(0, 0, 15, 0);
+        leftCard.add(jtxtStartupLogo, gbcL);
+
+        // Hostname (Nombre Comercial)
+        styleInputField(jtxtMachineHostname);
+        JLabel lblHostname = new JLabel("Nombre Comercial (Terminal)");
+        lblHostname.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblHostname.setForeground(new Color(75, 85, 99));
+        gbcL.gridy = rowL++;
+        gbcL.insets = new Insets(5, 0, 4, 0);
+        leftCard.add(lblHostname, gbcL);
+        gbcL.gridy = rowL++;
+        gbcL.insets = new Insets(0, 0, 12, 0);
+        leftCard.add(jtxtMachineHostname, gbcL);
+
+        // Department (Razón Social)
+        styleInputField(jtxtMachineDepartment);
+        JLabel lblDepartment = new JLabel("Razón Social (Departamento)");
+        lblDepartment.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblDepartment.setForeground(new Color(75, 85, 99));
+        gbcL.gridy = rowL++;
+        gbcL.insets = new Insets(5, 0, 4, 0);
+        leftCard.add(lblDepartment, gbcL);
+        gbcL.gridy = rowL++;
+        gbcL.insets = new Insets(0, 0, 12, 0);
+        leftCard.add(jtxtMachineDepartment, gbcL);
+
+        // Address (Dirección de la Empresa)
+        styleInputField(jtxtMachineAddress);
+        JLabel lblAddress = new JLabel("Dirección de la Empresa");
+        lblAddress.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblAddress.setForeground(new Color(75, 85, 99));
+        gbcL.gridy = rowL++;
+        gbcL.insets = new Insets(5, 0, 4, 0);
+        leftCard.add(lblAddress, gbcL);
+        gbcL.gridy = rowL++;
+        gbcL.insets = new Insets(0, 0, 12, 0);
+        leftCard.add(jtxtMachineAddress, gbcL);
+
+        // Look and feel selector
+        styleComboBox(jcboLAF);
+        previewButton.setText("Vista Previa");
+        previewButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        previewButton.setBackground(Color.WHITE);
+        previewButton.setForeground(new Color(75, 85, 99));
+        previewButton.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
+            BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
+        previewButton.setFocusPainted(false);
+        previewButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        JPanel lafPanel = new JPanel(new BorderLayout(8, 0));
+        lafPanel.setOpaque(false);
+        lafPanel.add(jcboLAF, BorderLayout.CENTER);
+        lafPanel.add(previewButton, BorderLayout.EAST);
+
+        JLabel lblLAF = new JLabel("Tema Visual (Apariencia)");
+        lblLAF.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblLAF.setForeground(new Color(75, 85, 99));
+        gbcL.gridy = rowL++;
+        gbcL.insets = new Insets(5, 0, 4, 0);
+        leftCard.add(lblLAF, gbcL);
+        gbcL.gridy = rowL++;
+        gbcL.insets = new Insets(0, 0, 12, 0);
+        leftCard.add(lafPanel, gbcL);
+
+        // Screen mode & Tickets bag
+        styleComboBox(jcboMachineScreenmode);
+        styleComboBox(jcboTicketsBag);
+
+        JLabel lblScreen = new JLabel("Modo de Pantalla");
+        lblScreen.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblScreen.setForeground(new Color(75, 85, 99));
+
+        JLabel lblBag = new JLabel("Venta de Tickets (Bolsa)");
+        lblBag.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblBag.setForeground(new Color(75, 85, 99));
+
+        gbcL.gridwidth = 1;
+        gbcL.weightx = 0.5;
+
+        gbcL.gridy = rowL;
+        gbcL.gridx = 0;
+        gbcL.insets = new Insets(5, 0, 4, 5);
+        leftCard.add(lblScreen, gbcL);
+
+        gbcL.gridx = 1;
+        gbcL.insets = new Insets(5, 5, 4, 0);
+        leftCard.add(lblBag, gbcL);
+
+        rowL++;
+
+        gbcL.gridy = rowL;
+        gbcL.gridx = 0;
+        gbcL.insets = new Insets(0, 0, 12, 5);
+        leftCard.add(jcboMachineScreenmode, gbcL);
+
+        gbcL.gridx = 1;
+        gbcL.insets = new Insets(0, 5, 12, 0);
+        leftCard.add(jcboTicketsBag, gbcL);
+
+        rowL++;
+
+        // Hide Info checkbox
+        jchkHideInfo.setText("Mostrar Panel de Información Inferior");
+        jchkHideInfo.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        jchkHideInfo.setForeground(new Color(75, 85, 99));
+        jchkHideInfo.setOpaque(false);
+        gbcL.gridx = 0;
+        gbcL.gridy = rowL++;
+        gbcL.gridwidth = 2;
+        gbcL.weightx = 1.0;
+        gbcL.insets = new Insets(5, 0, 12, 0);
+        leftCard.add(jchkHideInfo, gbcL);
+
+        // Push everything up
+        gbcL.gridy = rowL++;
+        gbcL.gridwidth = 2;
+        gbcL.weighty = 1.0;
+        gbcL.fill = GridBagConstraints.BOTH;
+        leftCard.add(Box.createGlue(), gbcL);
+
+
+        // --- POPULATE RIGHT CARD ---
+        rightCard.setLayout(new GridBagLayout());
+        GridBagConstraints gbcR = new GridBagConstraints();
+        gbcR.fill = GridBagConstraints.HORIZONTAL;
+        gbcR.weightx = 1.0;
+        gbcR.gridx = 0;
+        int rowR = 0;
+
+        lblCard2Title = new JLabel("Configuración de Inicio y Acciones");
+        lblCard2Title.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lblCard2Title.setForeground(new Color(17, 24, 39));
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(0, 0, 15, 0);
+        rightCard.add(lblCard2Title, gbcR);
+
+        // Startup Text
+        styleInputField(jtxtStartupText);
+        jbtnText.setText("...");
+        jbtnText.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        jbtnText.setBackground(Color.WHITE);
+        jbtnText.setForeground(new Color(75, 85, 99));
+        jbtnText.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
+            BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
+        jbtnText.setFocusPainted(false);
+        jbtnText.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        jbtnTextClear.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        jbtnTextClear.setBackground(Color.WHITE);
+        jbtnTextClear.setForeground(new Color(239, 68, 68));
+        jbtnTextClear.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
+            BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
+        jbtnTextClear.setFocusPainted(false);
+        jbtnTextClear.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        JPanel textButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+        textButtonPanel.setOpaque(false);
+        textButtonPanel.add(jbtnText);
+        textButtonPanel.add(jbtnTextClear);
+
+        JPanel textPanel = new JPanel(new BorderLayout(8, 0));
+        textPanel.setOpaque(false);
+        textPanel.add(jtxtStartupText, BorderLayout.CENTER);
+        textPanel.add(textButtonPanel, BorderLayout.EAST);
+
+        JLabel lblText = new JLabel("Archivo de Texto de Inicio");
+        lblText.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblText.setForeground(new Color(75, 85, 99));
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(5, 0, 4, 0);
+        rightCard.add(lblText, gbcR);
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(0, 0, 12, 0);
+        rightCard.add(textPanel, gbcR);
+
+        // Startup HTML
+        styleInputField(jtxtStartupHTML);
+        jbtnHTML.setText("...");
+        jbtnHTML.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        jbtnHTML.setBackground(Color.WHITE);
+        jbtnHTML.setForeground(new Color(75, 85, 99));
+        jbtnHTML.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
+            BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
+        jbtnHTML.setFocusPainted(false);
+        jbtnHTML.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        jbtnClearHTML.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        jbtnClearHTML.setBackground(Color.WHITE);
+        jbtnClearHTML.setForeground(new Color(239, 68, 68));
+        jbtnClearHTML.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
+            BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
+        jbtnClearHTML.setFocusPainted(false);
+        jbtnClearHTML.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        JPanel htmlButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+        htmlButtonPanel.setOpaque(false);
+        htmlButtonPanel.add(jbtnHTML);
+        htmlButtonPanel.add(jbtnClearHTML);
+
+        JPanel htmlPanel = new JPanel(new BorderLayout(8, 0));
+        htmlPanel.setOpaque(false);
+        htmlPanel.add(jtxtStartupHTML, BorderLayout.CENTER);
+        htmlPanel.add(htmlButtonPanel, BorderLayout.EAST);
+
+        jLblURL.setText("Archivo HTML de Inicio");
+        jLblURL.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        jLblURL.setForeground(new Color(75, 85, 99));
+        jLblURL.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(5, 0, 4, 0);
+        rightCard.add(jLblURL, gbcR);
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(0, 0, 15, 0);
+        rightCard.add(htmlPanel, gbcR);
+
+        // Divider
+        JSeparator separator = new JSeparator();
+        separator.setForeground(new Color(226, 232, 240));
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(10, 0, 15, 0);
+        rightCard.add(separator, gbcR);
+
+        // Security Title
+        JLabel lblSecTitle = new JLabel("Acciones del Sistema");
+        lblSecTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblSecTitle.setForeground(new Color(17, 24, 39));
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(0, 0, 12, 0);
+        rightCard.add(lblSecTitle, gbcR);
+
+        // Change password & check updates
+        jbtnChangePassword.setText("Cambiar Contraseña");
+        jbtnChangePassword.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        jbtnChangePassword.setBackground(new Color(51, 98, 140));
+        jbtnChangePassword.setForeground(Color.WHITE);
+        jbtnChangePassword.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(51, 98, 140).darker(), 1),
+            BorderFactory.createEmptyBorder(10, 16, 10, 16)
+        ));
+        jbtnChangePassword.setFocusPainted(false);
+        jbtnChangePassword.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        jbtnCheckUpdates.setText("Verificar Actualizaciones");
+        jbtnCheckUpdates.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        jbtnCheckUpdates.setBackground(new Color(75, 85, 99));
+        jbtnCheckUpdates.setForeground(Color.WHITE);
+        jbtnCheckUpdates.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(75, 85, 99).darker(), 1),
+            BorderFactory.createEmptyBorder(10, 16, 10, 16)
+        ));
+        jbtnCheckUpdates.setFocusPainted(false);
+        jbtnCheckUpdates.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(0, 0, 12, 0);
+        rightCard.add(jbtnChangePassword, gbcR);
+
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(0, 0, 12, 0);
+        rightCard.add(jbtnCheckUpdates, gbcR);
+
+        // Push everything up
+        gbcR.gridy = rowR++;
+        gbcR.weighty = 1.0;
+        gbcR.fill = GridBagConstraints.BOTH;
+        rightCard.add(Box.createGlue(), gbcR);
+
+        // Add to main panel (wrapped in a JScrollPane)
+        this.add(headerPanel, BorderLayout.NORTH);
+
+        JScrollPane scrollPane = new JScrollPane(cardsContainer);
+        scrollPane.setBorder(null);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        this.add(scrollPane, BorderLayout.CENTER);
+        
+        updateLogoPreview();
+    }
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JLabel lblLogoPreview;
+    private javax.swing.JLabel lblCard1Title;
+    private javax.swing.JLabel lblCard2Title;
+    private javax.swing.JLabel lblMainTitle;
+    private javax.swing.JLabel lblSubtitle;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel18;
     private javax.swing.JLabel jLabel19;
@@ -742,6 +1364,7 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
     private javax.swing.JCheckBox jchkHideInfo;
     private javax.swing.JTextField jtxtMachineDepartment;
     private javax.swing.JTextField jtxtMachineHostname;
+    private javax.swing.JTextField jtxtMachineAddress;
     private javax.swing.JTextField jtxtStartupHTML;
     private javax.swing.JTextField jtxtStartupLogo;
     private javax.swing.JTextField jtxtStartupText;

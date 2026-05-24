@@ -1101,7 +1101,7 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
             "<tr><td><b>Esc</b></td><td>Volver al Inicio / Cancelar</td></tr>" +
             "</table><br>" +
             "<hr size='1' color='#cccccc'>" +
-            "<p style='color: #666666;'>KriolOS POS - Soporte Websy Group</p>" +
+            "<p style='color: #666666;'>websy arg - Soporte Websy Group</p>" +
             "</body></html>", 
             "Ayuda del Sistema", 
             javax.swing.JOptionPane.INFORMATION_MESSAGE

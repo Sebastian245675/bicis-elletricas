@@ -80,8 +80,7 @@ public class ProductsPanel extends JPanelTable2 implements EditorListener {
 
         row = m_dlSales.getProductsRow();
 
-        // lpr = new ListProviderCreator(m_dlSales.getProductCatQBF(), jproductfilter);
-        lpr = new ListProviderCreator(m_dlSales.getProductCatQBF());
+        lpr = new ListProviderCreator(m_dlSales.getProductCatQBF(), jproductfilter);
 
         // Usar SaveProvider estándar
         spr = new DefaultSaveProvider(
@@ -89,7 +88,7 @@ public class ProductsPanel extends JPanelTable2 implements EditorListener {
                 m_dlSales.getProductCatInsert(),
                 m_dlSales.getProductCatDelete());
 
-        jeditor = new ProductsEditor(app, dirty);
+        jeditor = new ProductsEditor(app, dirty, jproductfilter);
     }
 
     /**
@@ -117,9 +116,10 @@ public class ProductsPanel extends JPanelTable2 implements EditorListener {
     @Override
     public Component getToolbarExtras() {
 
-        // Panel para contener solo el botón ScanPal (los otros botones van en un menú)
+        // Panel para contener los botones
         javax.swing.JPanel panel = new javax.swing.JPanel();
         panel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 0));
+        panel.setOpaque(false);
 
         // Botón ScanPal
         JButton btnScanPal = new JButton();
@@ -135,40 +135,77 @@ public class ProductsPanel extends JPanelTable2 implements EditorListener {
             panel.add(btnScanPal);
         }
 
-        // Botón Exportar Excel
-        JButton btnExportExcel = new JButton("Exportar Excel");
-        btnExportExcel.setToolTipText("Exportar todos los productos a un archivo Excel (CSV)");
-        btnExportExcel.addActionListener(new java.awt.event.ActionListener() {
+        // Botón de 3 puntos (menú dropdown moderno)
+        final JButton btnMore = new JButton(new ThreeDotsIcon());
+        btnMore.setToolTipText("Más opciones");
+        btnMore.setPreferredSize(new java.awt.Dimension(32, 32));
+        btnMore.setBackground(java.awt.Color.WHITE);
+        btnMore.setForeground(new java.awt.Color(71, 85, 105));
+        btnMore.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(203, 213, 225), 1));
+        btnMore.setFocusPainted(false);
+
+        // Crear menú contextual moderno
+        final javax.swing.JPopupMenu popupMenu = new javax.swing.JPopupMenu();
+        popupMenu.setBackground(java.awt.Color.WHITE);
+        popupMenu.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(226, 232, 240), 1));
+
+        javax.swing.JMenuItem itemExport = new javax.swing.JMenuItem("Exportar Excel");
+        itemExport.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        itemExport.setBackground(java.awt.Color.WHITE);
+        itemExport.setForeground(new java.awt.Color(30, 41, 59));
+        itemExport.addActionListener(new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btnExportExcelActionPerformed(evt);
             }
         });
 
-        // Botón Importar Excel
-        JButton btnImportExcel = new JButton("Importar Excel");
-        btnImportExcel.setToolTipText("Importar productos desde un archivo Excel (.xlsx o .xls)");
-        btnImportExcel.addActionListener(new java.awt.event.ActionListener() {
+        javax.swing.JMenuItem itemImport = new javax.swing.JMenuItem("Importar Excel");
+        itemImport.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        itemImport.setBackground(java.awt.Color.WHITE);
+        itemImport.setForeground(new java.awt.Color(30, 41, 59));
+        itemImport.addActionListener(new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btnImportExcelActionPerformed(evt);
             }
         });
 
-        // Agregar los botones al panel
-        panel.add(btnExportExcel);
-        panel.add(btnImportExcel);
-
-        // Botón Stock Pendiente
-        JButton btnStockPending = new JButton("Stock Pendiente");
-        btnStockPending.setToolTipText("Seguimiento de productos por recibir de proveedores");
-        btnStockPending.addActionListener(new java.awt.event.ActionListener() {
+        javax.swing.JMenuItem itemStockPending = new javax.swing.JMenuItem("Stock Pendiente");
+        itemStockPending.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        itemStockPending.setBackground(java.awt.Color.WHITE);
+        itemStockPending.setForeground(new java.awt.Color(30, 41, 59));
+        itemStockPending.addActionListener(new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btnStockPendingActionPerformed(evt);
             }
         });
-        panel.add(btnStockPending);
+
+        javax.swing.JMenuItem itemHistory = new javax.swing.JMenuItem("Historial");
+        itemHistory.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        itemHistory.setBackground(java.awt.Color.WHITE);
+        itemHistory.setForeground(new java.awt.Color(30, 41, 59));
+        itemHistory.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                showAuditHistoryDialog();
+            }
+        });
+
+        popupMenu.add(itemExport);
+        popupMenu.add(itemImport);
+        popupMenu.add(itemStockPending);
+        popupMenu.add(itemHistory);
+
+        btnMore.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                popupMenu.show(btnMore, 0, btnMore.getHeight());
+            }
+        });
+
+        panel.add(btnMore);
 
         return panel;
     }
@@ -344,5 +381,31 @@ public class ProductsPanel extends JPanelTable2 implements EditorListener {
         // Reemplazar punto y coma por coma para no romper el formato CSV delimitado por
         // ;
         return text.replace(";", ",");
+    }
+
+    private static class ThreeDotsIcon implements javax.swing.Icon {
+        @Override
+        public void paintIcon(Component c, java.awt.Graphics g, int x, int y) {
+            java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
+            g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setColor(new java.awt.Color(71, 85, 105)); // Slate-600 color
+            int size = 4;
+            int startX = x + (getIconWidth() - size) / 2;
+            int startY = y + (getIconHeight() - 16) / 2; // Center vertically
+            g2d.fillOval(startX, startY, size, size);
+            g2d.fillOval(startX, startY + 6, size, size);
+            g2d.fillOval(startX, startY + 12, size, size);
+            g2d.dispose();
+        }
+
+        @Override
+        public int getIconWidth() {
+            return 24;
+        }
+
+        @Override
+        public int getIconHeight() {
+            return 24;
+        }
     }
 }

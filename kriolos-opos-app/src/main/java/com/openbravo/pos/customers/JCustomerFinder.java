@@ -30,6 +30,9 @@ import javax.swing.JFrame;
 import javax.swing.*;
 
 import java.awt.event.KeyEvent; //Jack
+import com.openbravo.editor.EditorComponent;
+import com.openbravo.editor.EditorKeys;
+
 
 /**
  *
@@ -40,6 +43,9 @@ public class JCustomerFinder extends javax.swing.JDialog implements EditorCreato
     private CustomerInfo m_ReturnCustomer;
     private ListProvider lpr;
     private AppView appView;
+    private com.openbravo.editor.EditorComponent activeEditor;
+    private java.awt.KeyEventDispatcher keyDispatcher;
+
 
     public void searchKey() {
         jbtnExecute.setMnemonic(KeyEvent.VK_E); // Jack 
@@ -99,15 +105,212 @@ public class JCustomerFinder extends javax.swing.JDialog implements EditorCreato
 
         initComponents();
 
-        jScrollPane1.getVerticalScrollBar().setPreferredSize(new Dimension(35, 35));
+        // Remove font overrides and size restrictions on labels to let them auto-size naturally
+        for (JLabel lbl : new JLabel[]{jLblTaxID, jLblSearchKey, jLblPostal, jLblName, jLblPhone, jLblEmail}) {
+            lbl.setFont(null);
+            lbl.setPreferredSize(null);
+            lbl.setMinimumSize(null);
+            lbl.setMaximumSize(null);
+        }
 
-        m_jtxtTaxID.addEditorKeys(m_jKeys);
-        m_jtxtSearchKey.addEditorKeys(m_jKeys);
-        m_jtxtName.addEditorKeys(m_jKeys);
-        m_jtxtPostal.addEditorKeys(m_jKeys);
-        m_jtxtPhone.addEditorKeys(m_jKeys);
-        m_jtxtEmail.addEditorKeys(m_jKeys);
+        // Apply a premium, uniform, and spacious size to the text input fields
+        for (JComponent txt : new JComponent[]{m_jtxtTaxID, m_jtxtSearchKey, m_jtxtPostal, m_jtxtName, m_jtxtPhone, m_jtxtEmail}) {
+            txt.setFont(null);
+            txt.setPreferredSize(new Dimension(240, 32));
+            txt.setMinimumSize(new Dimension(150, 32));
+            txt.setMaximumSize(new Dimension(400, 32));
+        }
+        jListCustomers.setFont(null);
 
+        // Remove button size restrictions and apply a uniform, premium size (150 x 40)
+        for (JButton btn : new JButton[]{jbtnReset, jbtnExecute, jcmdCancel, jcmdOK}) {
+            btn.setFont(null);
+            btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            btn.setFocusPainted(false);
+            btn.setPreferredSize(new Dimension(150, 40));
+            btn.setMinimumSize(new Dimension(120, 36));
+            btn.setMaximumSize(new Dimension(200, 45));
+        }
+
+        // Apply FlatLaf accent styling to primary action buttons
+        jbtnExecute.putClientProperty("JButton.buttonType", "accent");
+        jcmdOK.putClientProperty("JButton.buttonType", "accent");
+
+        // Completely restructure and beautify the layout programmatically
+        Container contentPane = getContentPane();
+        contentPane.removeAll();
+        contentPane.setLayout(new BorderLayout(10, 10));
+        ((JComponent) contentPane).setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+
+        // 1. Search Criteria Panel (North)
+        JPanel searchPanel = new JPanel(new BorderLayout(10, 10));
+        searchPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder(BorderFactory.createLineBorder(UIManager.getColor("Component.borderColor")), "Criterios de Búsqueda"),
+            BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
+
+        // 2-Column Grid (2 label-field pairs per row, total 4 columns)
+        JPanel fieldsGrid = new JPanel(new GridBagLayout());
+        GridBagConstraints c = new GridBagConstraints();
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.insets = new Insets(6, 10, 6, 10);
+        c.anchor = GridBagConstraints.WEST;
+
+        // Row 0
+        c.gridy = 0;
+        c.gridx = 0; c.weightx = 0.0;
+        fieldsGrid.add(jLblTaxID, c);
+        c.gridx = 1; c.weightx = 1.0;
+        fieldsGrid.add(m_jtxtTaxID, c);
+
+        c.gridx = 2; c.weightx = 0.0;
+        fieldsGrid.add(jLblSearchKey, c);
+        c.gridx = 3; c.weightx = 1.0;
+        fieldsGrid.add(m_jtxtSearchKey, c);
+
+        // Row 1
+        c.gridy = 1;
+        c.gridx = 0; c.weightx = 0.0;
+        fieldsGrid.add(jLblName, c);
+        c.gridx = 1; c.weightx = 1.0;
+        fieldsGrid.add(m_jtxtName, c);
+
+        c.gridx = 2; c.weightx = 0.0;
+        fieldsGrid.add(jLblPhone, c);
+        c.gridx = 3; c.weightx = 1.0;
+        fieldsGrid.add(m_jtxtPhone, c);
+
+        // Row 2
+        c.gridy = 2;
+        c.gridx = 0; c.weightx = 0.0;
+        fieldsGrid.add(jLblPostal, c);
+        c.gridx = 1; c.weightx = 1.0;
+        fieldsGrid.add(m_jtxtPostal, c);
+
+        c.gridx = 2; c.weightx = 0.0;
+        fieldsGrid.add(jLblEmail, c);
+        c.gridx = 3; c.weightx = 1.0;
+        fieldsGrid.add(m_jtxtEmail, c);
+
+        searchPanel.add(fieldsGrid, BorderLayout.CENTER);
+
+        // Action Buttons for Search (Execute / Reset) on the right side
+        JPanel searchButtons = new JPanel(new GridLayout(2, 1, 0, 8));
+        searchButtons.add(jbtnExecute);
+        searchButtons.add(jbtnReset);
+        
+        JPanel searchButtonsContainer = new JPanel(new GridBagLayout());
+        searchButtonsContainer.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 0));
+        searchButtonsContainer.add(searchButtons);
+        
+        searchPanel.add(searchButtonsContainer, BorderLayout.EAST);
+
+        // 2. Results & Image Details Panel (Center)
+        JPanel centerPanel = new JPanel(new BorderLayout(10, 10));
+
+        // Customer List Panel (Left/Center)
+        JPanel listPanel = new JPanel(new BorderLayout());
+        listPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder(BorderFactory.createLineBorder(UIManager.getColor("Component.borderColor")), "Clientes Encontrados"),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
+        listPanel.add(jScrollPane1, BorderLayout.CENTER);
+        centerPanel.add(listPanel, BorderLayout.CENTER);
+
+        // Image Details Panel (Right side, width 200px)
+        JPanel detailPanel = new JPanel(new BorderLayout());
+        detailPanel.setPreferredSize(new Dimension(200, 0));
+        detailPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder(BorderFactory.createLineBorder(UIManager.getColor("Component.borderColor")), "Foto del Cliente"),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
+        detailPanel.add(jImageViewerCustomer, BorderLayout.CENTER);
+        centerPanel.add(detailPanel, BorderLayout.EAST);
+
+        // 3. Dialog Control Panel (South)
+        JPanel southPanel = new JPanel(new BorderLayout());
+        southPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(1, 0, 0, 0, UIManager.getColor("Component.borderColor")),
+            BorderFactory.createEmptyBorder(10, 0, 0, 0)
+        ));
+
+        JPanel actionButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        actionButtons.add(jcmdCancel);
+        actionButtons.add(jcmdOK);
+        southPanel.add(actionButtons, BorderLayout.EAST);
+
+        // Setup global key dispatcher to capture physical keyboard input when dialog is active
+        keyDispatcher = new java.awt.KeyEventDispatcher() {
+            @Override
+            public boolean dispatchKeyEvent(java.awt.event.KeyEvent e) {
+                if (activeEditor != null && isEventForThisDialog(e.getComponent())) {
+                    if (e.getID() == java.awt.event.KeyEvent.KEY_PRESSED) {
+                        int keyCode = e.getKeyCode();
+                        if (keyCode == java.awt.event.KeyEvent.VK_BACK_SPACE || keyCode == java.awt.event.KeyEvent.VK_DELETE) {
+                            activeEditor.transChar('\u007f');
+                            return true;
+                        } else if (keyCode == java.awt.event.KeyEvent.VK_ENTER) {
+                            jbtnExecute.doClick();
+                            return true;
+                        }
+                    } else if (e.getID() == java.awt.event.KeyEvent.KEY_TYPED) {
+                        char c = e.getKeyChar();
+                        if (c != '\u0008' && c != '\u007f' && c != '\n' && c != java.awt.event.KeyEvent.CHAR_UNDEFINED) {
+                            activeEditor.typeChar(c);
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+        };
+        java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(keyDispatcher);
+
+        // Make sure to remove key dispatcher when dialog is closed to prevent leaks
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosed(java.awt.event.WindowEvent e) {
+                java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(keyDispatcher);
+            }
+        });
+
+        // Setup headless keyboard router to track the active editor
+        EditorKeys headlessKeys = new EditorKeys() {
+            @Override
+            public void setActive(EditorComponent e, int imode) {
+                if (activeEditor != null) {
+                    activeEditor.deactivate();
+                }
+                activeEditor = e;
+            }
+
+            @Override
+            public void setInactive(EditorComponent e) {
+                if (e == activeEditor && activeEditor != null) {
+                    activeEditor.deactivate();
+                    activeEditor = null;
+                }
+            }
+        };
+
+        // Link the editor fields to the headless keys router
+        m_jtxtTaxID.addEditorKeys(headlessKeys);
+        m_jtxtSearchKey.addEditorKeys(headlessKeys);
+        m_jtxtName.addEditorKeys(headlessKeys);
+        m_jtxtPostal.addEditorKeys(headlessKeys);
+        m_jtxtPhone.addEditorKeys(headlessKeys);
+        m_jtxtEmail.addEditorKeys(headlessKeys);
+
+        // Assemble content pane
+        contentPane.add(searchPanel, BorderLayout.NORTH);
+        contentPane.add(centerPanel, BorderLayout.CENTER);
+        contentPane.add(southPanel, BorderLayout.SOUTH);
+
+        // Set optimized window size to fit FlatLaf components perfectly without any cuts
+        setSize(new Dimension(980, 640));
+        setLocationRelativeTo(null);
+
+        // Data & component state initialization
         m_jtxtTaxID.reset();
         m_jtxtSearchKey.reset();
         m_jtxtName.reset();
@@ -124,8 +327,15 @@ public class JCustomerFinder extends javax.swing.JDialog implements EditorCreato
         getRootPane().setDefaultButton(jcmdOK);
 
         m_ReturnCustomer = null;
-
     }
+
+    private boolean isEventForThisDialog(java.awt.Component comp) {
+        if (comp == null) return false;
+        if (comp == this) return true;
+        return this.isAncestorOf(comp);
+    }
+
+
 
     public void search(CustomerInfo customer) {
 
@@ -299,7 +509,6 @@ public class JCustomerFinder extends javax.swing.JDialog implements EditorCreato
     private void initComponents() {
 
         jPanel2 = new javax.swing.JPanel();
-        m_jKeys = new com.openbravo.editor.JEditorKeys();
         jPanel8 = new javax.swing.JPanel();
         jPanel1 = new javax.swing.JPanel();
         jcmdCancel = new javax.swing.JButton();
@@ -333,7 +542,6 @@ public class JCustomerFinder extends javax.swing.JDialog implements EditorCreato
 
         jPanel2.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
         jPanel2.setLayout(new java.awt.BorderLayout());
-        jPanel2.add(m_jKeys, java.awt.BorderLayout.NORTH);
 
         jPanel8.setLayout(new java.awt.BorderLayout());
 
@@ -641,7 +849,6 @@ public class JCustomerFinder extends javax.swing.JDialog implements EditorCreato
     private javax.swing.JButton jbtnReset;
     private javax.swing.JButton jcmdCancel;
     private javax.swing.JButton jcmdOK;
-    private com.openbravo.editor.JEditorKeys m_jKeys;
     private com.openbravo.editor.JEditorString m_jtxtEmail;
     private com.openbravo.editor.JEditorString m_jtxtName;
     private com.openbravo.editor.JEditorString m_jtxtPhone;

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 
-   KriolOS POS - Open Source Point Of Sale
-   Copyright (c) 2019-2023 KriolOS.
+   websy arg - Open Source Point Of Sale
+   Copyright (c) 2019-2023 websy arg.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 -->
 
 <!--
-    The Administrator Role Permissions has full access to all KriolOS POS
+    The Administrator Role Permissions has full access to all websy arg
     functionality.
     The Administrator Role should only be used to make system changes.
     
@@ -92,7 +92,6 @@
     <class name="/com/openbravo/reports/suppliers_list.bs"/>
     <class name="/com/openbravo/reports/suppliers_sales.bs"/>
     <class name="/com/openbravo/reports/suppliers_export.bs"/>
-    <class name="/com/openbravo/reports/suppliers_products.bs"/>      
 
     <class name="com.openbravo.pos.forms.MenuStockManagement"/>
     <class name="com.openbravo.pos.inventory.AttributesPanel"/>

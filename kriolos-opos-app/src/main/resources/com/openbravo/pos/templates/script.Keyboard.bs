@@ -1,5 +1,5 @@
-//    KriolOS POS
-//    Copyright (c) 2019-2023 KriolOS
+//    websy arg
+//    Copyright (c) 2019-2023 websy arg
 //
 //    This program is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
 //
 // script.Keyboard.txt
-// This script launches uniCenta Virtual Keyboard
+// This script launches websy Virtual Keyboard
 //
 
 Runtime runtime = Runtime.getRuntime();

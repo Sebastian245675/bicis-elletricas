@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{DASHBOARD_TITLE}} - Vista Previa Interactiva</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Vanilla CSS Premium Styling -->
+    <style>
+        :root {
+            --bg-color: #0b0b0f;
+            --card-bg: rgba(20, 20, 28, 0.65);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --accent-purple: hsl(262, 80%, 65%);
+            --accent-purple-glow: rgba(139, 92, 246, 0.15);
+            --accent-green: hsl(150, 75%, 45%);
+            --accent-yellow: hsl(43, 90%, 55%);
+            --accent-blue: #3b82f6;
+            --glass-blur: blur(12px);
+            --transition-speed: 0.3s;
+        }
+
+        .light-mode {
+            --bg-color: #f8fafc;
+            --card-bg: rgba(255, 255, 255, 0.75);
+            --card-border: rgba(0, 0, 0, 0.06);
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --accent-purple: hsl(262, 75%, 55%);
+            --accent-purple-glow: rgba(139, 92, 246, 0.08);
+            --accent-green: hsl(150, 65%, 40%);
+            --accent-yellow: hsl(43, 80%, 45%);
+            --accent-blue: #2563eb;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 2rem;
+            transition: background-color var(--transition-speed), color var(--transition-speed);
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 40%),
+                              radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 40%);
+        }
+
+        /* Container Layout */
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Header Style */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .header-title h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-title p {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        /* Controls / Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1.25rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            cursor: pointer;
+            backdrop-filter: var(--glass-blur);
+            transition: all var(--transition-speed);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-purple);
+            box-shadow: 0 4px 12px var(--accent-purple-glow);
+        }
+
+        .btn-primary {
+            background: var(--accent-purple);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .btn-primary:hover {
+            background: hsl(262, 85%, 68%);
+            box-shadow: 0 6px 16px rgba(139, 92, 246, 0.3);
+        }
+
+        /* Toggle Mode Button */
+        .theme-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid var(--card-border);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            transition: all var(--transition-speed);
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.05);
+            border-color: var(--accent-purple);
+        }
+
+        /* KPI Cards Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .kpi-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: var(--glass-blur);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
+            transition: transform var(--transition-speed), border-color var(--transition-speed), box-shadow var(--transition-speed);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-purple);
+            box-shadow: 0 12px 30px rgba(139, 92, 246, 0.1);
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-purple);
+            opacity: 0;
+            transition: opacity var(--transition-speed);
+        }
+
+        .kpi-card:hover::before {
+            opacity: 1;
+        }
+
+        .kpi-title {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .kpi-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0.5rem 0;
+        }
+
+        .kpi-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        /* Specific Accent Colors for cards */
+        .kpi-card.purple::before { background: var(--accent-purple); }
+        .kpi-card.green::before { background: var(--accent-green); }
+        .kpi-card.yellow::before { background: var(--accent-yellow); }
+        .kpi-card.blue::before { background: var(--accent-blue); }
+
+        /* Main Grid for charts */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1.2fr;
+            gap: 1.25rem;
+        }
+
+        @media (max-width: 968px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 1.5rem;
+            backdrop-filter: var(--glass-blur);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Modern Progress Ring / Percentage KPI card styling (like the 56.7% in user request) */
+        .progress-kpi {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 1rem;
+            height: 100%;
+        }
+
+        .progress-circle {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .progress-circle svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .progress-circle circle {
+            fill: none;
+            stroke-width: 14;
+            stroke-linecap: round;
+        }
+
+        .progress-circle circle.bg {
+            stroke: var(--card-border);
+        }
+
+        .progress-circle circle.val {
+            stroke: var(--accent-purple);
+            stroke-dasharray: 440;
+            stroke-dashoffset: 440;
+            transition: stroke-dashoffset 1s ease-in-out;
+        }
+
+        .progress-text-center {
+            position: absolute;
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* Table Card */
+        .table-card {
+            grid-column: span 2;
+        }
+
+        @media (max-width: 968px) {
+            .table-card {
+                grid-column: span 1;
+            }
+        }
+
+        .search-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .input-search {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+            background: var(--bg-color);
+            color: var(--text-primary);
+            width: 250px;
+            transition: all var(--transition-speed);
+        }
+
+        .input-search:focus {
+            outline: none;
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 8px var(--accent-purple-glow);
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            max-height: 400px;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.875rem;
+        }
+
+        th {
+            background-color: rgba(0, 0, 0, 0.25);
+            padding: 1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--card-border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            backdrop-filter: var(--glass-blur);
+        }
+
+        tr {
+            border-bottom: 1px solid var(--card-border);
+            transition: background-color 0.2s;
+        }
+
+        tr:hover {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        td {
+            padding: 1rem;
+            color: var(--text-primary);
+        }
+
+        /* Scrollbar styles */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--card-border);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        /* Print Media Styles */
+        @media print {
+            body {
+                background: white;
+                color: black;
+                padding: 0;
+            }
+            .btn, .theme-toggle, .search-bar {
+                display: none !important;
+            }
+            .card, .kpi-card {
+                border: 1px solid #ddd;
+                box-shadow: none;
+                background: white;
+                page-break-inside: avoid;
+            }
+            .dashboard-container {
+                max-width: 100%;
+                gap: 1cm;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        
+        <!-- Header -->
+        <header>
+            <div class="header-title">
+                <h1 id="dashboard-title-text">{{DASHBOARD_TITLE}}</h1>
+                <p id="dashboard-subtitle">Vista previa de rendimiento de ventas y distribución comercial</p>
+            </div>
+            
+            <div class="controls">
+                <button class="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">🌙</button>
+                <button class="btn" onclick="exportCSV()"><svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg> Exportar CSV</button>
+                <button class="btn" onclick="window.print()"><svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/><path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v3a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-3h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2H5zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1z"/></svg> Imprimir Vista</button>
+                <button class="btn btn-primary" onclick="window.close()"><svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/></svg> Regresar al TPV</button>
+            </div>
+        </header>
+
+        <!-- KPI Grid -->
+        <div class="kpi-grid">
+            <div class="kpi-card purple">
+                <span class="kpi-title">Total Ventas</span>
+                <span class="kpi-value" id="kpi-total-sales">$0.00</span>
+                <span class="kpi-desc">💵 Ingreso total acumulado</span>
+            </div>
+            <div class="kpi-card green">
+                <span class="kpi-title">Artículos Vendidos</span>
+                <span class="kpi-value" id="kpi-total-qty">0</span>
+                <span class="kpi-desc">📦 Cantidad total de productos</span>
+            </div>
+            <div class="kpi-card yellow">
+                <span class="kpi-title">Transacciones</span>
+                <span class="kpi-value" id="kpi-total-transactions">0</span>
+                <span class="kpi-desc">🎫 Tickets emitidos</span>
+            </div>
+            <div class="kpi-card blue">
+                <span class="kpi-title">Ticket Promedio</span>
+                <span class="kpi-value" id="kpi-avg-ticket">$0.00</span>
+                <span class="kpi-desc">📊 Ventas promedio por ticket</span>
+            </div>
+        </div>
+
+        <!-- Dashboard Charts Grid -->
+        <div class="dashboard-grid">
+            
+            <!-- Left Chart Card: Evolution -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title" id="evolution-chart-title">Evolución de Ventas</span>
+                </div>
+                <div style="position: relative; height: 320px; width: 100%;">
+                    <canvas id="evolutionChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Right Card: Circular Percentage KPI -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Rendimiento Comercial</span>
+                </div>
+                <div class="progress-kpi">
+                    <div class="progress-circle">
+                        <svg>
+                            <circle class="bg" cx="75" cy="75" r="70"></circle>
+                            <circle class="val" id="progress-indicator" cx="75" cy="75" r="70"></circle>
+                        </svg>
+                        <div class="progress-text-center" id="progress-percentage-text">0.0%</div>
+                    </div>
+                    <div class="kpi-desc" id="progress-desc-text" style="text-align: center; max-width: 200px;">
+                        Distribución del departamento líder sobre el total general
+                    </div>
+                </div>
+            </div>
+
+            <!-- Double Column Chart: Top Items/Categories distribution -->
+            <div class="card" style="grid-column: span 2;">
+                <div class="card-header">
+                    <span class="card-title" id="distribution-chart-title">Distribución por Categorías / Productos</span>
+                </div>
+                <div class="dashboard-grid" style="grid-template-columns: 1.5fr 1fr; border: none; box-shadow: none; padding: 0;">
+                    <div style="position: relative; height: 280px; width: 100%;">
+                        <canvas id="topItemsChart"></canvas>
+                    </div>
+                    <div style="position: relative; height: 280px; width: 100%;">
+                        <canvas id="pieDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Table Card -->
+            <div class="card table-card">
+                <div class="card-header search-bar">
+                    <span class="card-title">Detalle de Registros</span>
+                    <input type="text" class="input-search" id="table-search" onkeyup="filterTable()" placeholder="Buscar en la tabla...">
+                </div>
+                <div class="table-wrapper">
+                    <table id="data-table">
+                        <thead>
+                            <tr id="table-header-row">
+                                <!-- Dynamic Headers -->
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <!-- Dynamic Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Data Injection -->
+    <script>
+        /* DATA_PLACEHOLDER */
+
+        // Verification of data
+        console.log("Injected Data:", dashboardData);
+
+        // Helper to format currency
+        function formatCurrency(val) {
+            return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(val);
+        }
+
+        // Color palettes for HSL Tailored Theme
+        const chartColors = [
+            'rgba(139, 92, 246, 0.75)', // Purple
+            'rgba(16, 185, 129, 0.75)',  // Green
+            'rgba(245, 158, 11, 0.75)',  // Yellow
+            'rgba(59, 130, 246, 0.75)',  // Blue
+            'rgba(236, 72, 153, 0.75)',  // Pink
+            'rgba(20, 184, 166, 0.75)',  // Teal
+            'rgba(249, 115, 22, 0.75)'   // Orange
+        ];
+
+        const chartBorders = [
+            '#8b5cf6', '#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#14b8a6', '#f97316'
+        ];
+
+        // Global instances of charts
+        let evolutionChartInstance, topItemsChartInstance, pieChartInstance;
+
+        // Init Dashboard Logic
+        function initDashboard() {
+            if (!dashboardData || dashboardData.length === 0) return;
+
+            // 1. Detect Fields
+            const sample = dashboardData[0];
+            const keys = Object.keys(sample);
+            
+            // Guess columns roles
+            let totalKey = keys.find(k => k.toUpperCase().includes('TOTAL') || k.toUpperCase().includes('CATPRICE') || k.toUpperCase().includes('PRICE'));
+            let qtyKey = keys.find(k => k.toUpperCase().includes('UNITS') || k.toUpperCase().includes('QTY'));
+            let labelKey = keys.find(k => k.toUpperCase().includes('NAME') || k.toUpperCase().includes('PNAME') || k.toUpperCase().includes('CNAME') || k.toUpperCase().includes('CATEGORY_NAME'));
+            let dateKey = keys.find(k => k.toUpperCase().includes('DATE') || k.toUpperCase().includes('DATENEW'));
+            let ticketKey = keys.find(k => k.toUpperCase().includes('TICKETID') || k.toUpperCase().includes('TICKET'));
+
+            // Fallback assignments
+            if (!totalKey) totalKey = keys.find(k => typeof sample[k] === 'number');
+            if (!labelKey) labelKey = keys.find(k => typeof sample[k] === 'string');
+
+            console.log("Guessed Roles - Label:", labelKey, "Total:", totalKey, "Qty:", qtyKey, "Date:", dateKey, "Ticket:", ticketKey);
+
+            // Compute KPIs
+            let totalSales = 0;
+            let totalQty = 0;
+            let transactionSet = new Set();
+            
+            dashboardData.forEach(row => {
+                const total = parseFloat(row[totalKey]) || 0;
+                const qty = qtyKey ? (parseFloat(row[qtyKey]) || 0) : 1;
+                
+                totalSales += total;
+                totalQty += qty;
+                
+                if (ticketKey && row[ticketKey]) {
+                    transactionSet.add(row[ticketKey]);
+                } else if (dateKey && row[dateKey]) {
+                    // fall back to date to define unique tickets
+                    transactionSet.add(row[dateKey]);
+                }
+            });
+
+            const transactionCount = transactionSet.size || dashboardData.length;
+            const avgTicket = totalSales / transactionCount;
+
+            // Render KPIs
+            document.getElementById('kpi-total-sales').innerText = formatCurrency(totalSales);
+            document.getElementById('kpi-total-qty').innerText = Math.round(totalQty);
+            document.getElementById('kpi-total-transactions').innerText = transactionCount;
+            document.getElementById('kpi-avg-ticket').innerText = formatCurrency(avgTicket);
+
+            // Group sales by label for charts
+            let labelMap = {};
+            dashboardData.forEach(row => {
+                const label = row[labelKey] || "Otros";
+                const total = parseFloat(row[totalKey]) || 0;
+                labelMap[label] = (labelMap[label] || 0) + total;
+            });
+
+            // Top items / Categories sorting
+            let sortedLabels = Object.entries(labelMap).sort((a, b) => b[1] - a[1]);
+            let chartLabels = sortedLabels.map(e => e[0]);
+            let chartValues = sortedLabels.map(e => e[1]);
+
+            // If we have a lot of items, group the rest under "Otros"
+            if (chartLabels.length > 8) {
+                const visibleLabels = chartLabels.slice(0, 7);
+                const visibleValues = chartValues.slice(0, 7);
+                const otherValue = chartValues.slice(7).reduce((a, b) => a + b, 0);
+                
+                visibleLabels.push("Otros");
+                visibleValues.push(otherValue);
+                
+                chartLabels = visibleLabels;
+                chartValues = visibleValues;
+            }
+
+            // Circular progress calculations (percentage of top category / target)
+            const topCategoryValue = sortedLabels[0] ? sortedLabels[0][1] : 0;
+            const topCategoryPercent = totalSales > 0 ? (topCategoryValue / totalSales) * 100 : 0;
+            const circlePercentage = topCategoryPercent;
+            
+            // Set circle progress dashoffset (radius=70, circumference=440)
+            const dashOffset = 440 - (440 * circlePercentage) / 100;
+            const progressCircle = document.getElementById('progress-indicator');
+            progressCircle.style.strokeDashoffset = dashOffset;
+            document.getElementById('progress-percentage-text').innerText = circlePercentage.toFixed(1) + "%";
+            if (sortedLabels[0]) {
+                document.getElementById('progress-desc-text').innerHTML = `Distribución de la categoría/producto líder: <b>${sortedLabels[0][0]}</b>`;
+            }
+
+            // Render Charts
+            renderDistributionCharts(chartLabels, chartValues);
+            renderEvolutionChart(dateKey, totalKey, qtyKey);
+
+            // Render Table
+            renderTable(keys);
+        }
+
+        function renderDistributionCharts(labels, values) {
+            // Horizontal Bar
+            const barCtx = document.getElementById('topItemsChart').getContext('2d');
+            topItemsChartInstance = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Ventas ($)',
+                        data: values,
+                        backgroundColor: chartColors,
+                        borderColor: chartBorders,
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: 'var(--text-secondary)' } },
+                        y: { grid: { display: false }, ticks: { color: 'var(--text-secondary)' } }
+                    }
+                }
+            });
+
+            // Pie/Doughnut
+            const pieCtx = document.getElementById('pieDistributionChart').getContext('2d');
+            pieChartInstance = new Chart(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: chartColors,
+                        borderColor: 'var(--bg-color)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { color: 'var(--text-secondary)', font: { size: 10 } }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+
+        function renderEvolutionChart(dateKey, totalKey, qtyKey) {
+            const ctx = document.getElementById('evolutionChart').getContext('2d');
+            
+            // If date key exists, group by date
+            let dateMap = {};
+            if (dateKey) {
+                dashboardData.forEach(row => {
+                    let dateStr = row[dateKey] ? row[dateKey].split(' ')[0] : 'Sin Fecha';
+                    // Parse if timestamp
+                    const val = parseFloat(row[totalKey]) || 0;
+                    dateMap[dateStr] = (dateMap[dateStr] || 0) + val;
+                });
+            } else {
+                // If no date, group by label or index
+                dashboardData.forEach((row, i) => {
+                    dateMap['Fila ' + (i+1)] = parseFloat(row[totalKey]) || 0;
+                });
+            }
+
+            const dates = Object.keys(dateMap).sort();
+            const values = dates.map(d => dateMap[d]);
+
+            // Render Area / Line chart
+            evolutionChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Ventas en el Tiempo ($)',
+                        data: values,
+                        fill: true,
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        borderColor: 'var(--accent-purple)',
+                        borderWidth: 2,
+                        tension: 0.35,
+                        pointBackgroundColor: 'var(--accent-purple)',
+                        pointBorderColor: '#fff',
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: 'var(--text-secondary)' } },
+                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: 'var(--text-secondary)' } }
+                    }
+                }
+            });
+        }
+
+        // Render Table Dynamic Rows
+        function renderTable(keys) {
+            const headerRow = document.getElementById('table-header-row');
+            headerRow.innerHTML = '';
+            
+            // Generate dynamic headers
+            keys.forEach(key => {
+                const th = document.createElement('th');
+                th.innerText = key;
+                headerRow.appendChild(th);
+            });
+
+            // Generate rows
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+
+            dashboardData.forEach(row => {
+                const tr = document.createElement('tr');
+                keys.forEach(key => {
+                    const td = document.createElement('td');
+                    let val = row[key];
+                    
+                    // Format if number
+                    if (typeof val === 'number') {
+                        if (key.toUpperCase().includes('TOTAL') || key.toUpperCase().includes('PRICE') || key.toUpperCase().includes('CATPRICE')) {
+                            td.innerText = formatCurrency(val);
+                        } else {
+                            td.innerText = val % 1 === 0 ? val : val.toFixed(2);
+                        }
+                    } else if (val === null || val === undefined) {
+                        td.innerText = '-';
+                    } else {
+                        td.innerText = val;
+                    }
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Filter Table Search
+        function filterTable() {
+            const input = document.getElementById('table-search');
+            const filter = input.value.toUpperCase();
+            const table = document.getElementById('data-table');
+            const tr = table.getElementsByTagName('tr');
+
+            for (let i = 1; i < tr.length; i++) {
+                let show = false;
+                const tds = tr[i].getElementsByTagName('td');
+                for (let j = 0; j < tds.length; j++) {
+                    if (tds[j]) {
+                        const text = tds[j].textContent || tds[j].innerText;
+                        if (text.toUpperCase().indexOf(filter) > -1) {
+                            show = true;
+                            break;
+                        }
+                    }
+                }
+                tr[i].style.display = show ? "" : "none";
+            }
+        }
+
+        // Export data to CSV
+        function exportCSV() {
+            if (!dashboardData || dashboardData.length === 0) return;
+            const keys = Object.keys(dashboardData[0]);
+            
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+            // Header
+            csvContent += keys.join(",") + "\n";
+            
+            // Rows
+            dashboardData.forEach(row => {
+                let rowData = keys.map(key => {
+                    let val = row[key] ? row[key].toString() : '';
+                    // Escape commas
+                    if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+                        val = '"' + val.replace(/"/g, '""') + '"';
+                    }
+                    return val;
+                });
+                csvContent += rowData.join(",") + "\n";
+            });
+
+            // Download trigger
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "reporte_ventas_dashboard.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Theme Toggle
+        function toggleTheme() {
+            const body = document.body;
+            body.classList.toggle('light-mode');
+            const isLight = body.classList.contains('light-mode');
+            document.querySelector('.theme-toggle').innerText = isLight ? '☀️' : '🌙';
+
+            // Refresh charts theme if needed
+            const textColor = isLight ? '#0f172a' : '#f3f4f6';
+            const gridColor = isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)';
+            
+            [evolutionChartInstance, topItemsChartInstance, pieChartInstance].forEach(chart => {
+                if (chart) {
+                    chart.options.scales.x.ticks.color = textColor;
+                    chart.options.scales.y.ticks.color = textColor;
+                    if (chart.options.scales.x.grid) chart.options.scales.x.grid.color = gridColor;
+                    if (chart.options.scales.y.grid) chart.options.scales.y.grid.color = gridColor;
+                    chart.update();
+                }
+            });
+        }
+
+        // Run
+        window.onload = initDashboard;
+    </script>
+</body>
+</html>

@@ -100,6 +100,10 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         m_panelconfig.add(profilePanel);
         jTabbedPane1.addTab(AppLocal.getIntString("jpanelconfiguration.tab.profile.title"), profilePanel);
 
+        JPanelConfigSpecial specialPanel = new JPanelConfigSpecial();
+        m_panelconfig.add(specialPanel);
+        jTabbedPane1.addTab(AppLocal.getIntString("jpanelconfiguration.tab.special.title"), specialPanel);
+
         jbtnExit.setVisible(false);
 
 
@@ -160,6 +164,10 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         m_panelconfig.add(profilePanel);
         jTabbedPane1.addTab(AppLocal.getIntString("jpanelconfiguration.tab.profile.title"), profilePanel);
         
+        JPanelConfigSpecial specialPanel = new JPanelConfigSpecial();
+        m_panelconfig.add(specialPanel);
+        jTabbedPane1.addTab(AppLocal.getIntString("jpanelconfiguration.tab.special.title"), specialPanel);
+        
         loadProperties();
 
     }
@@ -219,6 +227,30 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
     @Override
     public JComponent getComponent() {
         return this;
+    }
+
+    /**
+     * Sebastian - Selecciona la pestaña de Perfil
+     */
+    public void selectProfileTab() {
+        for (int i = 0; i < jTabbedPane1.getTabCount(); i++) {
+            if (jTabbedPane1.getTitleAt(i).equals(AppLocal.getIntString("jpanelconfiguration.tab.profile.title"))) {
+                jTabbedPane1.setSelectedIndex(i);
+                break;
+            }
+        }
+    }
+
+    /**
+     * Sebastian - Selecciona la pestaña de Localización (Idioma)
+     */
+    public void selectLocaleTab() {
+        for (int i = 0; i < jTabbedPane1.getTabCount(); i++) {
+            if (jTabbedPane1.getTitleAt(i).equals(AppLocal.getIntString("jpanelconfiguration.tab.locale.title"))) {
+                jTabbedPane1.setSelectedIndex(i);
+                break;
+            }
+        }
     }
 
     /**

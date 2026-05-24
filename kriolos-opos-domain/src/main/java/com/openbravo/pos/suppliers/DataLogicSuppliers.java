@@ -121,6 +121,36 @@ public class DataLogicSuppliers extends BeanFactoryDataSingle {
                 Formats.CURRENCY, Formats.STRING }
             , new int[] {0}
         );   
+        createTableIfNotExist();
+    }
+
+    private void createTableIfNotExist() {
+        try {
+            s.getConnection().createStatement().executeUpdate(
+                "CREATE TABLE IF NOT EXISTS SUPPLIER_DOCUMENTS (" +
+                "ID VARCHAR(255) PRIMARY KEY, " +
+                "DATENEW TIMESTAMP, " +
+                "SUPPLIER_ID VARCHAR(255), " +
+                "TITLE VARCHAR(255), " +
+                "FILE_NAME VARCHAR(255), " +
+                "FILE_DATA LONGVARBINARY, " +
+                "FOREIGN KEY (SUPPLIER_ID) REFERENCES suppliers(ID) ON DELETE CASCADE)"
+            );
+        } catch (Exception ex) {
+            try {
+                s.getConnection().createStatement().executeUpdate(
+                    "CREATE TABLE IF NOT EXISTS SUPPLIER_DOCUMENTS (" +
+                    "ID VARCHAR(255) PRIMARY KEY, " +
+                    "DATENEW TIMESTAMP, " +
+                    "SUPPLIER_ID VARCHAR(255), " +
+                    "TITLE VARCHAR(255), " +
+                    "FILE_NAME VARCHAR(255), " +
+                    "FILE_DATA LONGVARBINARY)"
+                );
+            } catch (Exception e) {
+                System.err.println("Error creating SUPPLIER_DOCUMENTS table: " + e.getMessage());
+            }
+        }
     }
 
     /**

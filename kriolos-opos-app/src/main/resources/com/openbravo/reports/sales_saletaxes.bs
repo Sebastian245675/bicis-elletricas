@@ -21,7 +21,7 @@
 // where the sum is obtained. It is therefore important to show on this 
 // report the taxes that were charged on a receipt but later refunded
 
-report = new com.openbravo.pos.reports.PanelReportBean();
+report = new com.openbravo.pos.reports.PanelReportTaxes();
 
 report.setTitleKey("Menu.SaleTaxes");
 report.setReport("/com/openbravo/reports/sales_saletaxes");

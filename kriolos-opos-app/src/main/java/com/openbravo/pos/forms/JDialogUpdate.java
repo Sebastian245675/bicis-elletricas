@@ -61,7 +61,7 @@ public class JDialogUpdate extends javax.swing.JDialog {
         btnUpdate = new javax.swing.JButton();
         btnCancel = new javax.swing.JButton();
         
-        setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setResizable(false);
         
         lblMessage.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);

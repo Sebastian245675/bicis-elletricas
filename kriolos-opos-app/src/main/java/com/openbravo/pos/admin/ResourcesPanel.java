@@ -87,5 +87,52 @@ public class ResourcesPanel extends JPanelTable {
     @Override
     public String getTitle() {
         return AppLocal.getIntString("Menu.Resources");
-    }        
+    }
+
+    @Override
+    public void activate() throws com.openbravo.basic.BasicException {
+        javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.BorderLayout(5, 5));
+        javax.swing.JLabel label = new javax.swing.JLabel("Ingrese la clave de seguridad para administrar recursos:");
+        javax.swing.JPasswordField pf = new javax.swing.JPasswordField();
+        
+        label.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
+        pf.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 14));
+        
+        pf.addActionListener(e -> {
+            javax.swing.JComponent comp = (javax.swing.JComponent) e.getSource();
+            javax.swing.JOptionPane optionPane = (javax.swing.JOptionPane) javax.swing.SwingUtilities.getAncestorOfClass(javax.swing.JOptionPane.class, comp);
+            if (optionPane != null) {
+                optionPane.setValue(javax.swing.JOptionPane.OK_OPTION);
+            }
+        });
+        
+        panel.add(label, java.awt.BorderLayout.NORTH);
+        panel.add(pf, java.awt.BorderLayout.CENTER);
+        
+        javax.swing.SwingUtilities.invokeLater(() -> pf.requestFocusInWindow());
+
+        int ok = javax.swing.JOptionPane.showConfirmDialog(
+            this, 
+            panel, 
+            "Acceso Protegido", 
+            javax.swing.JOptionPane.OK_CANCEL_OPTION, 
+            javax.swing.JOptionPane.QUESTION_MESSAGE
+        );
+        
+        if (ok == javax.swing.JOptionPane.OK_OPTION) {
+            String password = new String(pf.getPassword());
+            if ("123456".equals(password)) {
+                super.activate();
+                return;
+            }
+        }
+        
+        javax.swing.JOptionPane.showMessageDialog(
+            this, 
+            "Clave incorrecta. Acceso denegado.", 
+            "Error de Autenticación", 
+            javax.swing.JOptionPane.ERROR_MESSAGE
+        );
+        throw new com.openbravo.basic.BasicException("Acceso no autorizado.");
+    }
 }

@@ -93,7 +93,9 @@ public class AppConfig implements AppProperties {
      */
     @Override
     public String getHost() {
-        return getProperty("machine.hostname");
+        String host = getProperty("machine.hostname");
+        // Fallback to OS hostname if property is missing (prevents NOT NULL constraint on CLOSEDCASH.HOST)
+        return (host != null && !host.isEmpty()) ? host : getLocalHostName();
     }
 
     /**
@@ -222,23 +224,26 @@ public class AppConfig implements AppProperties {
     }
 
     /**
-     * Get instance settings
+     * Get instance settings. Defaults are always applied first;
+     * the config file overrides only the keys it contains.
      */
     public void load() {
         LOGGER.log(Level.INFO, "Try Loading configuration file: {0}", configfile.getAbsolutePath());
 
-        try ( InputStream in = new FileInputStream(configfile)) {
-            m_propsconfig.load(in);
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "IOException on load configuration file: " + configfile.getAbsolutePath(), e);
-            try {
-                LOGGER.log(Level.INFO, "Providing default configuration: ", e);
-                m_propsconfig = defaultConfig();
-            } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Fail getting default/factory configuration", ex);
-            }
+        // Always start from defaults so no property is ever null
+        try {
+            m_propsconfig = defaultConfig();
+        } catch (Exception ex) {
+            LOGGER.log(Level.WARNING, "Failed to build default config", ex);
+            m_propsconfig = new SortedStoreProperties();
         }
 
+        // Then override with whatever is in the user's file
+        try (InputStream in = new FileInputStream(configfile)) {
+            m_propsconfig.load(in);
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING, "IOException on load configuration file (using defaults): " + configfile.getAbsolutePath(), e);
+        }
     }
 
     /**
@@ -354,9 +359,9 @@ public class AppConfig implements AppProperties {
         propConfig.setProperty("paper.standard.height", "698");
         propConfig.setProperty("paper.standard.mediasizename", "A4");
 
-        propConfig.setProperty("tkt.header1", "KriolOS POS");
-        propConfig.setProperty("tkt.header2", "Open Source Point Of Sale");
-        propConfig.setProperty("tkt.header3", "Copyright (c) 2020-2023 KriolOS");
+        propConfig.setProperty("tkt.header1", "websy arg");
+        propConfig.setProperty("tkt.header2", "Punto de Venta");
+        propConfig.setProperty("tkt.header3", "Copyright (c) Websy");
         propConfig.setProperty("tkt.header4", "Change header text in Configuration");
 
         propConfig.setProperty("tkt.footer1", "Change footer text in Configuration");

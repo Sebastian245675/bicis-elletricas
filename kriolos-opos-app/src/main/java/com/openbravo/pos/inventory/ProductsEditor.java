@@ -34,6 +34,7 @@ import com.openbravo.pos.forms.AppLocal;
 import com.openbravo.pos.forms.AppView;
 import com.openbravo.pos.forms.DataLogicSales;
 import com.openbravo.pos.ticket.ProductPriceHistory; // Sebastian - Importar Historial de Precios
+import com.openbravo.pos.ticket.ProductFilter;
 
 import com.openbravo.pos.sales.TaxesLogic;
 import com.openbravo.pos.suppliers.DataLogicSuppliers;
@@ -119,6 +120,14 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
     private Double initialPriceBuy = null;
     private Double initialPriceSell = null;
     private JProductVariationPanel m_variationPanel; // Sebastian - Panel de Variación
+    private javax.swing.JTable jTableProductAuditHistory;
+    private javax.swing.table.DefaultTableModel auditHistoryTableModel;
+    private javax.swing.JTextArea txtAuditDetails;
+    private ProductFilter m_productFilter;
+
+    public ProductsEditor(AppView app, DirtyManager dirty) {
+        this(app, dirty, null);
+    }
 
     /**
      * Creates new form JEditProduct
@@ -126,19 +135,18 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
      * @param app
      * @param dirty
      */
-    public ProductsEditor(AppView app, DirtyManager dirty) {
+    public ProductsEditor(AppView app, DirtyManager dirty, ProductFilter productFilter) {
 
         setAppView(app);
         dlSales = (DataLogicSales) app.getBean("com.openbravo.pos.forms.DataLogicSales");
         m_dlSuppliers = (DataLogicSuppliers) app.getBean("com.openbravo.pos.suppliers.DataLogicSuppliers");
 
         m_Dirty = dirty;
+        m_productFilter = productFilter;
 
-        initComponents();
-
-        // Sebastian - Inicializar panel de variación y agregar pestaña
+        // Sebastian - Inicializar panel de variación antes de initComponents
         m_variationPanel = new JProductVariationPanel();
-        jTabbedPane1.addTab("Variación", m_variationPanel);
+        initComponents();
 
         loadimage = dlSales.getProductImage(); // JG 3 feb 16 speedup
 
@@ -248,6 +256,44 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jSupplier.setModel(m_SuppliersModel);
 
         String pId = null;
+
+        // Diagnostic log
+        System.out.println("=== DIAGNOSTIC START ===");
+        if (mainCombinedPanel != null) {
+            System.out.println("mainCombinedPanel size: " + mainCombinedPanel.getSize());
+            System.out.println("mainCombinedPanel visible: " + mainCombinedPanel.isVisible());
+            System.out.println("mainCombinedPanel children count: " + mainCombinedPanel.getComponentCount());
+            for (java.awt.Component c : mainCombinedPanel.getComponents()) {
+                System.out.println("  Child class: " + c.getClass().getName());
+                System.out.println("  Child size: " + c.getSize());
+                System.out.println("  Child visible: " + c.isVisible());
+                if (c instanceof javax.swing.JTabbedPane) {
+                    javax.swing.JTabbedPane tp = (javax.swing.JTabbedPane) c;
+                    System.out.println("    JTabbedPane tab count: " + tp.getTabCount());
+                    for (int i = 0; i < tp.getTabCount(); i++) {
+                        System.out.println("      Tab " + i + " title: " + tp.getTitleAt(i));
+                        java.awt.Component tc = tp.getComponentAt(i);
+                        System.out.println("      Tab " + i + " component class: " + tc.getClass().getName());
+                        System.out.println("      Tab " + i + " component size: " + tc.getSize());
+                        System.out.println("      Tab " + i + " component visible: " + tc.isVisible());
+                        if (tc instanceof javax.swing.JScrollPane) {
+                            javax.swing.JScrollPane sp = (javax.swing.JScrollPane) tc;
+                            java.awt.Component view = sp.getViewport().getView();
+                            if (view != null) {
+                                System.out.println("        JScrollPane view class: " + view.getClass().getName());
+                                System.out.println("        JScrollPane view size: " + view.getSize());
+                                System.out.println("        JScrollPane view components count: " + ((java.awt.Container)view).getComponentCount());
+                            } else {
+                                System.out.println("        JScrollPane view is null!");
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            System.out.println("mainCombinedPanel is null!");
+        }
+        System.out.println("=== DIAGNOSTIC END ===");
     }
 
     /**
@@ -419,6 +465,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         calculateMargin();
         calculatePriceSellTax();
         calculateGP();
+        loadProductAuditHistory(null);
     }
 
     @Override
@@ -545,6 +592,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                 m_Dirty.setDirty(false);
             });
         }
+        loadProductAuditHistory(null);
     }
 
     /**
@@ -942,6 +990,62 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
             m_variationPanel.setHistory(history, productId, initialPriceBuy, initialPriceSell);
         } catch (BasicException e) {
             LOGGER.log(Level.WARNING, "No se pudo cargar el historial de precios", e);
+        }
+        
+        loadProductAuditHistory(productId);
+    }
+
+    private void loadProductAuditHistory(String pId) {
+        if (auditHistoryTableModel == null) {
+            return;
+        }
+        auditHistoryTableModel.setRowCount(0);
+        if (txtAuditDetails != null) {
+            txtAuditDetails.setText("");
+        }
+        if (pId == null || pId.isEmpty()) {
+            return;
+        }
+
+        final java.util.List<Object[]> dataList = new java.util.ArrayList<>();
+        java.sql.Connection conn = null;
+        java.sql.PreparedStatement pstmt = null;
+        java.sql.ResultSet rs = null;
+        try {
+            conn = appView.getSession().getConnection();
+            pstmt = conn.prepareStatement("SELECT USER_NAME, EVENT_TYPE, EVENT_DATE, DETAILS FROM AUDIT_LOG WHERE ENTITY_ID = ? ORDER BY EVENT_DATE DESC");
+            pstmt.setString(1, pId);
+            rs = pstmt.executeQuery();
+            while (rs.next()) {
+                dataList.add(new Object[] {
+                    rs.getString("USER_NAME"),
+                    rs.getString("EVENT_TYPE"),
+                    rs.getTimestamp("EVENT_DATE"),
+                    rs.getString("DETAILS")
+                });
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error loading audit logs for product " + pId, e);
+        } finally {
+            if (rs != null) try { rs.close(); } catch (Exception e) {}
+            if (pstmt != null) try { pstmt.close(); } catch (Exception e) {}
+        }
+
+        jTableProductAuditHistory.putClientProperty("auditDataList", dataList);
+
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+        for (Object[] rowData : dataList) {
+            String formattedDate = rowData[2] != null ? sdf.format((java.util.Date) rowData[2]) : "";
+            auditHistoryTableModel.addRow(new Object[] {
+                formattedDate,
+                rowData[0],
+                rowData[1],
+                rowData[3]
+            });
+        }
+
+        if (auditHistoryTableModel.getRowCount() > 0) {
+            jTableProductAuditHistory.setRowSelectionInterval(0, 0);
         }
     }
 
@@ -3756,16 +3860,12 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         // Crear panel principal con scroll
         mainCombinedPanel = new javax.swing.JPanel();
         mainCombinedPanel.setLayout(new java.awt.BorderLayout());
-        mainCombinedPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 18, 18, 18));
+        mainCombinedPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 18, 18, 18));
         mainCombinedPanel.setBackground(new java.awt.Color(245, 247, 250));
 
         // Panel de contenido con el diseño combinado
-        javax.swing.JPanel contentPanel = new javax.swing.JPanel();
-        contentPanel.setLayout(new javax.swing.BoxLayout(contentPanel, javax.swing.BoxLayout.Y_AXIS));
+        javax.swing.JPanel contentPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
         contentPanel.setBackground(new java.awt.Color(245, 247, 250));
-        contentPanel.setPreferredSize(new java.awt.Dimension(900, 600)); // Tamaño optimizado para scroll suave
-        contentPanel.setMinimumSize(new java.awt.Dimension(980, 620));
-        contentPanel.setPreferredSize(new java.awt.Dimension(1100, 720));
 
         // Título "NUEVO PRODUCTO" o "EDITAR PRODUCTO" en naranja
         jLabelProductTitle = new javax.swing.JLabel("NUEVO PRODUCTO");
@@ -4225,67 +4325,193 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
 
         row++;
 
-        contentPanel.add(mainFieldsPanel);
+        // --- Panel 2: Proveedor ---
+        javax.swing.JPanel supplierTabPanel = new javax.swing.JPanel(new java.awt.GridBagLayout());
+        supplierTabPanel.setBackground(java.awt.Color.WHITE);
+        supplierTabPanel.setBorder(createProductSectionBorder());
 
-        // Scroll pane para el contenido con scroll suave
-        javax.swing.JScrollPane scrollPane = new javax.swing.JScrollPane(contentPanel);
-        scrollPane.setBorder(null);
-        scrollPane.getViewport().setBackground(new java.awt.Color(245, 247, 250));
-        scrollPane.setVerticalScrollBarPolicy(javax.swing.JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(javax.swing.JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        // Configurar scroll suave y unidades de scroll más pequeñas para navegación con
-        // teclado
-        scrollPane.getVerticalScrollBar().setUnitIncrement(12); // Scroll más suave con flechas (menor = más suave)
-        scrollPane.getVerticalScrollBar().setBlockIncrement(50); // Scroll por bloque más pequeño
-        scrollPane.setWheelScrollingEnabled(true);
-        // Permitir scroll con flechas del teclado y rueda del mouse
-        // NO hacer el scrollPane focusable para evitar que robe el foco de los campos
-        scrollPane.setFocusable(false);
-        scrollPane.setRequestFocusEnabled(false);
-        // Habilitar scroll con teclado (flechas arriba/abajo, Page Up/Down) en el
-        // scroll pane
-        scrollPane.addKeyListener(new java.awt.event.KeyAdapter() {
+        java.awt.GridBagConstraints gbcSup = new java.awt.GridBagConstraints();
+        gbcSup.insets = new java.awt.Insets(12, 18, 12, 18);
+
+        // 1. Panel de Búsqueda (ProductFilter) en la parte superior
+        gbcSup.gridx = 0;
+        gbcSup.gridy = 0;
+        gbcSup.gridwidth = 4;
+        gbcSup.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gbcSup.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        gbcSup.weightx = 1.0;
+        gbcSup.weighty = 0.0;
+        
+        if (m_productFilter != null) {
+            java.awt.Component filterComp = m_productFilter.getComponent();
+            if (filterComp instanceof javax.swing.JComponent) {
+                ((javax.swing.JComponent) filterComp).setOpaque(false);
+            }
+            if (filterComp.getParent() != null) {
+                filterComp.getParent().remove(filterComp);
+            }
+            supplierTabPanel.add(filterComp, gbcSup);
+        }
+
+        // 2. Línea separadora
+        gbcSup.gridy = 1;
+        gbcSup.gridx = 0;
+        gbcSup.gridwidth = 4;
+        gbcSup.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gbcSup.insets = new java.awt.Insets(5, 18, 15, 18);
+        javax.swing.JSeparator sepSup = new javax.swing.JSeparator();
+        sepSup.setForeground(new java.awt.Color(255, 140, 0)); // Color naranja premium
+        supplierTabPanel.add(sepSup, gbcSup);
+
+        // 3. Proveedores Asociados abajo
+        gbcSup.insets = new java.awt.Insets(12, 18, 12, 18);
+        gbcSup.gridwidth = 1;
+        gbcSup.fill = java.awt.GridBagConstraints.NONE;
+        gbcSup.weightx = 0.0;
+
+        // Label "Proveedor:"
+        gbcSup.gridy = 2;
+        gbcSup.gridx = 0;
+        javax.swing.JLabel lblSupplier = createProductFormLabel("Proveedor");
+        supplierTabPanel.add(lblSupplier, gbcSup);
+
+        // JComboBox m_jSupplier
+        gbcSup.gridx = 1;
+        styleProductComboBox(m_jSupplier, 240);
+        if (m_jSupplier.getParent() != null)
+            m_jSupplier.getParent().remove(m_jSupplier);
+        supplierTabPanel.add(m_jSupplier, gbcSup);
+
+        // JButton jBtnSupplier
+        gbcSup.gridx = 2;
+        jBtnSupplier.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        jBtnSupplier.setPreferredSize(new java.awt.Dimension(140, 30));
+        jBtnSupplier.setBackground(java.awt.Color.WHITE);
+        jBtnSupplier.setForeground(new java.awt.Color(15, 23, 42));
+        jBtnSupplier.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(203, 213, 225), 1));
+        jBtnSupplier.setFocusPainted(false);
+        if (jBtnSupplier.getParent() != null)
+            jBtnSupplier.getParent().remove(jBtnSupplier);
+        supplierTabPanel.add(jBtnSupplier, gbcSup);
+
+        // 4. Espaciador vertical inferior
+        gbcSup.gridy = 3;
+        gbcSup.gridx = 0;
+        gbcSup.gridwidth = 4;
+        gbcSup.fill = java.awt.GridBagConstraints.BOTH;
+        gbcSup.weighty = 1.0;
+        supplierTabPanel.add(new javax.swing.JLabel(), gbcSup);
+
+        // Crear el Tabbed Pane del Editor
+        javax.swing.JTabbedPane editorTabbedPane = new javax.swing.JTabbedPane();
+        editorTabbedPane.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
+        editorTabbedPane.setBackground(java.awt.Color.WHITE);
+        editorTabbedPane.setForeground(new java.awt.Color(30, 41, 59));
+
+        // Envolver cada panel en un JScrollPane
+        String[] auditColumnNames = {"Fecha y Hora", "Usuario", "Acción", "Detalles"};
+        auditHistoryTableModel = new javax.swing.table.DefaultTableModel(auditColumnNames, 0) {
             @Override
-            public void keyPressed(java.awt.event.KeyEvent e) {
-                int keyCode = e.getKeyCode();
-                javax.swing.JScrollBar verticalBar = scrollPane.getVerticalScrollBar();
-                int currentValue = verticalBar.getValue();
-                int unitIncrement = verticalBar.getUnitIncrement();
-                int blockIncrement = verticalBar.getBlockIncrement();
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        jTableProductAuditHistory = new javax.swing.JTable(auditHistoryTableModel);
+        jTableProductAuditHistory.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        jTableProductAuditHistory.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        jTableProductAuditHistory.setRowHeight(24);
+        jTableProductAuditHistory.getTableHeader().setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        
+        jTableProductAuditHistory.setSelectionBackground(new java.awt.Color(254, 243, 199)); // Amber selection
+        jTableProductAuditHistory.setSelectionForeground(new java.awt.Color(120, 53, 4));
+        jTableProductAuditHistory.setGridColor(new java.awt.Color(241, 245, 249));
 
-                if (keyCode == java.awt.event.KeyEvent.VK_UP || keyCode == java.awt.event.KeyEvent.VK_KP_UP) {
-                    verticalBar.setValue(currentValue - unitIncrement);
-                    e.consume();
-                } else if (keyCode == java.awt.event.KeyEvent.VK_DOWN
-                        || keyCode == java.awt.event.KeyEvent.VK_KP_DOWN) {
-                    verticalBar.setValue(currentValue + unitIncrement);
-                    e.consume();
-                } else if (keyCode == java.awt.event.KeyEvent.VK_PAGE_UP) {
-                    verticalBar.setValue(currentValue - blockIncrement);
-                    e.consume();
-                } else if (keyCode == java.awt.event.KeyEvent.VK_PAGE_DOWN) {
-                    verticalBar.setValue(currentValue + blockIncrement);
-                    e.consume();
-                } else if (keyCode == java.awt.event.KeyEvent.VK_HOME) {
-                    verticalBar.setValue(0);
-                    e.consume();
-                } else if (keyCode == java.awt.event.KeyEvent.VK_END) {
-                    verticalBar.setValue(verticalBar.getMaximum());
-                    e.consume();
+        jTableProductAuditHistory.getColumnModel().getColumn(0).setPreferredWidth(140); // Fecha
+        jTableProductAuditHistory.getColumnModel().getColumn(1).setPreferredWidth(120); // Usuario
+        jTableProductAuditHistory.getColumnModel().getColumn(2).setPreferredWidth(100); // Acción
+        jTableProductAuditHistory.getColumnModel().getColumn(3).setPreferredWidth(400); // Detalles
+
+        javax.swing.JScrollPane auditTableScrollPane = new javax.swing.JScrollPane(jTableProductAuditHistory);
+        auditTableScrollPane.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(226, 232, 240)));
+
+        txtAuditDetails = new javax.swing.JTextArea();
+        txtAuditDetails.setEditable(false);
+        txtAuditDetails.setFont(new java.awt.Font("Consolas", java.awt.Font.PLAIN, 12));
+        txtAuditDetails.setLineWrap(true);
+        txtAuditDetails.setWrapStyleWord(true);
+        txtAuditDetails.setBackground(new java.awt.Color(248, 250, 252));
+        txtAuditDetails.setForeground(new java.awt.Color(51, 65, 85));
+        javax.swing.JScrollPane auditDetailScrollPane = new javax.swing.JScrollPane(txtAuditDetails);
+        auditDetailScrollPane.setBorder(javax.swing.BorderFactory.createTitledBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(226, 232, 240)), 
+            "Detalles del Cambio Seleccionado", 
+            javax.swing.border.TitledBorder.LEFT, 
+            javax.swing.border.TitledBorder.TOP, 
+            new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12), 
+            new java.awt.Color(71, 85, 105)
+        ));
+
+        jTableProductAuditHistory.getSelectionModel().addListSelectionListener(new javax.swing.event.ListSelectionListener() {
+            @Override
+            public void valueChanged(javax.swing.event.ListSelectionEvent e) {
+                int selectedRow = jTableProductAuditHistory.getSelectedRow();
+                java.util.List<Object[]> dataList = (java.util.List<Object[]>) jTableProductAuditHistory.getClientProperty("auditDataList");
+                if (selectedRow >= 0 && dataList != null && selectedRow < dataList.size()) {
+                    txtAuditDetails.setText(String.valueOf(dataList.get(selectedRow)[3]));
+                } else {
+                    txtAuditDetails.setText("");
                 }
             }
         });
-        // NO hacer el contentPanel focusable para evitar que intercepte el foco de los
-        // campos
-        contentPanel.setFocusable(false);
 
-        mainCombinedPanel.add(scrollPane, java.awt.BorderLayout.CENTER);
+        javax.swing.JSplitPane auditSplitPane = new javax.swing.JSplitPane(javax.swing.JSplitPane.VERTICAL_SPLIT, auditTableScrollPane, auditDetailScrollPane);
+        auditSplitPane.setDividerLocation(100);
+        auditSplitPane.setOpaque(false);
+        auditSplitPane.setBorder(null);
 
-        // Agregar el panel combinado en lugar del tabbed pane
+        javax.swing.JPanel productAuditPanel = new javax.swing.JPanel(new java.awt.BorderLayout(8, 8));
+        productAuditPanel.setBackground(java.awt.Color.WHITE);
+        productAuditPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(226, 232, 240)), 
+            "Historial de Cambios del Producto", 
+            javax.swing.border.TitledBorder.LEFT, 
+            javax.swing.border.TitledBorder.TOP, 
+            new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13), 
+            new java.awt.Color(30, 41, 59)
+        ));
+        productAuditPanel.setPreferredSize(new java.awt.Dimension(800, 220));
+        productAuditPanel.add(auditSplitPane, java.awt.BorderLayout.CENTER);
+
+        contentPanel.add(mainFieldsPanel, java.awt.BorderLayout.NORTH);
+        contentPanel.add(productAuditPanel, java.awt.BorderLayout.CENTER);
+        javax.swing.JScrollPane generalScroll = new javax.swing.JScrollPane(contentPanel);
+        generalScroll.setBorder(null);
+        generalScroll.getViewport().setBackground(java.awt.Color.WHITE);
+
+        javax.swing.JScrollPane supplierScroll = new javax.swing.JScrollPane(supplierTabPanel);
+        supplierScroll.setBorder(null);
+        supplierScroll.getViewport().setBackground(java.awt.Color.WHITE);
+
+        editorTabbedPane.addTab("Datos Generales", generalScroll);
+        editorTabbedPane.addTab("Proveedor", supplierScroll);
+
+        if (m_variationPanel != null) {
+            if (m_variationPanel.getParent() != null)
+                m_variationPanel.getParent().remove(m_variationPanel);
+            editorTabbedPane.addTab("Variación", m_variationPanel);
+        }
+
+        if (jPanel4 != null) {
+            if (jPanel4.getParent() != null)
+                jPanel4.getParent().remove(jPanel4);
+            editorTabbedPane.addTab("Botón", jPanel4);
+        }
+
+        mainCombinedPanel.add(editorTabbedPane, java.awt.BorderLayout.CENTER);
+
         // Ocultar las pestañas y mostrar solo el panel combinado
         jTabbedPane1.setVisible(false);
         jTabbedPane1.setEnabled(false);
-        // Agregar el panel combinado al centro con BorderLayout
         add(mainCombinedPanel, java.awt.BorderLayout.CENTER);
         // Asegurar que el panel combinado sea visible y tenga el tamaño correcto
         mainCombinedPanel.setVisible(true);
