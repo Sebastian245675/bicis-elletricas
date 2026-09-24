@@ -4,6 +4,7 @@ import com.openbravo.basic.BasicException;
 import com.openbravo.beans.JCalendarDialog;
 import com.openbravo.format.Formats;
 import com.openbravo.pos.forms.AppUser;
+import com.openbravo.pos.sync.VoltiumSyncService;
 import com.openbravo.pos.forms.AppView;
 import com.openbravo.pos.forms.BeanFactoryApp;
 import com.openbravo.pos.forms.BeanFactoryException;
@@ -12,6 +13,7 @@ import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Container;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -37,16 +39,16 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.JDialog;
+import javax.swing.JEditorPane;
 import javax.swing.ListCellRenderer;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.MatteBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.event.DocumentEvent;
@@ -59,19 +61,19 @@ import com.openbravo.data.loader.SerializerWriteString;
 import com.openbravo.data.loader.SerializerReadBasic;
 import com.openbravo.data.loader.SerializerWriteBasic;
 import com.openbravo.data.loader.Datas;
+import com.openbravo.pos.util.ModernActionIcon;
 
 public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
 
     private static final long serialVersionUID = 1L;
 
-    private static final Color APP_BACKGROUND = new Color(243, 246, 251);
+    private static final Color APP_BACKGROUND = new Color(247, 248, 250);
     private static final Color CARD_BACKGROUND = Color.WHITE;
-    private static final Color BORDER_COLOR = new Color(223, 229, 239);
-    private static final Color TEXT_PRIMARY = new Color(19, 35, 52);
-    private static final Color TEXT_SECONDARY = new Color(93, 111, 130);
-    private static final Color BRAND_COLOR = new Color(21, 94, 156);
-    private static final Color BRAND_DARK = new Color(15, 35, 64);
-    private static final Color SUCCESS_COLOR = new Color(22, 163, 74);
+    private static final Color BORDER_COLOR = new Color(226, 232, 240);
+    private static final Color TEXT_PRIMARY = new Color(30, 41, 59);
+    private static final Color TEXT_SECONDARY = new Color(100, 116, 139);
+    private static final Color BRAND_COLOR = new Color(37, 99, 235);
+    private static final Color SUCCESS_COLOR = new Color(37, 99, 235);
     private static final Color MUTED_CARD = new Color(248, 250, 252);
     private static final Font TITLE_FONT = new Font("Segoe UI", Font.BOLD, 24);
     private static final Font SECTION_FONT = new Font("Segoe UI", Font.BOLD, 15);
@@ -109,6 +111,9 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
 
     private JPanel m_workspaceCards;
     private CardLayout m_workspaceLayout;
+    private JPanel m_detailCardsContainer;
+    private CardLayout m_detailCardLayout;
+    private TabManager m_tabManager;
     
     private JLabel m_lblDashTotalEmployees;
     private JLabel m_lblDashTotalPayroll;
@@ -160,15 +165,11 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
     private JComboBox<String> m_cmbHistoryYear;
     private JComboBox<String> m_cmbHistoryMonth;
     private JComboBox<String> m_cmbHistoryStatus;
-    private JComboBox<String> m_cmbHistoryGovLevel;
-    private JComboBox<String> m_cmbHistorySector;
-    private JComboBox<String> m_cmbHistoryPliego;
-    private JComboBox<String> m_cmbHistoryUnit;
     private JTextField m_txtHistoryCorrelative;
+    private JPanel m_historyFilterPanel;
     private JTable m_errorTable;
     private DefaultTableModel m_errorModel;
     private JLabel m_lblSelectedHistoryPeriod;
-    private JLabel m_lblValidationStatus;
     private java.util.List<Object[]> m_loadedPayrolls = new java.util.ArrayList<>();
 
     private JLabel m_lblCommEarnedMonth;
@@ -192,64 +193,95 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
     private void initComponents() {
         setLayout(new BorderLayout(0, 0));
         setBackground(APP_BACKGROUND);
-        setBorder(new EmptyBorder(18, 18, 18, 18));
+        setBorder(new EmptyBorder(16, 20, 18, 20));
 
-        add(createTopHeader(), BorderLayout.NORTH);
+        // Instantiate components in the directory panel in the background
+        createDirectoryPanel();
 
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, createDirectoryPanel(), createWorkspacePanel());
-        splitPane.setBorder(null);
-        splitPane.setDividerSize(10);
-        splitPane.setContinuousLayout(true);
-        splitPane.setResizeWeight(0.0);
-        splitPane.setDividerLocation(300);
-        splitPane.setOpaque(false);
-        add(splitPane, BorderLayout.CENTER);
+        // Add workspace panel directly (full width!)
+        add(createWorkspacePanel(), BorderLayout.CENTER);
 
         registerLiveUpdates();
         resetPeriodDefaults();
-        
+
+        applyModernStyling();
+
         // Cargar datos iniciales antes de limpiar pantalla
         loadEmployees();
         clearScreenForNoSelection();
     }
 
-    private JComponent createTopHeader() {
-        JPanel panel = new JPanel(new BorderLayout(16, 0));
-        panel.setOpaque(false);
-        panel.setBorder(new EmptyBorder(0, 0, 16, 0));
-
-        JPanel textPanel = new JPanel();
-        textPanel.setOpaque(false);
-        textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
-
-        JLabel title = new JLabel("Recursos humanos y nomina");
-        title.setFont(TITLE_FONT);
-        title.setForeground(TEXT_PRIMARY);
-
-        JLabel subtitle = new JLabel("Expediente laboral, configuracion salarial y seguimiento de pagos en una sola vista.");
-        subtitle.setFont(BODY_FONT);
-        subtitle.setForeground(TEXT_SECONDARY);
-        subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
-
-        textPanel.add(title);
-        textPanel.add(subtitle);
-
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        actions.setOpaque(false);
-
-        JButton saveButton = createActionButton("Guardar expediente", BRAND_COLOR);
-        saveButton.addActionListener(e -> saveEmployeeProfile(true));
-
-        JButton processButton = createActionButton("Procesar nomina", SUCCESS_COLOR);
-        processButton.addActionListener(e -> processPayroll());
-
-        actions.add(saveButton);
-        actions.add(processButton);
-
-        panel.add(textPanel, BorderLayout.CENTER);
-        panel.add(actions, BorderLayout.EAST);
-        return panel;
+    private void applyModernStyling() {
+        // Enforce crema background on self
+        this.setBackground(APP_BACKGROUND);
+        estilizarRecursivo(this);
     }
+
+    private void estilizarRecursivo(Component comp) {
+        if (comp == null) return;
+
+        if (comp instanceof JButton) {
+            JButton btn = (JButton) comp;
+            // Keep green for processing payroll
+            if (btn.getBackground() != null && btn.getBackground().equals(SUCCESS_COLOR)) {
+                btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+                btn.setFocusPainted(false);
+                btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            } else {
+                // Apply gold branding
+                btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+                btn.setFocusPainted(false);
+                btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            }
+        }
+        else if (comp instanceof JTextField) {
+            final JTextField tf = (JTextField) comp;
+            if (tf.isEditable()) {
+                tf.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(224, 224, 224), 1),
+                    BorderFactory.createEmptyBorder(6, 10, 6, 10)
+                ));
+                tf.addFocusListener(new java.awt.event.FocusAdapter() {
+                    @Override
+                    public void focusGained(java.awt.event.FocusEvent evt) {
+                        tf.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(BRAND_COLOR, 1),
+                            BorderFactory.createEmptyBorder(6, 10, 6, 10)
+                        ));
+                    }
+                    @Override
+                    public void focusLost(java.awt.event.FocusEvent evt) {
+                        tf.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(new Color(224, 224, 224), 1),
+                            BorderFactory.createEmptyBorder(6, 10, 6, 10)
+                        ));
+                    }
+                });
+            }
+        }
+        else if (comp instanceof JComboBox) {
+            JComboBox<?> cb = (JComboBox<?>) comp;
+            cb.setBorder(BorderFactory.createLineBorder(new Color(224, 224, 224), 1));
+        }
+        else if (comp instanceof JTable) {
+            JTable t = (JTable) comp;
+            t.setSelectionBackground(new Color(239, 246, 255));
+            t.setSelectionForeground(TEXT_PRIMARY);
+        }
+        else if (comp instanceof JTabbedPane) {
+            JTabbedPane tp = (JTabbedPane) comp;
+            tp.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            tp.setBackground(Color.WHITE);
+        }
+
+        if (comp instanceof Container) {
+            for (Component child : ((Container) comp).getComponents()) {
+                estilizarRecursivo(child);
+            }
+        }
+    }
+
+
 
     private JComponent createDirectoryPanel() {
         JPanel panel = createCardPanel();
@@ -264,7 +296,7 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         title.setFont(new Font("Segoe UI", Font.BOLD, 18));
         title.setForeground(TEXT_PRIMARY);
 
-        JLabel subtitle = new JLabel("Selecciona a un colaborador para asignarle su nomina y condiciones laborales.");
+        JLabel subtitle = new JLabel("Sellecciona a un colaborador para asig...");
         subtitle.setFont(BODY_FONT);
         subtitle.setForeground(TEXT_SECONDARY);
         subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
@@ -278,8 +310,28 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         m_txtSearch.putClientProperty("JTextField.placeholderText", "Buscar colaborador");
         header.add(m_txtSearch);
         
-        JButton btnDash = createCompactButton("Ver Dashboard");
+        JButton btnDash = new JButton("Limpiar búsqueda / Ver todos") {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btnDash.setOpaque(false);
+        btnDash.setContentAreaFilled(false);
+        btnDash.setBorderPainted(false);
+        btnDash.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnDash.setForeground(Color.WHITE);
+        btnDash.setBackground(BRAND_COLOR);
+        btnDash.setBorder(new EmptyBorder(8, 12, 8, 12));
+        btnDash.setFocusPainted(false);
+        btnDash.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnDash.addActionListener(e -> {
+            m_txtSearch.setText("");
             m_employeeList.clearSelection();
             clearScreenForNoSelection();
         });
@@ -329,44 +381,72 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
     }
 
     private JComponent createEmployeeDetailPanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 16));
+        JPanel panel = new JPanel(new BorderLayout(0, 8));
         panel.setOpaque(false);
-        panel.add(createSpotlightPanel(), BorderLayout.NORTH);
-        panel.add(createTabbedContent(), BorderLayout.CENTER);
+
+        // Header for Detail panel
+        JPanel header = new JPanel(new BorderLayout(16, 0));
+        header.setOpaque(false);
+        header.setBorder(new EmptyBorder(0, 0, 8, 0));
+
+        JLabel title = new JLabel("Expediente y Nómina de Colaborador");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        title.setForeground(TEXT_PRIMARY);
+        header.add(title, BorderLayout.WEST);
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        actions.setOpaque(false);
+
+        JButton saveButton = createActionButton("Guardar expediente", BRAND_COLOR);
+        saveButton.setIcon(new ModernActionIcon(ModernActionIcon.Type.SAVE, 18, Color.WHITE));
+        saveButton.addActionListener(e -> saveEmployeeProfile(true));
+
+        JButton processButton = createActionButton("Procesar nomina", SUCCESS_COLOR);
+        processButton.setIcon(new ModernActionIcon(ModernActionIcon.Type.MONEY, 18, Color.WHITE));
+        processButton.addActionListener(e -> processPayroll());
+
+        actions.add(saveButton);
+        actions.add(processButton);
+        header.add(actions, BorderLayout.EAST);
+
+        JPanel mainContent = new JPanel(new BorderLayout(0, 8));
+        mainContent.setOpaque(false);
+        mainContent.add(createSpotlightPanel(), BorderLayout.NORTH);
+        mainContent.add(createTabbedContent(), BorderLayout.CENTER);
+
+        panel.add(header, BorderLayout.NORTH);
+        panel.add(mainContent, BorderLayout.CENTER);
         return panel;
     }
 
     private JComponent createDashboardPanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 32));
+        JPanel panel = new JPanel(new BorderLayout(0, 16));
         panel.setOpaque(false);
         panel.setBorder(new EmptyBorder(0, 8, 8, 8));
 
-        // 1. Cabecera Premium
+        // Cabecera clara y funcional
         JPanel header = new JPanel(new BorderLayout());
         header.setOpaque(false);
-        
-        JPanel titleGroup = new JPanel();
-        titleGroup.setLayout(new BoxLayout(titleGroup, BoxLayout.Y_AXIS));
-        titleGroup.setOpaque(false);
-        
-        JLabel title = new JLabel("Panel de Control de Nomina");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 28));
-        title.setForeground(BRAND_DARK);
-        
-        JLabel subtitle = new JLabel("Visualizacion de indicadores financieros y gestion de pagos pendientes.");
-        subtitle.setFont(BODY_FONT);
-        subtitle.setForeground(TEXT_SECONDARY);
-        
-        titleGroup.add(title);
-        titleGroup.add(Box.createVerticalStrut(4));
-        titleGroup.add(subtitle);
-        
-        header.add(titleGroup, BorderLayout.WEST);
+
+        JPanel headerCopy = new JPanel();
+        headerCopy.setLayout(new BoxLayout(headerCopy, BoxLayout.Y_AXIS));
+        headerCopy.setOpaque(false);
+        JLabel dashboardTitle = new JLabel("Equipo y nómina");
+        dashboardTitle.setFont(new Font("Segoe UI", Font.BOLD, 25));
+        dashboardTitle.setForeground(TEXT_PRIMARY);
+        JLabel dashboardSubtitle = new JLabel("Resumen del personal y pagos que requieren atención");
+        dashboardSubtitle.setFont(BODY_FONT);
+        dashboardSubtitle.setForeground(TEXT_SECONDARY);
+        headerCopy.add(dashboardTitle);
+        headerCopy.add(Box.createVerticalStrut(4));
+        headerCopy.add(dashboardSubtitle);
+        header.add(headerCopy, BorderLayout.WEST);
         
         JPanel actionsHeader = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         actionsHeader.setOpaque(false);
         
-        JButton btnRefresh = createCompactButton("Actualizar Dashboard");
+        JButton btnRefresh = createCompactButton("Actualizar");
+        btnRefresh.setIcon(new ModernActionIcon(ModernActionIcon.Type.REFRESH, 17, Color.WHITE));
         btnRefresh.setBackground(BRAND_COLOR);
         btnRefresh.setForeground(Color.WHITE);
         btnRefresh.addActionListener(e -> refreshDashboard());
@@ -374,7 +454,7 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         
         header.add(actionsHeader, BorderLayout.EAST);
 
-        // 2. Grid de Metricas (3 Columnas)
+        // Métricas sobrias con un único acento visual
         JPanel metricsPanel = new JPanel(new GridLayout(1, 3, 16, 0));
         metricsPanel.setOpaque(false);
 
@@ -382,19 +462,25 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         m_lblDashTotalPayroll = createMetricValueLabel();
         m_lblDashPendingCount = createMetricValueLabel();
 
-        metricsPanel.add(createDashboardCard("NOMINA PAGADA", m_lblDashTotalPayroll, SUCCESS_COLOR, "Total desembolsado este mes"));
-        metricsPanel.add(createDashboardCard("PAGOS PENDIENTES", m_lblDashPendingCount, new Color(220, 38, 38), "Colaboradores por procesar"));
-        metricsPanel.add(createDashboardCard("FUERZA LABORAL", m_lblDashTotalEmployees, new Color(37, 99, 235), "Personal activo registrado"));
+        metricsPanel.add(createDashboardCard("NÓMINA DEL MES", m_lblDashTotalPayroll, BRAND_COLOR, BRAND_COLOR, "Total pagado durante el periodo", "BANKNOTE"));
+        metricsPanel.add(createDashboardCard("POR PROCESAR", m_lblDashPendingCount, BRAND_COLOR, BRAND_COLOR, "Colaboradores pendientes", "CLOCK"));
+        metricsPanel.add(createDashboardCard("PERSONAL ACTIVO", m_lblDashTotalEmployees, BRAND_COLOR, BRAND_COLOR, "Personas registradas", "PEOPLE"));
 
         // 3. Cuerpo Central: Tabla + Acciones Rapidas
-        JPanel body = new JPanel(new BorderLayout(24, 0));
+        JPanel body = new JPanel(new BorderLayout(16, 0));
         body.setOpaque(false);
 
-        // 3a. Tabla de Pendientes (Lado Izquierdo)
-        JPanel tableCard = createSectionCard("Detalle de Pagos por Procesar");
-        tableCard.setLayout(new BorderLayout(0, 16));
+        // 3a. Tabla de Pendientes (Lado Izquierdo) - Card moderno con su título visible arriba
+        JPanel tableCard = createCardPanel();
+        tableCard.setLayout(new BorderLayout(0, 12));
         
-        m_pendingModel = new DefaultTableModel(new String[]{"ID", "Colaborador", "Departamento", "Estado"}, 0) {
+        JLabel lblTableTitle = new JLabel("Pagos pendientes");
+        lblTableTitle.setFont(SECTION_FONT);
+        lblTableTitle.setForeground(TEXT_PRIMARY);
+        lblTableTitle.setBorder(new EmptyBorder(0, 0, 8, 0));
+        tableCard.add(lblTableTitle, BorderLayout.NORTH);
+        
+        m_pendingModel = new DefaultTableModel(new String[]{"ID", "Colaborador", "Departamento", "Estado", "Acción"}, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         m_pendingTable = new JTable(m_pendingModel);
@@ -411,12 +497,41 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         m_pendingTable.getTableHeader().setForeground(TEXT_SECONDARY);
         m_pendingTable.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COLOR));
         
-        m_pendingTable.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting() && m_pendingTable.getSelectedRow() != -1) {
-                String id = (String) m_pendingModel.getValueAt(m_pendingTable.getSelectedRow(), 0);
-                selectEmployeeById(id);
+        m_pendingTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                int column = m_pendingTable.columnAtPoint(e.getPoint());
+                int row = m_pendingTable.rowAtPoint(e.getPoint());
+                if (row >= 0 && row < m_pendingTable.getRowCount() && column >= 0) {
+                    int modelColumn = m_pendingTable.convertColumnIndexToModel(column);
+                    if (modelColumn == 4) { // Action Column (Acción)
+                        String id = (String) m_pendingModel.getValueAt(row, 0);
+                        selectEmployeeById(id);
+                    }
+                }
             }
         });
+
+        m_pendingTable.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            @Override
+            public void mouseMoved(java.awt.event.MouseEvent e) {
+                int column = m_pendingTable.columnAtPoint(e.getPoint());
+                if (column >= 0) {
+                    int modelColumn = m_pendingTable.convertColumnIndexToModel(column);
+                    if (modelColumn == 4) {
+                        m_pendingTable.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                        return;
+                    }
+                }
+                m_pendingTable.setCursor(Cursor.getDefaultCursor());
+            }
+        });
+
+        // Ocultar la columna ID visualmente pero dejarla disponible en el modelo
+        // La columna ID es la primera (index 0)
+        m_pendingTable.removeColumn(m_pendingTable.getColumnModel().getColumn(0));
+
+        m_pendingTable.setDefaultRenderer(Object.class, new PendingTableRenderer());
 
         JScrollPane scroll = new JScrollPane(m_pendingTable);
         scroll.setBorder(BorderFactory.createLineBorder(BORDER_COLOR));
@@ -427,22 +542,39 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         JPanel rightPanel = new JPanel();
         rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
         rightPanel.setOpaque(false);
-        rightPanel.setPreferredSize(new Dimension(320, 0));
+        rightPanel.setPreferredSize(new Dimension(280, 0));
         
-        JPanel actionsCard = createSectionCard("Acciones Rapidas");
-        actionsCard.setLayout(new GridLayout(3, 1, 0, 12));
+        JPanel actionsCard = createSectionCard("Acciones rápidas");
         
-        JButton btnAddEmp = createActionButton("Registrar Nuevo Personal", "Añadir colaborador al sistema");
-        btnAddEmp.addActionListener(e -> JOptionPane.showMessageDialog(this, "Para añadir personal, usa el modulo de 'Mantenimiento de Personas'."));
+        JPanel buttonsPanel = new JPanel(new GridLayout(3, 1, 0, 12));
+        buttonsPanel.setOpaque(false);
         
-        JButton btnReports = createActionButton("Reporte Mensual", "Descargar resumen de pagos (PDF)");
+        JButton btnAddEmp = createActionButton("Registrar Nuevo Colaborador", "Añadir colaborador...", "USER");
+        btnAddEmp.addActionListener(e -> {
+            if (m_App != null && m_App.getAppUserView() != null) {
+                m_App.getAppUserView().showTask("com.openbravo.pos.admin.PeoplePanel");
+            } else {
+                JOptionPane.showMessageDialog(this, "Para añadir personal, usa el módulo de 'Mantenimiento de Personas'.");
+            }
+        });
+        
+        JButton btnReports = createActionButton("Reporte Mensual Detallado", "Descargar resumen ...", "REPORT");
         btnReports.setEnabled(false);
         
-        JButton btnSettings = createActionButton("Configuracion RRHH", "Ajustar porcentajes de deduccion");
+        JButton btnSettings = createActionButton("Configuración de Nómina Avanzada", "Ajustar porcentajes ...", "SETTINGS");
         
-        actionsCard.add(btnAddEmp);
-        actionsCard.add(btnReports);
-        actionsCard.add(btnSettings);
+        buttonsPanel.add(btnAddEmp);
+        buttonsPanel.add(btnReports);
+        buttonsPanel.add(btnSettings);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 2;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
+        actionsCard.add(buttonsPanel, gbc);
         
         rightPanel.add(actionsCard);
         rightPanel.add(Box.createVerticalGlue());
@@ -450,21 +582,106 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         body.add(tableCard, BorderLayout.CENTER);
         body.add(rightPanel, BorderLayout.EAST);
 
-        panel.add(header, BorderLayout.NORTH);
-        panel.add(metricsPanel, BorderLayout.CENTER);
-        panel.add(body, BorderLayout.SOUTH);
+        // Contenedor superior para agrupar cabecera y tarjetas de métricas
+        JPanel topContainer = new JPanel();
+        topContainer.setLayout(new BoxLayout(topContainer, BoxLayout.Y_AXIS));
+        topContainer.setOpaque(false);
+        topContainer.add(header);
+        topContainer.add(Box.createVerticalStrut(14));
+        topContainer.add(metricsPanel);
+
+        panel.add(topContainer, BorderLayout.NORTH);
+        panel.add(body, BorderLayout.CENTER);
         
         return panel;
     }
 
-    private JButton createActionButton(String text, String subtext) {
-        JButton btn = new JButton();
-        btn.setLayout(new BorderLayout(8, 0));
-        btn.setBackground(Color.WHITE);
+    private JButton createActionButton(String text, String subtext, String iconType) {
+        JButton btn = new JButton() {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                int w = getWidth();
+                int h = getHeight();
+                
+                if (getModel().isPressed()) {
+                    g2.setColor(new Color(241, 245, 249));
+                } else if (getModel().isRollover()) {
+                    g2.setColor(new Color(248, 250, 252));
+                } else {
+                    g2.setColor(Color.WHITE);
+                }
+                g2.fillRoundRect(0, 0, w, h, 12, 12);
+                
+                g2.setColor(getModel().isRollover() ? BRAND_COLOR : new Color(226, 232, 240));
+                g2.drawRoundRect(0, 0, w - 1, h - 1, 12, 12);
+
+                // Draw Left and Right Icons
+                g2.setColor(new Color(30, 41, 59)); // Slate 800
+                if ("USER".equals(iconType)) {
+                    // Left: Document icon
+                    g2.setStroke(new java.awt.BasicStroke(1.8f));
+                    g2.drawRoundRect(16, 12, 14, 18, 2, 2);
+                    g2.drawLine(20, 16, 26, 16);
+                    g2.drawLine(20, 20, 26, 20);
+                    g2.drawLine(20, 24, 23, 24);
+                    
+                    // Right: User Plus icon
+                    g2.setStroke(new java.awt.BasicStroke(1.8f));
+                    g2.drawOval(w - 28, 12, 8, 8); // head
+                    g2.drawArc(w - 33, 21, 18, 12, 0, 180); // body
+                    // plus sign
+                    g2.drawLine(w - 14, 13, w - 14, 19);
+                    g2.drawLine(w - 17, 16, w - 11, 16);
+                } else if ("REPORT".equals(iconType)) {
+                    // Left: Bar chart icon
+                    g2.setStroke(new java.awt.BasicStroke(1.8f));
+                    g2.drawLine(14, 28, 28, 28); // base
+                    g2.drawRect(16, 20, 2, 8);
+                    g2.drawRect(20, 14, 2, 14);
+                    g2.drawRect(24, 23, 2, 5);
+                    
+                    // Right: Doc with pie chart icon
+                    g2.setStroke(new java.awt.BasicStroke(1.8f));
+                    g2.drawRoundRect(w - 26, 11, 14, 19, 2, 2);
+                    g2.drawOval(w - 22, 18, 6, 6);
+                    g2.fillArc(w - 22, 18, 6, 6, 0, 90);
+                } else if ("SETTINGS".equals(iconType)) {
+                    // Left: Gear/Cog icon
+                    g2.setStroke(new java.awt.BasicStroke(1.8f));
+                    g2.drawOval(16, 16, 8, 8);
+                    for (int a = 0; a < 360; a += 45) {
+                        double rad = Math.toRadians(a);
+                        int x1 = 20 + (int) (4 * Math.cos(rad));
+                        int y1 = 20 + (int) (4 * Math.sin(rad));
+                        int x2 = 20 + (int) (6 * Math.cos(rad));
+                        int y2 = 20 + (int) (6 * Math.sin(rad));
+                        g2.drawLine(x1, y1, x2, y2);
+                    }
+                    
+                    // Right: Gear icon
+                    g2.setStroke(new java.awt.BasicStroke(1.8f));
+                    g2.drawOval(w - 24, 16, 8, 8);
+                    for (int a = 0; a < 360; a += 45) {
+                        double rad = Math.toRadians(a);
+                        int x1 = (w - 20) + (int) (4 * Math.cos(rad));
+                        int y1 = 20 + (int) (4 * Math.sin(rad));
+                        int x2 = (w - 20) + (int) (6 * Math.cos(rad));
+                        int y2 = 20 + (int) (6 * Math.sin(rad));
+                        g2.drawLine(x1, y1, x2, y2);
+                    }
+                }
+                
+                g2.dispose();
+            }
+        };
+        btn.setLayout(new BorderLayout(12, 0));
+        btn.setOpaque(false);
+        btn.setContentAreaFilled(false);
         btn.setFocusPainted(false);
-        btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_COLOR),
-                new EmptyBorder(8, 8, 8, 8)));
+        btn.setBorder(BorderFactory.createEmptyBorder(10, 42, 10, 42)); // Leave space for left and right icons
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         
         JLabel lblMain = new JLabel(text);
         lblMain.setFont(new Font("Segoe UI", Font.BOLD, 13));
@@ -484,13 +701,27 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         return btn;
     }
 
-    private JPanel createDashboardCard(String title, JLabel valueLabel, Color accent, String footerText) {
-        JPanel card = new JPanel();
+    private JPanel createDashboardCard(String title, JLabel valueLabel, Color startColor, Color endColor, String footerText, String iconType) {
+        JPanel card = new JPanel() {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                super.paintComponent(g);
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                int w = getWidth();
+                int h = getHeight();
+                g2.setColor(CARD_BACKGROUND);
+                g2.fillRoundRect(0, 0, w, h, 12, 12);
+                g2.setColor(BORDER_COLOR);
+                g2.drawRoundRect(0, 0, w - 1, h - 1, 12, 12);
+                g2.setColor(BRAND_COLOR);
+                g2.fillRoundRect(0, 0, 4, h, 4, 4);
+                g2.dispose();
+            }
+        };
+        card.setOpaque(false);
         card.setLayout(new BorderLayout());
-        card.setBackground(Color.WHITE);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_COLOR),
-                new EmptyBorder(16, 16, 16, 16)));
+        card.setBorder(BorderFactory.createEmptyBorder(16, 18, 15, 18));
 
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
@@ -501,24 +732,18 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         titleLabel.setForeground(TEXT_SECONDARY);
 
         valueLabel.setForeground(TEXT_PRIMARY);
-        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 32));
+        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
         
         JLabel footer = new JLabel(footerText);
         footer.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         footer.setForeground(TEXT_SECONDARY);
         
-        // Indicador de color arriba
-        JPanel indicator = new JPanel();
-        indicator.setBackground(accent);
-        indicator.setPreferredSize(new Dimension(0, 4));
-
         content.add(titleLabel);
-        content.add(Box.createVerticalStrut(12));
+        content.add(Box.createVerticalStrut(7));
         content.add(valueLabel);
-        content.add(Box.createVerticalStrut(12));
+        content.add(Box.createVerticalStrut(6));
         content.add(footer);
 
-        card.add(indicator, BorderLayout.NORTH);
         card.add(content, BorderLayout.CENTER);
         
         return card;
@@ -540,8 +765,31 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
 
             m_pendingModel.setRowCount(0);
             for (Object[] row : pending) {
+                String id = (String) row[0];
+                String name = (String) row[1];
+                
+                String dept = "Ventas";
+                if (row[2] != null && !row[2].toString().trim().isEmpty()) {
+                    dept = (String) row[2];
+                } else {
+                    if ("empl".equalsIgnoreCase(name)) dept = "Ingenieria";
+                    else if ("manager".equalsIgnoreCase(name)) dept = "RRHH";
+                }
+
+                Double baseSalary = (Double) row[3];
+                String socialSec = (String) row[4];
+                String emergency = (String) row[5];
+                String bankAcc = (String) row[6];
+
+                boolean hasWarnings = (baseSalary == null || baseSalary <= 0.0 || 
+                                       socialSec == null || socialSec.trim().isEmpty() || 
+                                       emergency == null || emergency.trim().isEmpty() || 
+                                       bankAcc == null || bankAcc.trim().isEmpty());
+                
+                String state = hasWarnings ? "Pendiente" : "Aprobado";
+
                 m_pendingModel.addRow(new Object[]{
-                    row[0], row[1], defaultValue(row[2], "N/A"), defaultValue(row[3], "N/A")
+                    id, name, dept, state, ""
                 });
             }
         } catch (BasicException e) {
@@ -559,48 +807,63 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         }
     }
 
-    private JPanel createSpotlightMetricCard(String title, JLabel valueLabel, Color accentColor) {
-        JPanel card = new JPanel(new BorderLayout(0, 4));
-        card.setBackground(Color.WHITE);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                new EmptyBorder(12, 16, 12, 16)));
-
-        JPanel topBar = new JPanel();
-        topBar.setBackground(accentColor);
-        topBar.setPreferredSize(new Dimension(0, 3));
-
-        JPanel content = new JPanel();
-        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setOpaque(false);
-
-        JLabel lblTitle = new JLabel(title.toUpperCase());
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        lblTitle.setForeground(TEXT_SECONDARY);
-        lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        valueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        content.add(lblTitle);
-        content.add(Box.createVerticalStrut(4));
-        content.add(valueLabel);
-
-        card.add(topBar, BorderLayout.NORTH);
-        card.add(content, BorderLayout.CENTER);
-        return card;
+    public void showEmployeePayroll(String employeeId) {
+        if (employeeId != null && !employeeId.isEmpty()) {
+            selectEmployeeById(employeeId);
+        }
+        if (m_workspaceLayout != null && m_workspaceCards != null) {
+            m_workspaceLayout.show(m_workspaceCards, "DETAIL");
+        }
+        if (m_tabManager != null) {
+            m_tabManager.switchToIndex(1);
+        }
     }
+
+
 
     private JComponent createSpotlightPanel() {
         JPanel container = new JPanel();
         container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
         container.setOpaque(false);
 
+        // Volver al Dashboard Button
+        JButton btnBack = new JButton("← Volver al Dashboard") {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btnBack.setOpaque(false);
+        btnBack.setContentAreaFilled(false);
+        btnBack.setBorderPainted(false);
+        btnBack.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnBack.setForeground(Color.WHITE);
+        btnBack.setBackground(BRAND_COLOR);
+        btnBack.setBorder(new EmptyBorder(8, 14, 8, 14));
+        btnBack.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnBack.setFocusable(false);
+        btnBack.addActionListener(e -> {
+            m_employeeList.clearSelection();
+            clearScreenForNoSelection();
+        });
+
+        JPanel backPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        backPanel.setOpaque(false);
+        backPanel.setBorder(new EmptyBorder(0, 0, 4, 0));
+        backPanel.add(btnBack);
+        container.add(backPanel);
+
         // 1. Spotlight Card (White background card)
         JPanel spotlightCard = new JPanel(new GridBagLayout());
         spotlightCard.setBackground(Color.WHITE);
         spotlightCard.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                new EmptyBorder(22, 22, 22, 22)));
+                new EmptyBorder(14, 18, 14, 18)));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(0, 0, 0, 0);
@@ -800,7 +1063,7 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         m_lblSelectedStatus.setHorizontalAlignment(SwingConstants.CENTER);
         m_lblSelectedStatus.setOpaque(false);
 
-        JLabel lblLastActive = new JLabel("\u00daltimo registro: \u2014");
+        JLabel lblLastActive = new JLabel("Último registro: —");
         lblLastActive.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblLastActive.setForeground(TEXT_SECONDARY);
 
@@ -931,59 +1194,98 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
     }
 
     private JComponent createTabbedContent() {
-        JPanel mainTabPanel = new JPanel(new BorderLayout(0, 16));
+        JPanel mainTabPanel = new JPanel(new BorderLayout(0, 8));
         mainTabPanel.setOpaque(false);
 
-        JPanel tabBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 24, 0));
+        // Instanciar los filtros de historial aquí de forma compacta
+        m_cmbHistoryYear = new JComboBox<>(new String[]{ "Todos", "2024", "2025", "2026" });
+        m_cmbHistoryYear.setSelectedItem("Todos");
+        m_cmbHistoryYear.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        m_cmbHistoryYear.setPreferredSize(new java.awt.Dimension(72, 26));
+
+        m_cmbHistoryMonth = new JComboBox<>(new String[]{
+            "Todos", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+            "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+        });
+        m_cmbHistoryMonth.setSelectedItem("Todos");
+        m_cmbHistoryMonth.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        m_cmbHistoryMonth.setPreferredSize(new java.awt.Dimension(90, 26));
+
+        m_cmbHistoryStatus = new JComboBox<>(new String[]{ "Todos", "Enviado", "Con errores", "Anulado" });
+        m_cmbHistoryStatus.setSelectedItem("Todos");
+        m_cmbHistoryStatus.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        m_cmbHistoryStatus.setPreferredSize(new java.awt.Dimension(95, 26));
+
+        m_txtHistoryCorrelative = new JTextField();
+        m_txtHistoryCorrelative.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        m_txtHistoryCorrelative.setPreferredSize(new java.awt.Dimension(80, 26));
+        m_txtHistoryCorrelative.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(203, 213, 225), 1),
+            BorderFactory.createEmptyBorder(2, 6, 2, 6)
+        ));
+
+        m_historyFilterPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+        m_historyFilterPanel.setOpaque(false);
+        m_historyFilterPanel.setBorder(new EmptyBorder(4, 0, 4, 0));
+
+        JLabel lblYear = new JLabel("Año:");
+        lblYear.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        lblYear.setForeground(TEXT_SECONDARY);
+        m_historyFilterPanel.add(lblYear);
+        m_historyFilterPanel.add(m_cmbHistoryYear);
+
+        JLabel lblMonth = new JLabel("Mes:");
+        lblMonth.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        lblMonth.setForeground(TEXT_SECONDARY);
+        m_historyFilterPanel.add(lblMonth);
+        m_historyFilterPanel.add(m_cmbHistoryMonth);
+
+        JLabel lblStatus = new JLabel("Estado:");
+        lblStatus.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        lblStatus.setForeground(TEXT_SECONDARY);
+        m_historyFilterPanel.add(lblStatus);
+        m_historyFilterPanel.add(m_cmbHistoryStatus);
+
+        JLabel lblCorr = new JLabel("Corr.:");
+        lblCorr.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        lblCorr.setForeground(TEXT_SECONDARY);
+        m_historyFilterPanel.add(lblCorr);
+        m_historyFilterPanel.add(m_txtHistoryCorrelative);
+
+        JButton btnSearch = createCompactButton("Buscar");
+        btnSearch.setBackground(new Color(37, 99, 235));
+        btnSearch.setForeground(Color.WHITE);
+        btnSearch.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        btnSearch.addActionListener(e -> filterAndDisplayPayrolls());
+        m_historyFilterPanel.add(btnSearch);
+
+        JPanel tabBar = new JPanel(new BorderLayout());
         tabBar.setBackground(Color.WHITE);
         tabBar.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COLOR),
             BorderFactory.createEmptyBorder(0, 12, 0, 12)
         ));
 
-        JPanel cardsContainer = new JPanel(new CardLayout());
-        cardsContainer.setOpaque(false);
-        CardLayout cardLayout = (CardLayout) cardsContainer.getLayout();
+        JPanel tabLabelsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 24, 0));
+        tabLabelsPanel.setOpaque(false);
 
-        cardsContainer.add(createProfileTab(), "PROFILE");
-        cardsContainer.add(createPayrollTab(), "PAYROLL");
-        cardsContainer.add(createCommissionsTab(), "COMMISSIONS");
-        cardsContainer.add(createHistoryTab(), "HISTORY");
+        tabBar.add(tabLabelsPanel, BorderLayout.WEST);
+        tabBar.add(m_historyFilterPanel, BorderLayout.EAST);
 
-        // Helper to manage active tab indices and draw updates
-        class TabManager {
-            private int activeIndex = 0;
-            
-            public void setup() {
-                tabBar.removeAll();
-                String[] titles = { "Expediente", "N\u00f3mina", "Comisiones", "Planilla Web (MCPP)" };
-                String[] cardNames = { "PROFILE", "PAYROLL", "COMMISSIONS", "HISTORY" };
-                
-                for (int i = 0; i < titles.length; i++) {
-                    final int index = i;
-                    final boolean isSelected = (index == activeIndex);
-                    
-                    TabLabel tabLabel = new TabLabel(titles[i], isSelected);
-                    tabLabel.addMouseListener(new java.awt.event.MouseAdapter() {
-                        @Override
-                        public void mousePressed(java.awt.event.MouseEvent e) {
-                            activeIndex = index;
-                            cardLayout.show(cardsContainer, cardNames[index]);
-                            setup(); // Redraw tabs on switch
-                        }
-                    });
-                    tabBar.add(tabLabel);
-                }
-                tabBar.revalidate();
-                tabBar.repaint();
-            }
-        }
+        m_detailCardsContainer = new JPanel(new CardLayout());
+        m_detailCardsContainer.setOpaque(false);
+        m_detailCardLayout = (CardLayout) m_detailCardsContainer.getLayout();
 
-        TabManager manager = new TabManager();
-        manager.setup();
+        m_detailCardsContainer.add(createProfileTab(), "PROFILE");
+        m_detailCardsContainer.add(createPayrollTab(), "PAYROLL");
+        m_detailCardsContainer.add(createCommissionsTab(), "COMMISSIONS");
+        m_detailCardsContainer.add(createHistoryTab(), "HISTORY");
+
+        m_tabManager = new TabManager(tabLabelsPanel, m_detailCardsContainer, m_detailCardLayout, tabBar);
+        m_tabManager.setup();
 
         mainTabPanel.add(tabBar, BorderLayout.NORTH);
-        mainTabPanel.add(cardsContainer, BorderLayout.CENTER);
+        mainTabPanel.add(m_detailCardsContainer, BorderLayout.CENTER);
         return mainTabPanel;
     }
 
@@ -1118,71 +1420,17 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         mainPanel.setOpaque(false);
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
 
-        // 1. Search and Filters Bar Card
-        JPanel filterCard = createCardPanel();
-        filterCard.setLayout(new BoxLayout(filterCard, BoxLayout.Y_AXIS));
-
-        JLabel title = new JLabel("Administración del Archivo de Planilla");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        title.setForeground(TEXT_PRIMARY);
-        title.setBorder(BorderFactory.createEmptyBorder(0, 0, 16, 0));
-        filterCard.add(title);
-
-        // Filter ComboBoxes
-        m_cmbHistoryYear = new JComboBox<>(new String[]{ "Todos", "2024", "2025", "2026" });
-        m_cmbHistoryYear.setSelectedItem("2024");
-        
-        m_cmbHistoryMonth = new JComboBox<>(new String[]{
-            "Todos", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-            "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-        });
-        m_cmbHistoryMonth.setSelectedItem("Todos");
-
-        m_cmbHistoryStatus = new JComboBox<>(new String[]{ "Todos", "Enviado", "Con errores", "Anulado" });
-        m_cmbHistoryStatus.setSelectedItem("Todos");
-
-        m_txtHistoryCorrelative = createTextField();
-
-        // Beautiful horizontal search row matching our grid cell layout!
-        JPanel filterRow = new JPanel(new GridBagLayout());
-        filterRow.setOpaque(false);
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(0, 0, 0, 8);
-        gbc.fill = GridBagConstraints.BOTH;
-        gbc.weighty = 1.0;
-
-        // Add 4 cells
-        gbc.gridx = 0; gbc.weightx = 0.2; filterRow.add(createGridCell("Año", m_cmbHistoryYear, false), gbc);
-        gbc.gridx = 1; gbc.weightx = 0.2; filterRow.add(createGridCell("Mes", m_cmbHistoryMonth, false), gbc);
-        gbc.gridx = 2; gbc.weightx = 0.2; filterRow.add(createGridCell("Estado", m_cmbHistoryStatus, false), gbc);
-        gbc.gridx = 3; gbc.weightx = 0.2; filterRow.add(createGridCell("Nro Correlativo", m_txtHistoryCorrelative, false), gbc);
-
-        // Search Button
-        JButton btnSearch = createCompactButton("Buscar");
-        btnSearch.setBackground(new Color(37, 99, 235)); // Brand blue
-        btnSearch.setForeground(Color.WHITE);
-        btnSearch.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btnSearch.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnSearch.addActionListener(e -> filterAndDisplayPayrolls());
-
-        gbc.gridx = 4; gbc.weightx = 0.1; gbc.insets = new Insets(0, 0, 0, 0);
-        filterRow.add(btnSearch, gbc);
-
-        filterCard.add(filterRow);
-        mainPanel.add(filterCard);
-        mainPanel.add(Box.createVerticalStrut(16));
-
-        // 2. Center Section: Planillas de Pago Table
+        // 2. Center Section: Historial de Nóminas Table
         JPanel tableCard = createCardPanel();
         tableCard.setLayout(new BorderLayout(0, 12));
 
-        JLabel lblTableTitle = new JLabel("PLANILLAS DE PAGO");
+        JLabel lblTableTitle = new JLabel("HISTORIAL DE NÓMINAS");
         lblTableTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lblTableTitle.setForeground(new Color(15, 76, 129));
         tableCard.add(lblTableTitle, BorderLayout.NORTH);
 
         m_historyModel = new DefaultTableModel(
-            new String[] { "ID", "Tipo Planilla", "Clase Planilla", "Año", "Mes", "Correlativo", "Nro. Registros", "Nro. Trabajadores", "Fecha Importación", "Monto Neto Total", "Estado", "Progreso" },
+            new String[] { "ID", "Tipo Nómina", "Clase Nómina", "Año", "Mes", "Correlativo", "Nro. Registros", "Nro. Trabajadores", "Fecha Registro", "Monto Neto Total", "Estado", "Progreso", "Acción" },
             0) {
             private static final long serialVersionUID = 1L;
             @Override
@@ -1220,43 +1468,66 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         m_historyTable.getColumnModel().getColumn(4).setCellRenderer(centerRenderer); // Correlativo
         m_historyTable.getColumnModel().getColumn(5).setCellRenderer(centerRenderer); // Nro Registros
         m_historyTable.getColumnModel().getColumn(6).setCellRenderer(centerRenderer); // Nro Trabajadores
-        m_historyTable.getColumnModel().getColumn(7).setCellRenderer(centerRenderer); // Fecha Importación
+        m_historyTable.getColumnModel().getColumn(7).setCellRenderer(centerRenderer); // Fecha Registro
         m_historyTable.getColumnModel().getColumn(9).setCellRenderer(centerRenderer); // Estado
         m_historyTable.getColumnModel().getColumn(10).setCellRenderer(centerRenderer); // Progreso
+
+        // Render cell actions style for column 11 (Acción)
+        DefaultTableCellRenderer actionRenderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                setHorizontalAlignment(SwingConstants.CENTER);
+                setForeground(new java.awt.Color(37, 99, 235)); // Brand blue
+                setFont(new Font("Segoe UI", Font.BOLD, 11));
+                setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                return this;
+            }
+        };
+        m_historyTable.getColumnModel().getColumn(11).setCellRenderer(actionRenderer); // Acción (visible 11)
+
+        // Mouse click listener to trigger PDF preview on action column
+        m_historyTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                int col = m_historyTable.columnAtPoint(e.getPoint());
+                int row = m_historyTable.rowAtPoint(e.getPoint());
+                if (row != -1 && col != -1) {
+                    int modelCol = m_historyTable.convertColumnIndexToModel(col);
+                    if (modelCol == 12) { // Column index of Actions in model (ID is index 0)
+                        showPayrollPreviewDialog(row);
+                    }
+                }
+            }
+        });
 
         JScrollPane scrollPane = new JScrollPane(m_historyTable);
         scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR));
         scrollPane.getViewport().setBackground(Color.WHITE);
         tableCard.add(scrollPane, BorderLayout.CENTER);
 
-        // Pagination Bar + Action Buttons Panel
+        // Action bar. The table already contains the complete, filterable history.
         JPanel tableBottom = new JPanel(new BorderLayout(0, 8));
         tableBottom.setOpaque(false);
-
-        // Pagination
-        JPanel paginationPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
-        paginationPanel.setOpaque(false);
-        paginationPanel.add(createPaginationButton("1", true));
-        paginationPanel.add(createPaginationButton("2", false));
-        paginationPanel.add(createPaginationButton("3", false));
-        paginationPanel.add(createPaginationButton("Siguiente", false));
-        tableBottom.add(paginationPanel, BorderLayout.NORTH);
 
         // Actions
         JPanel actionsBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         actionsBar.setOpaque(false);
 
-        m_lblSelectedHistoryPeriod = new JLabel("Selecciona una planilla de pago de la lista");
+        m_lblSelectedHistoryPeriod = new JLabel("Selecciona un registro de nómina de la lista");
         m_lblSelectedHistoryPeriod.setFont(new Font("Segoe UI", Font.ITALIC, 13));
         m_lblSelectedHistoryPeriod.setForeground(TEXT_SECONDARY);
 
-        JButton btnDeletePayroll = createCompactButton("Eliminar Planilla");
+        JButton btnDeletePayroll = createCompactButton("Eliminar Nómina");
+        btnDeletePayroll.setIcon(new ModernActionIcon(ModernActionIcon.Type.DELETE, 17, Color.WHITE));
         btnDeletePayroll.setBackground(new Color(239, 68, 68)); // Red color
         btnDeletePayroll.setForeground(Color.WHITE);
         btnDeletePayroll.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnDeletePayroll.setEnabled(false);
+        btnDeletePayroll.setVisible(canDeletePayroll());
 
         JButton btnPrintReceipt = createCompactButton("Ver Recibo de Pago");
+        btnPrintReceipt.setIcon(new ModernActionIcon(ModernActionIcon.Type.DOCUMENT, 17, Color.WHITE));
         btnPrintReceipt.setBackground(new Color(30, 80, 160)); // Blue color
         btnPrintReceipt.setForeground(Color.WHITE);
         btnPrintReceipt.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -1326,11 +1597,11 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
                     String period = (String) m_historyModel.getValueAt(modelRow, 4) + "/" + (String) m_historyModel.getValueAt(modelRow, 3);
                     String net = (String) m_historyModel.getValueAt(modelRow, 9);
 
-                    m_lblSelectedHistoryPeriod.setText("Planilla: " + period + " (" + net + ")");
+                    m_lblSelectedHistoryPeriod.setText("Nómina: " + period + " (" + net + ")");
                     btnDeletePayroll.setEnabled(true);
                     btnPrintReceipt.setEnabled(true);
                 } else {
-                    m_lblSelectedHistoryPeriod.setText("Selecciona una planilla de pago de la lista");
+                    m_lblSelectedHistoryPeriod.setText("Selecciona un registro de nómina de la lista");
                     btnDeletePayroll.setEnabled(false);
                     btnPrintReceipt.setEnabled(false);
                 }
@@ -1339,27 +1610,35 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
 
         // Wire actions
         btnDeletePayroll.addActionListener(ev -> {
+            if (!canDeletePayroll()) {
+                JOptionPane.showMessageDialog(this, "No tienes permiso para eliminar registros de nómina.",
+                        "Acceso restringido", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
             int row = m_historyTable.getSelectedRow();
             if (row != -1) {
                 int modelRow = m_historyTable.convertRowIndexToModel(row);
                 String payrollId = (String) m_historyModel.getValueAt(modelRow, 0);
                 int confirm = JOptionPane.showConfirmDialog(this,
-                    "¿Estás seguro de que deseas eliminar esta planilla de pago de forma permanente?",
-                    "Eliminar Planilla de Pago", JOptionPane.YES_NO_OPTION);
+                    "¿Estás seguro de que deseas eliminar este registro de nómina de forma permanente?",
+                    "Eliminar Registro de Nómina", JOptionPane.YES_NO_OPTION);
                 if (confirm == JOptionPane.YES_OPTION) {
                     try {
-                        new com.openbravo.data.loader.PreparedSentence(m_App.getSession(),
+                        new com.openbravo.data.loader.PreparedSentence<String, Object>(m_App.getSession(),
                             "DELETE FROM HR_PAYROLL WHERE ID = ?",
                             com.openbravo.data.loader.SerializerWriteString.INSTANCE).exec(payrollId);
+
+                        // Sincronizar eliminación con la contabilidad y gastos del panel
+                        VoltiumSyncService.eliminarNominaAsync(payrollId);
                         
                         PeopleInfo selected = m_employeeList.getSelectedValue();
                         if (selected != null) {
                             loadHistory(selected.getID());
                             refreshDashboard();
                         }
-                        JOptionPane.showMessageDialog(this, "Planilla de pago eliminada correctamente.");
+                        JOptionPane.showMessageDialog(this, "Nómina de pago eliminada correctamente.");
                     } catch (BasicException ex) {
-                        showError("No se pudo eliminar la planilla de pago.", ex);
+                        showError("No se pudo eliminar el registro de nómina.", ex);
                     }
                 }
             }
@@ -1368,37 +1647,7 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         btnPrintReceipt.addActionListener(ev -> {
             int row = m_historyTable.getSelectedRow();
             if (row != -1) {
-                int modelRow = m_historyTable.convertRowIndexToModel(row);
-                String type = (String) m_historyModel.getValueAt(modelRow, 1);
-                String cls = (String) m_historyModel.getValueAt(modelRow, 2);
-                String year = (String) m_historyModel.getValueAt(modelRow, 3);
-                String month = (String) m_historyModel.getValueAt(modelRow, 4);
-                String correlative = (String) m_historyModel.getValueAt(modelRow, 5);
-                String net = (String) m_historyModel.getValueAt(modelRow, 9);
-                String progress = (String) m_historyModel.getValueAt(modelRow, 11);
-
-                PeopleInfo selected = m_employeeList.getSelectedValue();
-                String empName = selected == null ? "Empleado" : selected.getName();
-
-                String msg = "<html><body style='font-family: Segoe UI; padding: 12px;'>"
-                    + "<h2 style='color:#0f4c81; margin:0 0 12px 0;'>PLANILLA OFICIAL DE PAGO (MCPP)</h2>"
-                    + "<hr style='border:0; border-top:1px solid #e2e8f0; margin-bottom:12px;'>"
-                    + "<table style='width:100%; border-collapse:collapse;'>"
-                    + "<tr><td style='padding:4px 0; color:#64748b;'><b>Colaborador:</b></td><td style='text-align:right;'>" + empName + "</td></tr>"
-                    + "<tr><td style='padding:4px 0; color:#64748b;'><b>Tipo Planilla:</b></td><td style='text-align:right;'>" + type + "</td></tr>"
-                    + "<tr><td style='padding:4px 0; color:#64748b;'><b>Clase Planilla:</b></td><td style='text-align:right;'>" + cls + "</td></tr>"
-                    + "<tr><td style='padding:4px 0; color:#64748b;'><b>Per\u00edodo:</b></td><td style='text-align:right;'>" + month + " / " + year + " (Correlativo: " + correlative + ")</td></tr>"
-                    + "<tr><td style='padding:4px 0; color:#64748b;'><b>Estado Planilla:</b></td><td style='text-align:right;'><b style='color:#16a34a;'>" + progress + "</b></td></tr>"
-                    + "</table>"
-                    + "<hr style='border:0; border-top:1px solid #e2e8f0; margin:12px 0;'>"
-                    + "<table style='width:100%; border-collapse:collapse;'>"
-                    + "<tr style='font-size:14px; font-weight:bold; border-top:1px solid #cbd5e1;'>"
-                    + "<td style='padding:8px 0; color:#1e293b;'>Monto Total Liquidado:</td>"
-                    + "<td style='padding:8px 0; text-align:right; color:#0f4c81;'>" + net + "</td></tr>"
-                    + "</table>"
-                    + "</body></html>";
-
-                JOptionPane.showMessageDialog(this, msg, "Recibo de Pago Procesado (MEF)", JOptionPane.INFORMATION_MESSAGE);
+                showPayrollPreviewDialog(row);
             }
         });
 
@@ -1407,33 +1656,6 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         wrapper.add(mainPanel, BorderLayout.NORTH);
 
         return wrapScrollable(wrapper);
-    }
-
-    private JPanel createSidebarHeader(String text) {
-        JPanel p = new JPanel(new BorderLayout());
-        p.setOpaque(false);
-        p.setBorder(BorderFactory.createEmptyBorder(12, 16, 6, 16));
-        JLabel l = new JLabel(text);
-        l.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        l.setForeground(new Color(15, 76, 129));
-        p.add(l, BorderLayout.CENTER);
-        return p;
-    }
-
-    private JPanel createSidebarItem(String text, boolean active) {
-        JPanel p = new JPanel(new BorderLayout());
-        p.setOpaque(true);
-        p.setBackground(active ? new Color(219, 234, 254) : Color.WHITE);
-        p.setBorder(BorderFactory.createCompoundBorder(
-            active ? BorderFactory.createMatteBorder(0, 4, 0, 0, new Color(220, 38, 38)) : BorderFactory.createEmptyBorder(0, 4, 0, 0),
-            BorderFactory.createEmptyBorder(8, 20, 8, 16)
-        ));
-        
-        JLabel l = new JLabel(text);
-        l.setFont(new Font("Segoe UI", active ? Font.BOLD : Font.PLAIN, 12));
-        l.setForeground(active ? new Color(30, 80, 160) : new Color(55, 65, 81));
-        p.add(l, BorderLayout.CENTER);
-        return p;
     }
 
     private JButton createPaginationButton(String text, boolean active) {
@@ -1526,68 +1748,7 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         return card;
     }
 
-    private JPanel createLaborProfileCard() {
-        JPanel card = createSectionCard("Perfil laboral");
-        GridBagConstraints gbc = createFormConstraints();
 
-        m_txtEmployeeCode = createTextField();
-        m_txtDepartment = createTextField();
-        m_txtPositionTitle = createTextField();
-        m_cmbContractType = createComboBox("Indefinido", "Fijo", "Temporal", "Por horas", "Comisionista");
-        m_cmbEmployeeStatus = createComboBox("Activo", "En permiso", "Suspendido", "Retirado");
-        m_txtHireDate = createReadOnlyField();
-        m_cmbPayrollFrequency = createComboBox("Mensual", "Quincenal", "Semanal", "Por evento");
-
-        addFormRow(card, gbc, 0, "Codigo interno", m_txtEmployeeCode);
-        addFormRow(card, gbc, 1, "Departamento", m_txtDepartment);
-        addFormRow(card, gbc, 2, "Puesto", m_txtPositionTitle);
-        addFormRow(card, gbc, 3, "Contrato", m_cmbContractType);
-        addFormRow(card, gbc, 4, "Estado", m_cmbEmployeeStatus);
-        addFormRow(card, gbc, 5, "Fecha de ingreso", createDateFieldGroup(m_txtHireDate, this::chooseHireDate));
-        addFormRow(card, gbc, 6, "Frecuencia de nomina", m_cmbPayrollFrequency);
-        return card;
-    }
-
-    private JPanel createAdministrativeCard() {
-        JPanel card = createSectionCard("Control administrativo");
-        GridBagConstraints gbc = createFormConstraints();
-
-        m_txtEmergencyContact = createTextField();
-        m_txtTaxId = createTextField();
-
-        addFormRow(card, gbc, 0, "Contacto de emergencia", m_txtEmergencyContact);
-        addFormRow(card, gbc, 1, "Identificacion fiscal", m_txtTaxId);
-
-        JLabel note = new JLabel("<html>Usa esta vista para dejar definido el marco contractual del empleado antes de procesar cada nomina.</html>");
-        note.setFont(BODY_FONT);
-        note.setForeground(TEXT_SECONDARY);
-        note.setBorder(new EmptyBorder(12, 0, 0, 0));
-
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        gbc.gridwidth = 2;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        card.add(note, gbc);
-        return card;
-    }
-
-    private JPanel createNotesCard() {
-        JPanel card = createSectionCard("Observaciones y trazabilidad");
-        card.setLayout(new BorderLayout(0, 10));
-
-        JLabel info = new JLabel("Documenta acuerdos, responsabilidades o cualquier detalle relevante del expediente.");
-        info.setFont(BODY_FONT);
-        info.setForeground(TEXT_SECONDARY);
-
-        m_txtNotes = createTextArea(6);
-        JScrollPane scrollPane = new JScrollPane(m_txtNotes);
-        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR));
-        scrollPane.getVerticalScrollBar().setUnitIncrement(18);
-
-        card.add(info, BorderLayout.NORTH);
-        card.add(scrollPane, BorderLayout.CENTER);
-        return card;
-    }
 
     private JPanel createCompensationCard2Col() {
         JPanel card = createCardPanel();
@@ -1847,7 +2008,7 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         }
 
         int total = m_employeeListModel.getSize();
-        m_lblDirectoryCount.setText(total + (total == 1 ? " empleado" : " empleados"));
+        m_lblDirectoryCount.setText(total + (total == 1 ? " empleado registrado" : " empleados registrados"));
 
         if (total == 0) {
             clearScreenForNoSelection();
@@ -2049,9 +2210,25 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         }
 
         try {
-            dlHR.saveEmployeeHR(buildEmployeeProfile(selected));
+            Object[] empValues = buildEmployeeProfile(selected);
+            dlHR.saveEmployeeHR(empValues);
             updateSpotlightHeader();
             refreshPayrollPreview();
+
+            // Sincronizar colaborador con ERP RRHH en panel central
+            try {
+                VoltiumSyncService.EmployeePayload emp = new VoltiumSyncService.EmployeePayload();
+                emp.employeeId = selected.getID();
+                emp.employeeCode = (String) empValues[1];
+                emp.name = selected.getName();
+                emp.area = (String) empValues[2];
+                emp.role = (String) empValues[3];
+                emp.status = (String) empValues[5];
+                emp.date = (m_hireDateValue != null) ? new SimpleDateFormat("yyyy-MM-dd").format(m_hireDateValue) : null;
+                emp.salary = (empValues[8] instanceof Number) ? ((Number) empValues[8]).doubleValue() : 0.0;
+                VoltiumSyncService.sincronizarEmpleadoRRHHAsync(emp);
+            } catch (Throwable ignored) {}
+
             if (showMessage) {
                 JOptionPane.showMessageDialog(this, "Expediente actualizado correctamente.");
             }
@@ -2080,13 +2257,21 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
                 return;
             }
 
+            String payrollId = java.util.UUID.randomUUID().toString();
+            String periodLabel = buildPeriodLabel();
+            Date payDate = m_paymentDateValue == null ? new Date() : m_paymentDateValue;
+            String payMethod = defaultValue(m_cmbPaymentMethod.getSelectedItem(), "Transferencia");
+            String payStatus = defaultValue(m_cmbPayrollStatus.getSelectedItem(), "Pagado");
+            String notes = cleanText(m_txtPayrollNotes.getText());
+            String operator = getCurrentOperatorName();
+
             Object[] payroll = new Object[] {
-                    null,
+                    payrollId,
                     selected.getID(),
-                    buildPeriodLabel(),
+                    periodLabel,
                     m_periodStartValue,
                     m_periodEndValue,
-                    m_paymentDateValue == null ? new Date() : m_paymentDateValue,
+                    payDate,
                     preview.baseSalary,
                     preview.commissions,
                     preview.allowances,
@@ -2094,15 +2279,39 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
                     preview.grossAmount,
                     preview.deductions,
                     preview.netAmount,
-                    defaultValue(m_cmbPaymentMethod.getSelectedItem(), "Transferencia"),
-                    defaultValue(m_cmbPayrollStatus.getSelectedItem(), "Pagado"),
-                    cleanText(m_txtPayrollNotes.getText()),
-                    getCurrentOperatorName()
+                    payMethod,
+                    payStatus,
+                    notes,
+                    operator
             };
 
             dlHR.insertPayroll(payroll);
             loadHistory(selected.getID());
             refreshPayrollPreview();
+
+            // Sincronizar pago de nómina con la contabilidad y gastos de Voltium Sanrey en el panel central
+            VoltiumSyncService.PayrollPayload payload = new VoltiumSyncService.PayrollPayload();
+            payload.payrollId = payrollId;
+            payload.employeeId = selected.getID();
+            payload.employeeName = selected.getName();
+            payload.periodLabel = periodLabel;
+            payload.periodStart = (m_periodStartValue != null) ? VoltiumSyncService.formatIsoUtc(m_periodStartValue) : null;
+            payload.periodEnd = (m_periodEndValue != null) ? VoltiumSyncService.formatIsoUtc(m_periodEndValue) : null;
+            payload.paymentDate = VoltiumSyncService.formatIsoUtc(payDate);
+            payload.baseSalary = preview.baseSalary;
+            payload.commissions = preview.commissions;
+            payload.allowances = preview.allowances;
+            payload.bonusAmount = preview.bonusAmount;
+            payload.grossAmount = preview.grossAmount;
+            payload.deductions = preview.deductions;
+            payload.netAmount = preview.netAmount;
+            payload.paymentMethod = payMethod;
+            payload.status = payStatus;
+            payload.notes = notes;
+            payload.processedBy = operator;
+
+            VoltiumSyncService.sincronizarNominaAsync(payload);
+
             JOptionPane.showMessageDialog(this, "Nomina registrada correctamente para " + selected.getName() + ".");
         } catch (BasicException e) {
             showError("No se pudo registrar la nomina.", e);
@@ -2258,7 +2467,8 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
                 formatDate(paymentDate),
                 formatCurrency(asDouble(row[DataLogicHR.PAYROLL_NET_AMOUNT])),
                 "1",
-                mappedProgress
+                mappedProgress,
+                "📄 PDF"
             });
         }
 
@@ -2469,44 +2679,7 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         panel.add(field, gbc);
     }
 
-    private void addFormRow2Col(JPanel panel, GridBagConstraints gbc, int rowIndex,
-                                String labelLeft, JComponent fieldLeft,
-                                String labelRight, JComponent fieldRight) {
-        gbc.gridy = rowIndex + 1;
-        gbc.gridwidth = 1;
 
-        // Left Label
-        gbc.gridx = 0;
-        gbc.weightx = 0.0;
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.insets = new Insets(0, 0, 12, 12);
-        panel.add(createFieldLabel(labelLeft), gbc);
-
-        // Left Field
-        gbc.gridx = 1;
-        gbc.weightx = 0.5;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(0, 0, 12, 24); // Extra gap before next column
-        panel.add(fieldLeft, gbc);
-
-        // Right Label
-        if (labelRight != null) {
-            gbc.gridx = 2;
-            gbc.weightx = 0.0;
-            gbc.fill = GridBagConstraints.NONE;
-            gbc.insets = new Insets(0, 0, 12, 12);
-            panel.add(createFieldLabel(labelRight), gbc);
-        }
-
-        // Right Field
-        if (fieldRight != null) {
-            gbc.gridx = 3;
-            gbc.weightx = 0.5;
-            gbc.fill = GridBagConstraints.HORIZONTAL;
-            gbc.insets = new Insets(0, 0, 12, 0);
-            panel.add(fieldRight, gbc);
-        }
-    }
 
     private JLabel createFieldLabel(String text) {
         JLabel label = new JLabel(text);
@@ -2565,66 +2738,63 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
     }
 
     private JButton createActionButton(String text, Color color) {
-        JButton button = new JButton(text);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        JButton button = new JButton(text) {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        button.setOpaque(false);
+        button.setContentAreaFilled(false);
+        button.setBorderPainted(false);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
         button.setForeground(Color.WHITE);
         button.setBackground(color);
-        button.setBorder(new EmptyBorder(10, 18, 10, 18));
+        button.setBorder(new EmptyBorder(6, 12, 6, 12));
         button.setFocusPainted(false);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return button;
     }
 
     private JButton createCompactButton(String text) {
-        JButton button = new JButton(text);
+        JButton button = new JButton(text) {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        button.setOpaque(false);
+        button.setContentAreaFilled(false);
+        button.setBorderPainted(false);
         button.setFont(new Font("Segoe UI", Font.BOLD, 11));
         button.setForeground(BRAND_COLOR);
         button.setBackground(new Color(239, 246, 255));
-        button.setBorder(new EmptyBorder(8, 12, 8, 12));
+        button.setBorder(new EmptyBorder(6, 12, 6, 12));
         button.setFocusPainted(false);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return button;
     }
 
-    private JLabel createBadgeLabel(Color background, Color foreground) {
-        JLabel label = new JLabel();
-        label.setOpaque(true);
-        label.setBackground(background);
-        label.setForeground(foreground);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        label.setBorder(new EmptyBorder(6, 10, 6, 10));
-        return label;
+    private boolean canDeletePayroll() {
+        AppUser user = m_App == null || m_App.getAppUserView() == null
+                ? null : m_App.getAppUserView().getUser();
+        return user != null && user.hasPermission("hr.DeletePayroll");
     }
 
     private JLabel createMetricValueLabel() {
         JLabel label = new JLabel(formatCurrency(0.0));
         label.setFont(METRIC_VALUE_FONT);
         label.setForeground(Color.WHITE);
-        return label;
-    }
-
-    private JPanel createMetricCard(String title, JLabel valueLabel) {
-        JPanel card = new JPanel();
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBackground(new Color(28, 56, 90));
-        card.setBorder(new EmptyBorder(14, 14, 14, 14));
-
-        JLabel titleLabel = new JLabel(title);
-        titleLabel.setFont(METRIC_LABEL_FONT);
-        titleLabel.setForeground(new Color(201, 214, 230));
-        titleLabel.setAlignmentX(LEFT_ALIGNMENT);
-        valueLabel.setAlignmentX(LEFT_ALIGNMENT);
-
-        card.add(titleLabel);
-        card.add(Box.createVerticalStrut(10));
-        card.add(valueLabel);
-        return card;
-    }
-
-    private JLabel createPreviewLabel(String text) {
-        JLabel label = new JLabel(text);
-        label.setFont(BODY_FONT);
-        label.setForeground(TEXT_SECONDARY);
         return label;
     }
 
@@ -2764,19 +2934,7 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         return builder.length() == 0 ? "?" : builder.toString();
     }
 
-    private Color statusColor(String status) {
-        String normalized = normalize(status);
-        if ("activo".equals(normalized)) {
-            return new Color(15, 118, 110);
-        }
-        if ("en permiso".equals(normalized) || "en revision".equals(normalized)) {
-            return new Color(180, 83, 9);
-        }
-        if ("retirado".equals(normalized) || "suspendido".equals(normalized)) {
-            return new Color(153, 27, 27);
-        }
-        return new Color(55, 65, 81);
-    }
+
 
     private void showError(String title, Exception e) {
         String message = e.getMessage();
@@ -2800,6 +2958,64 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         try {
             m_allEmployees.clear();
             m_allEmployees.addAll(dlAdmin.getPeopleList().list());
+
+            // Auto-populate 'empl' and 'manager' with completed HR data if not setup yet
+            for (PeopleInfo person : m_allEmployees) {
+                if ("empl".equalsIgnoreCase(person.getName())) {
+                    Object[] profile = dlHR.getEmployeeHR(person.getID());
+                    if (profile == null || profile[DataLogicHR.EMPLOYEE_BASE_SALARY] == null || (Double) profile[DataLogicHR.EMPLOYEE_BASE_SALARY] <= 0.0) {
+                        Object[] newProfile = dlHR.createDefaultEmployeeHR(person.getID());
+                        newProfile[DataLogicHR.EMPLOYEE_CODE] = "EMP-003";
+                        newProfile[DataLogicHR.EMPLOYEE_DEPARTMENT] = "Ingenieria";
+                        newProfile[DataLogicHR.EMPLOYEE_POSITION_TITLE] = "Ingeniero de Software";
+                        newProfile[DataLogicHR.EMPLOYEE_CONTRACT_TYPE] = "Indefinido";
+                        newProfile[DataLogicHR.EMPLOYEE_STATUS] = "Activo";
+                        newProfile[DataLogicHR.EMPLOYEE_PAYROLL_FREQUENCY] = "Mensual";
+                        newProfile[DataLogicHR.EMPLOYEE_BASE_SALARY] = 25000.0;
+                        newProfile[DataLogicHR.EMPLOYEE_COMMISSION_RATE] = 5.0;
+                        newProfile[DataLogicHR.EMPLOYEE_TRANSPORT_ALLOWANCE] = 1200.0;
+                        newProfile[DataLogicHR.EMPLOYEE_OTHER_ALLOWANCES] = 800.0;
+                        newProfile[DataLogicHR.EMPLOYEE_BONUS_AMOUNT] = 1500.0;
+                        newProfile[DataLogicHR.EMPLOYEE_DEDUCTION_RATE] = 8.5;
+                        newProfile[DataLogicHR.EMPLOYEE_PENSION_TYPE] = "IMSS";
+                        newProfile[DataLogicHR.EMPLOYEE_HEALTH_INSURANCE] = "Seguro MetLife";
+                        newProfile[DataLogicHR.EMPLOYEE_SOCIAL_SECURITY_ID] = "NSS-192-348-12";
+                        newProfile[DataLogicHR.EMPLOYEE_BANK_NAME] = "BBVA Bancomer";
+                        newProfile[DataLogicHR.EMPLOYEE_BANK_ACCOUNT] = "MX-1234-5678-9012";
+                        newProfile[DataLogicHR.EMPLOYEE_TAX_ID] = "RFC-EMPL950820-HA1";
+                        newProfile[DataLogicHR.EMPLOYEE_EMERGENCY_CONTACT] = "Sofia Alvarez (+52 55 1234 5678)";
+                        newProfile[DataLogicHR.EMPLOYEE_NOTES] = "Colaborador clave de Ingenieria. Registro automatizado de prueba.";
+                        dlHR.saveEmployeeHR(newProfile);
+                    }
+                } else if ("manager".equalsIgnoreCase(person.getName())) {
+                    Object[] profile = dlHR.getEmployeeHR(person.getID());
+                    if (profile == null || profile[DataLogicHR.EMPLOYEE_BASE_SALARY] == null || (Double) profile[DataLogicHR.EMPLOYEE_BASE_SALARY] <= 0.0) {
+                        Object[] newProfile = dlHR.createDefaultEmployeeHR(person.getID());
+                        newProfile[DataLogicHR.EMPLOYEE_CODE] = "EMP-002";
+                        newProfile[DataLogicHR.EMPLOYEE_DEPARTMENT] = "RRHH";
+                        newProfile[DataLogicHR.EMPLOYEE_POSITION_TITLE] = "Gerente de RRHH";
+                        newProfile[DataLogicHR.EMPLOYEE_CONTRACT_TYPE] = "Indefinido";
+                        newProfile[DataLogicHR.EMPLOYEE_STATUS] = "Activo";
+                        newProfile[DataLogicHR.EMPLOYEE_PAYROLL_FREQUENCY] = "Mensual";
+                        newProfile[DataLogicHR.EMPLOYEE_BASE_SALARY] = 30000.0;
+                        newProfile[DataLogicHR.EMPLOYEE_COMMISSION_RATE] = 0.0;
+                        newProfile[DataLogicHR.EMPLOYEE_TRANSPORT_ALLOWANCE] = 1500.0;
+                        newProfile[DataLogicHR.EMPLOYEE_OTHER_ALLOWANCES] = 1000.0;
+                        newProfile[DataLogicHR.EMPLOYEE_BONUS_AMOUNT] = 2000.0;
+                        newProfile[DataLogicHR.EMPLOYEE_DEDUCTION_RATE] = 10.0;
+                        newProfile[DataLogicHR.EMPLOYEE_PENSION_TYPE] = "IMSS";
+                        newProfile[DataLogicHR.EMPLOYEE_HEALTH_INSURANCE] = "Seguro GNP";
+                        newProfile[DataLogicHR.EMPLOYEE_SOCIAL_SECURITY_ID] = "NSS-394-182-90";
+                        newProfile[DataLogicHR.EMPLOYEE_BANK_NAME] = "Santander";
+                        newProfile[DataLogicHR.EMPLOYEE_BANK_ACCOUNT] = "MX-9876-5432-1098";
+                        newProfile[DataLogicHR.EMPLOYEE_TAX_ID] = "RFC-MGR900101-HB2";
+                        newProfile[DataLogicHR.EMPLOYEE_EMERGENCY_CONTACT] = "Carlos Ruiz (+52 55 9876 5432)";
+                        newProfile[DataLogicHR.EMPLOYEE_NOTES] = "Gerente de RRHH. Registro automatizado de prueba.";
+                        dlHR.saveEmployeeHR(newProfile);
+                    }
+                }
+            }
+
             filterEmployees();
         } catch (BasicException e) {
             showError("No se pudo cargar la lista de personal.", e);
@@ -2809,6 +3025,213 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
     @Override
     public boolean deactivate() {
         return true;
+    }
+
+    public void showPayrollPreviewDialog(int row) {
+        if (row == -1) return;
+        try {
+            int modelRow = m_historyTable.convertRowIndexToModel(row);
+            String payrollId = (String) m_historyModel.getValueAt(modelRow, 0);
+
+            PeopleInfo selected = m_employeeList.getSelectedValue();
+            if (selected == null) return;
+            
+            Object[] payroll = null;
+            for (Object[] r : m_loadedPayrolls) {
+                if (payrollId.equals(r[DataLogicHR.PAYROLL_ID])) {
+                    payroll = r;
+                    break;
+                }
+            }
+            if (payroll == null) return;
+
+            Object[] empProfile = null;
+            try {
+                empProfile = dlHR.getEmployeeHR(selected.getID());
+            } catch (BasicException e) {
+                // ignore
+            }
+            if (empProfile == null) {
+                empProfile = dlHR.createDefaultEmployeeHR(selected.getID());
+            }
+
+            String empName = selected.getName();
+            String empCode = asText(empProfile[DataLogicHR.EMPLOYEE_CODE]);
+            String department = asText(empProfile[DataLogicHR.EMPLOYEE_DEPARTMENT]);
+            String position = asText(empProfile[DataLogicHR.EMPLOYEE_POSITION_TITLE]);
+            String rfc = asText(empProfile[DataLogicHR.EMPLOYEE_TAX_ID]);
+            String nss = asText(empProfile[DataLogicHR.EMPLOYEE_SOCIAL_SECURITY_ID]);
+            String bankName = asText(empProfile[DataLogicHR.EMPLOYEE_BANK_NAME]);
+            String bankAccount = asText(empProfile[DataLogicHR.EMPLOYEE_BANK_ACCOUNT]);
+
+            String period = asText(payroll[DataLogicHR.PAYROLL_PERIOD_LABEL]);
+            String paymentDateStr = formatDate((Date) payroll[DataLogicHR.PAYROLL_PAYMENT_DATE]);
+            String payMethod = asText(payroll[DataLogicHR.PAYROLL_PAYMENT_METHOD]);
+            String processedBy = asText(payroll[DataLogicHR.PAYROLL_PROCESSED_BY]);
+            String notes = asText(payroll[DataLogicHR.PAYROLL_NOTES]);
+
+            double baseVal = asDouble(payroll[DataLogicHR.PAYROLL_BASE_AMOUNT]);
+            double commVal = asDouble(payroll[DataLogicHR.PAYROLL_COMMISSIONS]);
+            double allowVal = asDouble(payroll[DataLogicHR.PAYROLL_ALLOWANCES]);
+            double bonusVal = asDouble(payroll[DataLogicHR.PAYROLL_BONUS_AMOUNT]);
+            double grossVal = asDouble(payroll[DataLogicHR.PAYROLL_GROSS_AMOUNT]);
+            double dedVal = asDouble(payroll[DataLogicHR.PAYROLL_DEDUCTIONS]);
+            double netVal = asDouble(payroll[DataLogicHR.PAYROLL_NET_AMOUNT]);
+
+            String htmlContent = "<html>"
+                + "<head>"
+                + "<style>"
+                + "body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; margin: 15px; font-size: 12px; }"
+                + ".header-table { width: 100%; margin-bottom: 15px; border-bottom: 2px solid #0f4c81; padding-bottom: 8px; }"
+                + ".company-title { font-size: 18px; font-weight: bold; color: #0f4c81; }"
+                + ".doc-title { font-size: 13px; font-weight: bold; color: #64748b; text-align: right; }"
+                + ".info-table { width: 100%; margin-bottom: 15px; }"
+                + ".info-table td { padding: 4px; vertical-align: top; font-size: 11px; }"
+                + ".section-title { font-size: 11px; font-weight: bold; color: #0f4c81; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-bottom: 8px; }"
+                + ".breakdown-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }"
+                + ".breakdown-table th { background-color: #f1f5f9; padding: 5px 8px; font-weight: bold; text-align: left; border-bottom: 1px solid #cbd5e1; color: #475569; font-size: 11px; }"
+                + ".breakdown-table td { padding: 5px 8px; border-bottom: 1px solid #e2e8f0; font-size: 11px; }"
+                + ".amount-col { text-align: right; }"
+                + ".total-row td { font-weight: bold; background-color: #f8fafc; border-top: 1px solid #cbd5e1; color: #1e293b; }"
+                + ".net-box { background-color: #ecfdf5; border: 1px solid #a7f3d0; padding: 10px; text-align: center; }"
+                + ".net-title { font-size: 11px; font-weight: bold; color: #065f46; }"
+                + ".net-amount { font-size: 20px; font-weight: bold; color: #047857; margin-top: 2px; }"
+                + ".signature-line { border-top: 1px solid #94a3b8; width: 180px; margin: 15px auto 0 auto; padding-top: 4px; color: #64748b; text-align: center; font-size: 10px; }"
+                + "</style>"
+                + "</head>"
+                + "<body>"
+                + "<table class='header-table'>"
+                + "<tr>"
+                + "<td class='company-title'>Voltium Sanrey</td>"
+                + "<td class='doc-title'>RECIBO DE NÓMINA DE COLABORADOR</td>"
+                + "</tr>"
+                + "</table>"
+                + "<table class='info-table'>"
+                + "<tr>"
+                + "<td style='width: 50%;'>"
+                + "  <div class='section-title'>DATOS DEL COLABORADOR</div>"
+                + "  <b>Nombre:</b> " + empName + "<br>"
+                + "  <b>Código:</b> " + empCode + "<br>"
+                + "  <b>Departamento:</b> " + department + "<br>"
+                + "  <b>Puesto:</b> " + position + "<br>"
+                + "  <b>RFC:</b> " + rfc + "<br>"
+                + "  <b>NSS:</b> " + nss + "<br>"
+                + "</td>"
+                + "<td style='width: 50%;'>"
+                + "  <div class='section-title'>DETALLES DEL PAGO</div>"
+                + "  <b>Periodo:</b> " + period + "<br>"
+                + "  <b>Fecha de Pago:</b> " + paymentDateStr + "<br>"
+                + "  <b>Método de Pago:</b> " + payMethod + "<br>"
+                + "  <b>Banco:</b> " + bankName + "<br>"
+                + "  <b>Cuenta Bancaria:</b> " + bankAccount + "<br>"
+                + "  <b>Procesado por:</b> " + processedBy + "<br>"
+                + "</td>"
+                + "</tr>"
+                + "</table>"
+                + "<div class='section-title'>DESGLOSE DE CONCEPTOS</div>"
+                + "<table class='breakdown-table'>"
+                + "<tr>"
+                + "  <th>Concepto</th>"
+                + "  <th style='width: 25%; text-align: right;'>Percepciones</th>"
+                + "  <th style='width: 25%; text-align: right;'>Deducciones</th>"
+                + "</tr>"
+                + "<tr>"
+                + "  <td>Salario Base</td>"
+                + "  <td class='amount-col'>" + formatCurrency(baseVal) + "</td>"
+                + "  <td class='amount-col'>-</td>"
+                + "</tr>"
+                + "<tr>"
+                + "  <td>Comisiones por Ventas</td>"
+                + "  <td class='amount-col'>" + formatCurrency(commVal) + "</td>"
+                + "  <td class='amount-col'>-</td>"
+                + "</tr>"
+                + "<tr>"
+                + "  <td>Asignaciones / Pagos de Extras</td>"
+                + "  <td class='amount-col'>" + formatCurrency(allowVal) + "</td>"
+                + "  <td class='amount-col'>-</td>"
+                + "</tr>"
+                + "<tr>"
+                + "  <td>Bonificaciones y Bonos</td>"
+                + "  <td class='amount-col'>" + formatCurrency(bonusVal) + "</td>"
+                + "  <td class='amount-col'>-</td>"
+                + "</tr>"
+                + "<tr>"
+                + "  <td>Deducciones de Seguridad Social / Retenciones</td>"
+                + "  <td class='amount-col'>-</td>"
+                + "  <td class='amount-col'>" + formatCurrency(dedVal) + "</td>"
+                + "</tr>"
+                + "<tr class='total-row'>"
+                + "  <td>Subtotales</td>"
+                + "  <td class='amount-col'>" + formatCurrency(grossVal) + "</td>"
+                + "  <td class='amount-col'>" + formatCurrency(dedVal) + "</td>"
+                + "</tr>"
+                + "</table>";
+            
+            if (!isBlank(notes)) {
+                htmlContent += "<div style='margin-bottom: 15px; font-size: 11px;'><b>Observaciones:</b> " + notes + "</div>";
+            }
+            
+            htmlContent += "<table style='width:100%; margin-top: 15px;'>"
+                + "<tr>"
+                + "<td style='width:60%; vertical-align: middle;'>"
+                + "  <div class='net-box'>"
+                + "    <div class='net-title'>NETO PAGADO A RECIBIR</div>"
+                + "    <div class='net-amount'>" + formatCurrency(netVal) + "</div>"
+                + "  </div>"
+                + "</td>"
+                + "<td style='width:40%; vertical-align:middle; text-align:center;'>"
+                + "  <div class='signature-line'>Firma del Colaborador</div>"
+                + "</td>"
+                + "</tr>"
+                + "</table>"
+                + "</body>"
+                + "</html>";
+
+            JDialog dialog = new JDialog((java.awt.Frame) javax.swing.SwingUtilities.getWindowAncestor(this), "Vista Previa de Recibo de Nómina", true);
+            dialog.setSize(620, 680);
+            dialog.setLocationRelativeTo(this);
+            dialog.setLayout(new BorderLayout());
+
+            JEditorPane editorPane = new JEditorPane();
+            editorPane.setContentType("text/html");
+            editorPane.setText(htmlContent);
+            editorPane.setEditable(false);
+            editorPane.setBackground(Color.WHITE);
+
+            JScrollPane scroll = new JScrollPane(editorPane);
+            scroll.setBorder(null);
+            dialog.add(scroll, BorderLayout.CENTER);
+
+            JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 10));
+            btnPanel.setBackground(new Color(248, 250, 252));
+            btnPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER_COLOR));
+
+            JButton btnPrint = createCompactButton("Imprimir / Guardar PDF");
+            btnPrint.setBackground(new Color(37, 99, 235));
+            btnPrint.setForeground(Color.WHITE);
+            btnPrint.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            btnPrint.addActionListener(e -> {
+                try {
+                    editorPane.print(null, null, true, null, null, true);
+                } catch (java.awt.print.PrinterException ex) {
+                    showError("No se pudo imprimir o exportar a PDF.", ex);
+                }
+            });
+
+            JButton btnClose = createCompactButton("Cerrar");
+            btnClose.setBackground(new Color(100, 116, 139));
+            btnClose.setForeground(Color.WHITE);
+            btnClose.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            btnClose.addActionListener(e -> dialog.dispose());
+
+            btnPanel.add(btnPrint);
+            btnPanel.add(btnClose);
+            dialog.add(btnPanel, BorderLayout.SOUTH);
+
+            dialog.setVisible(true);
+        } catch (Exception ex) {
+            showError("No se pudo abrir la vista previa del recibo.", ex);
+        }
     }
 
     @Override
@@ -2831,6 +3254,58 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         private double netAmount;
     }
 
+    private final class TabManager {
+        private int activeIndex = 0;
+        private final JPanel tabLabelsPanel;
+        private final JPanel cardsContainer;
+        private final CardLayout cardLayout;
+        private final JPanel tabBar;
+
+        public TabManager(JPanel tabLabelsPanel, JPanel cardsContainer, CardLayout cardLayout, JPanel tabBar) {
+            this.tabLabelsPanel = tabLabelsPanel;
+            this.cardsContainer = cardsContainer;
+            this.cardLayout = cardLayout;
+            this.tabBar = tabBar;
+        }
+
+        public void switchToIndex(int index) {
+            this.activeIndex = index;
+            String[] cardNames = { "PROFILE", "PAYROLL", "COMMISSIONS", "HISTORY" };
+            if (index >= 0 && index < cardNames.length && cardLayout != null && cardsContainer != null) {
+                cardLayout.show(cardsContainer, cardNames[index]);
+            }
+            setup();
+        }
+
+        public void setup() {
+            tabLabelsPanel.removeAll();
+            String[] titles = { "Expediente", "Nómina", "Comisiones", "Historial" };
+
+            for (int i = 0; i < titles.length; i++) {
+                final int index = i;
+                final boolean isSelected = (index == activeIndex);
+
+                TabLabel tabLabel = new TabLabel(titles[i], isSelected);
+                tabLabel.addMouseListener(new java.awt.event.MouseAdapter() {
+                    @Override
+                    public void mousePressed(java.awt.event.MouseEvent e) {
+                        switchToIndex(index);
+                    }
+                });
+                tabLabelsPanel.add(tabLabel);
+            }
+
+            if (m_historyFilterPanel != null) {
+                m_historyFilterPanel.setVisible(activeIndex == 3);
+            }
+
+            tabLabelsPanel.revalidate();
+            tabLabelsPanel.repaint();
+            tabBar.revalidate();
+            tabBar.repaint();
+        }
+    }
+
     private static final class TabLabel extends JLabel {
         private static final long serialVersionUID = 1L;
         private final boolean isSelected;
@@ -2841,7 +3316,7 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
             setFont(new Font("Segoe UI", isSelected ? Font.BOLD : Font.PLAIN, 14));
             setForeground(isSelected ? new Color(37, 99, 235) : new Color(93, 111, 130)); // BRAND_COLOR vs TEXT_SECONDARY
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            setBorder(new EmptyBorder(12, 6, 12, 6));
+            setBorder(new EmptyBorder(8, 6, 8, 6));
         }
         
         @Override
@@ -2859,7 +3334,7 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
 
     private BufferedImage getEmployeeImage(String id) {
         try {
-            Object data = new PreparedSentence(
+            Object data = new PreparedSentence<String, Object[]>(
                 dlAdmin.getSession(),
                 "SELECT IMAGE FROM people WHERE ID = ?",
                 SerializerWriteString.INSTANCE,
@@ -2878,7 +3353,7 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
 
     private void updateEmployeeImageInDb(String id, BufferedImage image) throws BasicException {
         // Guardar en la base de datos local "people"
-        new PreparedSentence(
+        new PreparedSentence<Object[], Object>(
             dlAdmin.getSession(),
             "UPDATE people SET IMAGE = ? WHERE ID = ?",
             new SerializerWriteBasic(new Datas[] { Datas.IMAGE, Datas.STRING })
@@ -2963,14 +3438,26 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         private final JLabel avatarLabel;
         private final JLabel nameLabel;
         private final JLabel detailLabel;
+        private boolean isSelectedCard;
 
         private EmployeeCellRenderer() {
             setLayout(new BorderLayout(12, 0));
-            setBorder(new EmptyBorder(10, 12, 10, 12));
+            setBorder(new EmptyBorder(12, 14, 12, 14));
+            setOpaque(false);
 
-            avatarLabel = new JLabel("", SwingConstants.CENTER);
+            avatarLabel = new JLabel("", SwingConstants.CENTER) {
+                @Override
+                protected void paintComponent(java.awt.Graphics g) {
+                    java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                    g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(getBackground());
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                    g2.dispose();
+                    super.paintComponent(g);
+                }
+            };
             avatarLabel.setPreferredSize(new Dimension(42, 42));
-            avatarLabel.setOpaque(true);
+            avatarLabel.setOpaque(false);
             avatarLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
 
             JPanel textPanel = new JPanel(new GridLayout(2, 1, 0, 4));
@@ -2990,19 +3477,43 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
         }
 
         @Override
+        protected void paintComponent(java.awt.Graphics g) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            int w = getWidth();
+            int h = getHeight();
+            
+            // Draw card background
+            g2.setColor(getBackground());
+            g2.fillRoundRect(4, 4, w - 8, h - 8, 12, 12);
+            
+            // Draw card border
+            if (isSelectedCard) {
+                g2.setColor(BRAND_COLOR);
+                g2.drawRoundRect(4, 4, w - 9, h - 9, 12, 12);
+            } else {
+                g2.setColor(new Color(226, 232, 240)); // Slate 200
+                g2.drawRoundRect(4, 4, w - 9, h - 9, 12, 12);
+            }
+            g2.dispose();
+            super.paintComponent(g);
+        }
+
+        @Override
         public Component getListCellRendererComponent(JList<? extends PeopleInfo> list, PeopleInfo value, int index,
                 boolean isSelected, boolean cellHasFocus) {
             String name = value == null ? "" : value.getName();
             String id = value == null ? "" : value.getID();
+            isSelectedCard = isSelected;
 
             avatarLabel.setText(getInitials(name));
-            avatarLabel.setBackground(isSelected ? BRAND_COLOR : new Color(230, 238, 248));
-            avatarLabel.setForeground(isSelected ? Color.WHITE : BRAND_COLOR);
+            avatarLabel.setBackground(new Color(254, 243, 199)); // Gold/yellow background for initials
+            avatarLabel.setForeground(BRAND_COLOR); // Gold initials text
 
             nameLabel.setText(name);
             detailLabel.setText("ID " + shortenId(id));
 
-            setBackground(isSelected ? new Color(239, 246, 255) : Color.WHITE);
+            setBackground(isSelected ? new Color(254, 243, 199) : Color.WHITE);
             nameLabel.setForeground(TEXT_PRIMARY);
             detailLabel.setForeground(TEXT_SECONDARY);
 
@@ -3015,6 +3526,78 @@ public class JPanelHR extends JPanel implements JPanelView, BeanFactoryApp {
             }
             String trimmed = id.trim();
             return trimmed.length() <= 10 ? trimmed : trimmed.substring(0, 10) + "...";
+        }
+    }
+
+    private final class PendingTableRenderer extends javax.swing.table.DefaultTableCellRenderer {
+        private final JButton btnAction;
+        private final JLabel lblBadge;
+
+        public PendingTableRenderer() {
+            btnAction = new JButton("✓ Procesar") {
+                @Override
+                protected void paintComponent(java.awt.Graphics g) {
+                    java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                    g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(getBackground());
+                    g2.fillRoundRect(2, 4, getWidth() - 4, getHeight() - 8, 8, 8);
+                    g2.dispose();
+                    super.paintComponent(g);
+                }
+            };
+            btnAction.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            btnAction.setForeground(Color.WHITE);
+            btnAction.setBackground(new Color(30, 80, 160)); // Blue color
+            btnAction.setOpaque(false);
+            btnAction.setContentAreaFilled(false);
+            btnAction.setBorderPainted(false);
+            btnAction.setFocusable(false);
+
+            lblBadge = new JLabel() {
+                @Override
+                protected void paintComponent(java.awt.Graphics g) {
+                    java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                    g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(getBackground());
+                    g2.fillRoundRect(2, 6, getWidth() - 4, getHeight() - 12, 12, 12);
+                    g2.dispose();
+                    super.paintComponent(g);
+                }
+            };
+            lblBadge.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            lblBadge.setOpaque(false);
+            lblBadge.setHorizontalAlignment(SwingConstants.CENTER);
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            int modelColumn = table.convertColumnIndexToModel(column);
+
+            if (modelColumn == 3) { // Estado Badge
+                String val = (String) value;
+                if ("Aprobado".equalsIgnoreCase(val)) {
+                    lblBadge.setText("Aprobado");
+                    lblBadge.setBackground(new Color(220, 252, 231)); // Light green
+                    lblBadge.setForeground(new Color(22, 163, 74));  // Green text
+                } else {
+                    lblBadge.setText("Pendiente");
+                    lblBadge.setBackground(new Color(254, 243, 199)); // Light gold
+                    lblBadge.setForeground(new Color(217, 119, 6));   // Gold text
+                }
+                lblBadge.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
+                return lblBadge;
+            } else if (modelColumn == 4) { // Action Button
+                return btnAction;
+            }
+
+            Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            if (c instanceof JLabel) {
+                ((JLabel) c).setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
+            }
+            if (!isSelected) {
+                c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(248, 250, 252));
+            }
+            return c;
         }
     }
 }

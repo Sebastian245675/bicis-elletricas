@@ -38,14 +38,17 @@ report.setSentence("SELECT " +
                         "GROUP BY closedcash.HOST, closedcash.MONEY, closedcash.DATEEND, products.REFERENCE, products.NAME, products.PRICESELL " +
                         "ORDER BY products.NAME, closedcash.HOST, closedcash.DATEEND");
 
-report.addParameter("closedcash.DATEEND");
-report.addParameter("closedcash.DATEEND");
+report.addParameter("receipts.DATENEW");
+report.addParameter("receipts.DATENEW");
 
 paramdates = new com.openbravo.pos.reports.JParamsDatesInterval();
 
 paramdates.setStartDate(com.openbravo.beans.DateUtils.getToday());
 // JG - 8 Jan 14 paramdates.setEndDate(com.openbravo.beans.DateUtils.getToday());
-paramdates.setEndDate(com.openbravo.beans.DateUtils.getTodayMinutes());
+java.util.Calendar cal = java.util.Calendar.getInstance();
+cal.setTime(com.openbravo.beans.DateUtils.getToday());
+cal.add(java.util.Calendar.DATE, 1);
+paramdates.setEndDate(cal.getTime());
 
 report.addQBFFilter(paramdates);
 

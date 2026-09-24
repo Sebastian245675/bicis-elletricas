@@ -16,6 +16,8 @@
 
 package com.openbravo.pos.inventory;
 
+import com.openbravo.pos.util.ModernActionIcon;
+
 import com.openbravo.data.gui.MessageInf;
 import com.openbravo.data.user.BrowsableEditableData;
 import com.openbravo.pos.forms.AppLocal;
@@ -112,7 +114,7 @@ public class JDlgUploadProducts extends javax.swing.JDialog {
         jPanel2.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));
 
         jcmdCancel.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jcmdCancel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/cancel.png"))); // NOI18N
+        jcmdCancel.setIcon(new ModernActionIcon(ModernActionIcon.Type.DELETE, 20));
         jcmdCancel.setText(AppLocal.getIntString("button.cancel")); // NOI18N
         jcmdCancel.setPreferredSize(new java.awt.Dimension(110, 45));
         jcmdCancel.addActionListener(new java.awt.event.ActionListener() {
@@ -123,7 +125,7 @@ public class JDlgUploadProducts extends javax.swing.JDialog {
         jPanel2.add(jcmdCancel);
 
         jcmdOK.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jcmdOK.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ok.png"))); // NOI18N
+        jcmdOK.setIcon(new ModernActionIcon(ModernActionIcon.Type.SAVE, 20));
         jcmdOK.setText(AppLocal.getIntString("button.ok")); // NOI18N
         jcmdOK.setPreferredSize(new java.awt.Dimension(110, 45));
         jcmdOK.addActionListener(new java.awt.event.ActionListener() {

@@ -31,6 +31,7 @@ import com.openbravo.data.loader.Session;
 import com.openbravo.data.loader.StaticSentence;
 import com.openbravo.format.Formats;
 import com.openbravo.pos.forms.*;
+import com.openbravo.pos.util.ModernActionIcon;
 import com.openbravo.pos.printer.TicketParser;
 import com.openbravo.pos.printer.TicketPrinterException;
 import com.openbravo.pos.scripting.ScriptEngine;
@@ -344,7 +345,7 @@ public class JPanelCloseMoneyReprint extends JPanel implements JPanelView, BeanF
         m_jSequence.setPreferredSize(new java.awt.Dimension(150, 30));
 
         webBtnFindSequence.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        webBtnFindSequence.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/search32.png"))); // NOI18N
+        webBtnFindSequence.setIcon(new ModernActionIcon(ModernActionIcon.Type.SEARCH, 20));
         webBtnFindSequence.setToolTipText("");
         webBtnFindSequence.setPreferredSize(new java.awt.Dimension(80, 45));
         webBtnFindSequence.addActionListener(new java.awt.event.ActionListener() {
@@ -480,7 +481,7 @@ public class JPanelCloseMoneyReprint extends JPanel implements JPanelView, BeanF
         m_jNoCashSales.setPreferredSize(new java.awt.Dimension(150, 30));
 
         m_jPrint.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        m_jPrint.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/printer.png"))); // NOI18N
+        m_jPrint.setIcon(new ModernActionIcon(ModernActionIcon.Type.PRINT, 20));
         m_jPrint.setText(AppLocal.getIntString("button.print")); // NOI18N
         m_jPrint.setToolTipText(bundle.getString("tooltip.btn.closecash")); // NOI18N
         m_jPrint.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);

@@ -19,6 +19,7 @@ import com.openbravo.pos.menu.JRootMenu;
 import com.openbravo.basic.BasicException;
 import com.openbravo.data.gui.JMessageDialog;
 import com.openbravo.data.gui.MessageInf;
+import com.openbravo.format.Formats;
 import java.awt.CardLayout;
 import java.awt.Dimension;
 import java.util.LinkedHashMap;
@@ -42,8 +43,8 @@ public class JPrincipalApp extends JPanel implements AppUserView {
     private static final java.awt.Color COLOR_CANVAS = new java.awt.Color(241, 245, 249);
     private static final java.awt.Color COLOR_OVERVIEW_CANVAS = new java.awt.Color(39, 39, 39);
     private static final java.awt.Color COLOR_HEADER_BLACK = new java.awt.Color(8, 8, 8);
-    private static final java.awt.Color COLOR_BRAND_ORANGE = new java.awt.Color(243, 153, 18);
-    private static final java.awt.Color COLOR_BRAND_ORANGE_DARK = new java.awt.Color(222, 129, 10);
+    private static final java.awt.Color COLOR_BRAND_ORANGE = new java.awt.Color(202, 159, 65); // Hex #CA9F41
+    private static final java.awt.Color COLOR_BRAND_ORANGE_DARK = new java.awt.Color(176, 137, 51); // Hex #B08933
     private static final java.awt.Color COLOR_SURFACE = java.awt.Color.WHITE;
     private static final java.awt.Color COLOR_SURFACE_SOFT = new java.awt.Color(247, 249, 251);
     private static final java.awt.Color COLOR_LINE = new java.awt.Color(214, 222, 230);
@@ -52,8 +53,8 @@ public class JPrincipalApp extends JPanel implements AppUserView {
     private static final java.awt.Color COLOR_SHORTCUT = new java.awt.Color(231, 238, 246);
     private static final java.awt.Color COLOR_DANGER = new java.awt.Color(178, 34, 52);
 
-        private final JRootApp m_appview;
-        private final AppUser m_appuser;
+    private final JRootApp m_appview;
+    private final AppUser m_appuser;
     private final DataLogicSystem m_dlSystem;
     private final JLabel m_principalnotificator;
 
@@ -67,8 +68,12 @@ public class JPrincipalApp extends JPanel implements AppUserView {
     private javax.swing.JButton btnCierreRef;
     private javax.swing.JButton btnInventarioRef;
     private javax.swing.JButton btnReportesRef;
-    
-    // Referencia al panel de perfil en el panel superior
+
+    private javax.swing.JPanel m_jPanelNotificationSidebar;
+    private javax.swing.JPanel m_notificationsListPanel;
+    private javax.swing.JLabel m_lblNotificationTitle;
+    private javax.swing.JButton m_btnNotification;
+    private int m_notificationCount = 0;
     private javax.swing.JPanel profilePanelRef;
     private javax.swing.JPanel overviewRibbonPanel;
     private final Map<String, javax.swing.JButton> navigationButtons = new LinkedHashMap<>();
@@ -126,13 +131,14 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         m_principalnotificator.setText(m_appuser.getName());
         // Sebastian - Sin icono en el perfil, solo texto
         m_principalnotificator.setIcon(null);
-        
-        // Sebastian - Configurar estilo del perfil para el panel superior (reducido para vertical)
+
+        // Sebastian - Configurar estilo del perfil para el panel superior (reducido
+        // para vertical)
         m_principalnotificator.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
         m_principalnotificator.setForeground(COLOR_SURFACE);
         m_principalnotificator.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         m_principalnotificator.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        
+
         // Agregar el perfil al panel superior (se inicializa en initComponents)
         javax.swing.SwingUtilities.invokeLater(() -> {
             if (profilePanelRef != null) {
@@ -158,7 +164,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         m_jPanelTitle.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 0)); // Sin altura cuando está oculto
         addView(new JPanel(), "<NULL>");
         showView("<NULL>");
-        
+
         // Configurar atajos de teclado globales después de inicializar todo
         setupGlobalKeyboardShortcuts();
 
@@ -192,15 +198,16 @@ public class JPrincipalApp extends JPanel implements AppUserView {
     public JComponent getNotificator() {
         return m_principalnotificator;
     }
-    
 
     public void activate() {
 
         // Sebastian - Mantener el menú lateral siempre oculto para diseño tipo eleventa
         setMenuVisible(false);
         showTask(TASK_SYSTEM_OVERVIEW);
-        
-        // Sebastian - Refrescar el logo cuando se active el panel (por si cambió en configuración)
+        refreshNotifications();
+
+        // Sebastian - Refrescar el logo cuando se active el panel (por si cambió en
+        // configuración)
         try {
             // Buscar el logoPanel en el componente
             javax.swing.JPanel artisticPanel = findArtisticTopPanel(this);
@@ -209,10 +216,12 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                     if (comp instanceof javax.swing.JPanel) {
                         javax.swing.JPanel logoPanel = (javax.swing.JPanel) comp;
                         @SuppressWarnings("unchecked")
-                        java.util.function.Consumer<String> updateLogo = (java.util.function.Consumer<String>) logoPanel.getClientProperty("updateLogo");
+                        java.util.function.Consumer<String> updateLogo = (java.util.function.Consumer<String>) logoPanel
+                                .getClientProperty("updateLogo");
                         if (updateLogo != null) {
                             // Recargar la configuración y actualizar el logo
-                            com.openbravo.pos.forms.AppConfig appConfig = com.openbravo.pos.forms.AppConfig.getInstance();
+                            com.openbravo.pos.forms.AppConfig appConfig = com.openbravo.pos.forms.AppConfig
+                                    .getInstance();
                             appConfig.load();
                             String logoPath = appConfig.getProperty("start.logo");
                             updateLogo.accept(logoPath);
@@ -227,7 +236,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             LOGGER.log(Level.WARNING, "Error al refrescar el logo", e);
         }
     }
-    
+
     // Sebastian - Método helper para encontrar el artisticTopPanel
     private javax.swing.JPanel findArtisticTopPanel(java.awt.Container container) {
         for (java.awt.Component comp : container.getComponents()) {
@@ -291,7 +300,8 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                 // El usuario eligió salir con turno abierto
                 performFinalExit();
             }
-            // Si canceló (isCloseShiftRequested e isExitOnlyRequested son false), no hacer nada
+            // Si canceló (isCloseShiftRequested e isExitOnlyRequested son false), no hacer
+            // nada
         } else {
             // No hay turno abierto, permitir salir normalmente
             performFinalExit();
@@ -383,14 +393,16 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                                                                                                     // está oculto
                         m_jTitle.setText("");
                     }
-                    
-                    // Sebastian - Si es la vista de ventas, asegurar que el campo de búsqueda tenga el foco
+
+                    // Sebastian - Si es la vista de ventas, asegurar que el campo de búsqueda tenga
+                    // el foco
                     if (sTaskClass != null && sTaskClass.contains("JPanelTicketSales")) {
                         final JPanelView finalViewPanel = viewPanel;
                         javax.swing.SwingUtilities.invokeLater(() -> {
                             try {
                                 if (finalViewPanel.getComponent() instanceof com.openbravo.pos.sales.JPanelTicket) {
-                                    ((com.openbravo.pos.sales.JPanelTicket) finalViewPanel.getComponent()).setSearchFieldFocus();
+                                    ((com.openbravo.pos.sales.JPanelTicket) finalViewPanel.getComponent())
+                                            .setSearchFieldFocus();
                                 }
                             } catch (Exception ex) {
                                 LOGGER.log(Level.WARNING, "Error al establecer foco en campo de búsqueda", ex);
@@ -410,7 +422,8 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                         javax.swing.SwingUtilities.invokeLater(() -> {
                             try {
                                 if (finalViewPanel.getComponent() instanceof com.openbravo.pos.sales.JPanelTicket) {
-                                    ((com.openbravo.pos.sales.JPanelTicket) finalViewPanel.getComponent()).setSearchFieldFocus();
+                                    ((com.openbravo.pos.sales.JPanelTicket) finalViewPanel.getComponent())
+                                            .setSearchFieldFocus();
                                 }
                             } catch (Exception ex) {
                                 LOGGER.log(Level.WARNING, "Error al establecer foco en campo de búsqueda", ex);
@@ -439,7 +452,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
     private void applyContentSurface(String taskClass) {
         boolean overviewMode = TASK_SYSTEM_OVERVIEW.equals(taskClass);
         boolean isConfig = "com.openbravo.pos.config.JPanelConfiguration".equals(taskClass);
-        
+
         boolean isMenu = false;
         if (rMenu != null && rMenu.getViewManager() != null && rMenu.getViewManager().getCreatedViews() != null) {
             JPanelView viewPanel = rMenu.getViewManager().getCreatedViews().get(taskClass);
@@ -447,10 +460,13 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                 isMenu = true;
             }
         }
-        
+
         if (overviewMode || isMenu || isConfig) {
             m_jPanelContainer.setBackground(COLOR_OVERVIEW_CANVAS);
             m_jPanelContainer.setBorder(javax.swing.BorderFactory.createEmptyBorder());
+        } else if (taskClass != null && taskClass.contains("JPanelTicketSales")) {
+            m_jPanelContainer.setBackground(COLOR_CANVAS);
+            m_jPanelContainer.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
         } else if (taskClass != null && taskClass.contains("JPanelGraphics")) {
             m_jPanelContainer.setBackground(COLOR_CANVAS);
             m_jPanelContainer.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 18, 18, 18));
@@ -594,10 +610,12 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         m_jPanelLefSide.setVisible(false);
         // add(m_jPanelLefSide, java.awt.BorderLayout.LINE_START);
 
-        // No forzar tamaño pequeño: dejar que el contenido use el espacio disponible (evita vistas cortadas)
+        // No forzar tamaño pequeño: dejar que el contenido use el espacio disponible
+        // (evita vistas cortadas)
         m_jPanelRightSide.setLayout(new java.awt.BorderLayout());
 
-        // Sebastian - Crear barra horizontal superior con TODOS los botones del menú (estilo eleventa)
+        // Sebastian - Crear barra horizontal superior con TODOS los botones del menú
+        // (estilo eleventa)
         javax.swing.JPanel topMenuBar = new javax.swing.JPanel(new java.awt.BorderLayout(5, 0));
         topMenuBar.setBorder(javax.swing.BorderFactory.createCompoundBorder(
                 javax.swing.BorderFactory.createLineBorder(COLOR_LINE, 1),
@@ -630,9 +648,9 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         if (m_appuser.hasPermission("com.openbravo.pos.sales.JPanelTicketSales")) {
             btnVentasRef = createMenuButton(
                     "/com/openbravo/images/sale.png",
-                    "F1 " + AppLocal.getIntString("Menu.Ticket"),
+                    AppLocal.getIntString("Menu.Ticket"),
                     "com.openbravo.pos.sales.JPanelTicketSales",
-                    new java.awt.Color(21, 94, 156));
+                    new java.awt.Color(202, 159, 65));
             leftMenuPanel.add(btnVentasRef);
         }
 
@@ -649,9 +667,9 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         if (m_appuser.hasPermission("com.openbravo.pos.panels.JPanelCloseMoney")) {
             btnCierreRef = createMenuButton(
                     "/com/openbravo/images/calculator.png",
-                    "F2 " + AppLocal.getIntString("Menu.CloseTPV"),
+                    AppLocal.getIntString("Menu.CloseTPV"),
                     "com.openbravo.pos.panels.JPanelCloseMoney",
-                    new java.awt.Color(21, 94, 156));
+                    new java.awt.Color(202, 159, 65));
             leftMenuPanel.add(btnCierreRef);
         }
 
@@ -679,9 +697,9 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         if (m_appuser.hasPermission("com.openbravo.pos.forms.MenuStockManagement")) {
             btnInventarioRef = createMenuButton(
                     "/com/openbravo/images/products.png",
-                    "F3 " + AppLocal.getIntString("Menu.StockManagement"),
+                    AppLocal.getIntString("Menu.StockManagement"),
                     "com.openbravo.pos.forms.MenuStockManagement",
-                    new java.awt.Color(21, 94, 156));
+                    new java.awt.Color(202, 159, 65));
             leftMenuPanel.add(btnInventarioRef);
         }
 
@@ -712,14 +730,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             leftMenuPanel.add(btnRecursosHumanos);
         }
 
-        // Botón Drive
-        if (m_appuser.hasPermission("com.openbravo.pos.panels.JPanelDocuments")) {
-            javax.swing.JButton btnDocumentos = createMenuButton(
-                    "/com/openbravo/images/fileopen.png",
-                    "Drive",
-                    "com.openbravo.pos.panels.JPanelDocuments");
-            leftMenuPanel.add(btnDocumentos);
-        }
+
 
         // Botón Configuración
         if (m_appuser.hasPermission("com.openbravo.pos.config.JPanelConfiguration")) {
@@ -743,9 +754,9 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         if (m_appuser.hasPermission("com.openbravo.pos.reports.JPanelGraphics")) {
             btnReportesRef = createMenuButton(
                     null,
-                    "F4 " + AppLocal.getIntString("Menu.Reports"),
+                    AppLocal.getIntString("Menu.Reports"),
                     "com.openbravo.pos.reports.JPanelGraphics",
-                    new java.awt.Color(21, 94, 156));
+                    new java.awt.Color(202, 159, 65));
             leftMenuPanel.add(btnReportesRef);
         }
 
@@ -778,7 +789,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         m_jPanelTitle.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 0)); // Sin altura cuando está oculto
 
         m_jTitle.setFont(new java.awt.Font("Arial", 1, 22)); // NOI18N - Tamaño aumentado
-        m_jTitle.setForeground(new java.awt.Color(21, 94, 156));
+        m_jTitle.setForeground(new java.awt.Color(202, 159, 65));
         m_jTitle.setBorder(javax.swing.BorderFactory.createCompoundBorder(
                 javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, java.awt.Color.darkGray),
                 javax.swing.BorderFactory.createEmptyBorder(2, 10, 2, 10))); // Reducir padding vertical (2px en lugar
@@ -797,7 +808,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         m_jTitle.setMinimumSize(new java.awt.Dimension(30, 48));
         m_jTitle.setPreferredSize(new java.awt.Dimension(100, 52));
         m_jPanelTitle.add(m_jTitle, java.awt.BorderLayout.NORTH);
-        m_jTitle.setFont(new java.awt.Font("Segoe UI", 1, 19));
+        m_jTitle.setFont(com.openbravo.pos.util.ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 19));
         m_jTitle.setForeground(new java.awt.Color(236, 236, 236));
         m_jTitle.setBackground(COLOR_HEADER_BLACK);
         m_jTitle.setBorder(javax.swing.BorderFactory.createCompoundBorder(
@@ -847,257 +858,165 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             protected void paintComponent(java.awt.Graphics g) {
                 super.paintComponent(g);
                 java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
-                g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-                g2d.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY);
-                
+                g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                        java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING,
+                        java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+
                 int width = getWidth();
                 int height = getHeight();
-                
-                // Gradiente base suave tipo Eleventa - mejorado con más tonos
-                java.awt.GradientPaint baseGradient = new java.awt.GradientPaint(
-                    0, 0, new java.awt.Color(250, 252, 255),
-                    0, height, new java.awt.Color(238, 242, 247)
-                );
-                g2d.setPaint(baseGradient);
-                g2d.fillRect(0, 0, width, height);
-                
-                // Efecto de luz difuminada superior izquierda (para logo) - más suave
-                java.awt.RadialGradientPaint lightEffect1 = new java.awt.RadialGradientPaint(
-                    150, 40, 250,
-                    new float[]{0f, 0.5f, 0.8f, 1f},
+
+                // 1. Draw outer 3D frame (bevel)
+                // Top/Left highlights
+                g2d.setColor(new java.awt.Color(230, 205, 150));
+                g2d.fillRect(0, 0, width, 3);
+                g2d.fillRect(0, 0, 3, height);
+
+                // Bottom/Right shadows
+                g2d.setColor(new java.awt.Color(115, 85, 35));
+                g2d.fillRect(0, height - 3, width, 3);
+                g2d.fillRect(width - 3, 0, 3, height);
+
+                // Inner dark groove (gives the inset look)
+                g2d.setColor(new java.awt.Color(85, 60, 25));
+                g2d.drawRect(3, 3, width - 7, height - 7);
+
+                // 2. Main content background fill (smooth metallic gradient)
+                java.awt.LinearGradientPaint mainGrad = new java.awt.LinearGradientPaint(
+                    0, 4, 0, height - 4,
+                    new float[]{0.0f, 0.25f, 0.75f, 1.0f},
                     new java.awt.Color[]{
-                        new java.awt.Color(140, 195, 240, 50),
-                        new java.awt.Color(140, 195, 240, 25),
-                        new java.awt.Color(140, 195, 240, 10),
-                        new java.awt.Color(140, 195, 240, 0)
+                        new java.awt.Color(190, 150, 75), // Upper gold
+                        new java.awt.Color(205, 168, 92), // Central shine
+                        new java.awt.Color(180, 140, 65), // Lower slope
+                        new java.awt.Color(150, 115, 48)  // Bottom dark
                     }
                 );
-                g2d.setPaint(lightEffect1);
-                g2d.fillOval(-50, -30, 500, 200);
-                
-                // Efecto de luz difuminada superior derecha - más suave
-                java.awt.RadialGradientPaint lightEffect2 = new java.awt.RadialGradientPaint(
-                    width - 150, 40, 220,
-                    new float[]{0f, 0.6f, 0.9f, 1f},
-                    new java.awt.Color[]{
-                        new java.awt.Color(110, 170, 230, 35),
-                        new java.awt.Color(110, 170, 230, 15),
-                        new java.awt.Color(110, 170, 230, 5),
-                        new java.awt.Color(110, 170, 230, 0)
-                    }
-                );
-                g2d.setPaint(lightEffect2);
-                g2d.fillOval(width - 440, -20, 440, 180);
-                
-                // Efecto adicional central para más profundidad
-                java.awt.RadialGradientPaint lightEffect3 = new java.awt.RadialGradientPaint(
-                    width / 2, height / 3, 300,
-                    new float[]{0f, 0.7f, 1f},
-                    new java.awt.Color[]{
-                        new java.awt.Color(120, 180, 225, 20),
-                        new java.awt.Color(120, 180, 225, 5),
-                        new java.awt.Color(120, 180, 225, 0)
-                    }
-                );
-                g2d.setPaint(lightEffect3);
-                g2d.fillOval(width / 2 - 300, -50, 600, 200);
-                
-                // Línea sutil inferior con gradiente más suave
-                java.awt.MultipleGradientPaint.CycleMethod cycleMethod = java.awt.MultipleGradientPaint.CycleMethod.NO_CYCLE;
-                java.awt.Color[] lineColors = {
-                    new java.awt.Color(200, 210, 220, 80),
-                    new java.awt.Color(220, 220, 220, 40),
-                    new java.awt.Color(240, 240, 240, 0)
-                };
-                float[] lineFractions = {0.0f, 0.5f, 1.0f};
-                java.awt.LinearGradientPaint lineGradient = new java.awt.LinearGradientPaint(
-                    0, height - 1, width, height - 1,
-                    lineFractions, lineColors, cycleMethod
-                );
-                g2d.setPaint(lineGradient);
-                g2d.fillRect(0, height - 2, width, 2);
-                
-                // Sombra sutil superior para profundidad
-                java.awt.GradientPaint shadowGradient = new java.awt.GradientPaint(
-                    0, 0, new java.awt.Color(0, 0, 0, 5),
-                    0, 10, new java.awt.Color(0, 0, 0, 0)
-                );
-                g2d.setPaint(shadowGradient);
-                g2d.fillRect(0, 0, width, 10);
+                g2d.setPaint(mainGrad);
+                g2d.fillRect(4, 4, width - 8, height - 8);
 
-                java.awt.GradientPaint enterpriseOverlay = new java.awt.GradientPaint(
-                    0, 0, new java.awt.Color(14, 30, 45, 210),
-                    width, height, new java.awt.Color(30, 59, 86, 205)
-                );
-                g2d.setPaint(enterpriseOverlay);
-                g2d.fillRect(0, 0, width, height);
-
-                java.awt.RadialGradientPaint premiumGlowLeft = new java.awt.RadialGradientPaint(
-                    120, 20, 220,
-                    new float[]{0f, 0.65f, 1f},
-                    new java.awt.Color[]{
-                        new java.awt.Color(125, 177, 220, 75),
-                        new java.awt.Color(125, 177, 220, 20),
-                        new java.awt.Color(125, 177, 220, 0)
-                    }
-                );
-                g2d.setPaint(premiumGlowLeft);
-                g2d.fillOval(-60, -100, 360, 260);
-
-                java.awt.RadialGradientPaint premiumGlowRight = new java.awt.RadialGradientPaint(
-                    width - 140, 15, 240,
-                    new float[]{0f, 0.55f, 1f},
-                    new java.awt.Color[]{
-                        new java.awt.Color(255, 255, 255, 40),
-                        new java.awt.Color(255, 255, 255, 12),
-                        new java.awt.Color(255, 255, 255, 0)
-                    }
-                );
-                g2d.setPaint(premiumGlowRight);
-                g2d.fillOval(width - 380, -120, 420, 260);
-
-                g2d.setColor(new java.awt.Color(255, 255, 255, 24));
-                g2d.fillRoundRect(18, 12, width - 36, height - 24, 24, 24);
-
+                // 3. Highlight gloss at the top of main content
                 g2d.setPaint(new java.awt.GradientPaint(
-                    0, height - 2, new java.awt.Color(255, 255, 255, 0),
-                    width, height - 2, new java.awt.Color(255, 255, 255, 90)
+                    0, 4, new java.awt.Color(255, 255, 255, 55),
+                    0, 15, new java.awt.Color(255, 255, 255, 0)
                 ));
-                g2d.fillRect(22, height - 3, width - 44, 2);
+                g2d.fillRect(4, 4, width - 8, 11);
 
-                g2d.setPaint(new java.awt.GradientPaint(
-                        0, 0, COLOR_BRAND_ORANGE,
-                        0, height, COLOR_BRAND_ORANGE_DARK));
-                g2d.fillRect(0, 0, width, height);
-
-                g2d.setPaint(new java.awt.GradientPaint(
-                        0, 0, new java.awt.Color(255, 255, 255, 42),
-                        width, 0, new java.awt.Color(255, 255, 255, 0)));
-                g2d.fillRect(0, 0, width, 10);
-
-                g2d.setColor(new java.awt.Color(255, 222, 163, 55));
-                g2d.fillRoundRect(16, 10, Math.max(220, width / 5), height - 20, 24, 24);
-
-                g2d.setPaint(new java.awt.GradientPaint(
-                        0, height - 2, new java.awt.Color(67, 33, 0, 170),
-                        width, height - 2, new java.awt.Color(38, 17, 0, 220)));
-                g2d.fillRect(0, height - 2, width, 2);
-                
                 g2d.dispose();
             }
         };
         artisticTopPanel.setLayout(new java.awt.BorderLayout());
         artisticTopPanel.setPreferredSize(new java.awt.Dimension(0, 82));
         artisticTopPanel.setOpaque(false);
-        
+
         // Panel para el logo en la parte izquierda con medidas exactas
         javax.swing.JPanel logoPanel = new javax.swing.JPanel();
         logoPanel.setLayout(new java.awt.BorderLayout());
         logoPanel.setOpaque(false);
-        logoPanel.setPreferredSize(new java.awt.Dimension(320, 82));
-        logoPanel.setMaximumSize(new java.awt.Dimension(320, 82));
-        logoPanel.setMinimumSize(new java.awt.Dimension(320, 82));
-        logoPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 24, 12, 20));
-        
+        logoPanel.setPreferredSize(new java.awt.Dimension(400, 82));
+        logoPanel.setMaximumSize(new java.awt.Dimension(400, 82));
+        logoPanel.setMinimumSize(new java.awt.Dimension(400, 82));
+        logoPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(18, 24, 6, 20)); // Adjusted padding to drop everything
+
         // Sebastian - Cargar imagen del logo desde configuraciones (propiedad "start.logo")
         javax.swing.JLabel logoLabel = new javax.swing.JLabel();
         logoLabel.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         logoLabel.setVerticalAlignment(javax.swing.SwingConstants.CENTER);
-        
+        logoLabel.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+        logoLabel.setVerticalTextPosition(javax.swing.SwingConstants.CENTER);
+        logoLabel.setIconTextGap(14); // Perfect margin between scooter icon and text
+
+        // Beautiful cursive font fallback resolver
+        java.awt.Font cursiveFont = null;
+        for (String fName : new String[]{"Gabriola", "Segoe Script", "Monotype Corsiva", "Lucida Handwriting"}) {
+            cursiveFont = new java.awt.Font(fName, java.awt.Font.ITALIC, 38); // Increased size to 38
+            if (cursiveFont.getFamily().equalsIgnoreCase(fName)) {
+                break;
+            }
+        }
+        if (cursiveFont == null) {
+            cursiveFont = new java.awt.Font("Serif", java.awt.Font.ITALIC, 32); // Increased fallback size to 32
+        }
+        final java.awt.Font fCursive = cursiveFont;
+
         // Método para actualizar el logo
         java.util.function.Consumer<String> updateLogo = (logoPath) -> {
             try {
                 logoLabel.setIcon(null); // Limpiar icono anterior
                 logoLabel.setText(""); // Limpiar texto anterior
-                
-                if (logoPath != null && !logoPath.trim().isEmpty()) {
-                    java.io.File logoFile = new java.io.File(logoPath);
-                    LOGGER.log(Level.INFO, "Verificando archivo de logo: " + logoPath + " - Existe: " + logoFile.exists() + " - Es archivo: " + logoFile.isFile());
-                    
-                    if (logoFile.exists() && logoFile.isFile()) {
-                        // Cargar la imagen del logo usando ImageIO para mejor manejo
-                        try {
-                            java.awt.Image originalImage = javax.imageio.ImageIO.read(logoFile);
-                            
-                            // Verificar que la imagen se cargó correctamente
-                            if (originalImage != null) {
-                                int originalWidth = originalImage.getWidth(null);
-                                int originalHeight = originalImage.getHeight(null);
-                                LOGGER.log(Level.INFO, "Imagen cargada: " + originalWidth + "x" + originalHeight);
-                                
-                                if (originalWidth > 0 && originalHeight > 0) {
-                                    // Escalar la imagen para que quepa en el panel (máximo 180x60px manteniendo proporción)
-                                    int maxWidth = 180;
-                                    int maxHeight = 60;
-                                    
-                                    // Calcular dimensiones manteniendo proporción
-                                    double widthRatio = (double) maxWidth / originalWidth;
-                                    double heightRatio = (double) maxHeight / originalHeight;
-                                    double ratio = Math.min(widthRatio, heightRatio);
-                                    
-                                    int scaledWidth = (int) (originalWidth * ratio);
-                                    int scaledHeight = (int) (originalHeight * ratio);
-                                    
-                                    LOGGER.log(Level.INFO, "Escalando imagen a: " + scaledWidth + "x" + scaledHeight);
-                                    
-                                    // Escalar la imagen con mejor calidad usando Graphics2D
-                                    java.awt.Image scaledImage = originalImage.getScaledInstance(
-                                        scaledWidth, scaledHeight, java.awt.Image.SCALE_SMOOTH
-                                    );
-                                    
-                                    // Usar BufferedImage para mejor renderizado
-                                    java.awt.image.BufferedImage bufferedImage = new java.awt.image.BufferedImage(
-                                        scaledWidth, scaledHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB
-                                    );
-                                    java.awt.Graphics2D g2d = bufferedImage.createGraphics();
-                                    g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-                                    g2d.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY);
-                                    g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-                                    g2d.drawImage(scaledImage, 0, 0, null);
-                                    g2d.dispose();
-                                    
-                                    logoLabel.setIcon(new javax.swing.ImageIcon(bufferedImage));
-                                    logoLabel.setText(""); // Sin texto, solo imagen
-                                    LOGGER.log(Level.INFO, "✓ Logo cargado y mostrado exitosamente desde: " + logoPath);
-                                    logoPanel.revalidate();
-                                    logoPanel.repaint();
-                                    return;
-                                }
-                            }
-                        } catch (javax.imageio.IIOException e) {
-                            LOGGER.log(Level.WARNING, "Error al leer imagen del logo (formato no soportado?): " + logoPath, e);
+
+                java.io.File logoFile = logoPath != null && !logoPath.trim().isEmpty()
+                        ? new java.io.File(logoPath.trim()) : null;
+                java.awt.Image originalImage = logoFile != null && logoFile.isFile()
+                        ? javax.imageio.ImageIO.read(logoFile)
+                        : javax.imageio.ImageIO.read(getClass().getResource("/com/openbravo/images/logo-voltium-header.png"));
+                if (originalImage != null) {
+                    if (originalImage != null) {
+                        int originalWidth = originalImage.getWidth(null);
+                        int originalHeight = originalImage.getHeight(null);
+                        if (originalWidth > 0 && originalHeight > 0) {
+                            // Escalar la imagen para que quepa en el panel (máximo 180x50px manteniendo proporción)
+                            int maxWidth = 180;
+                            int maxHeight = 50; // Adjusted max height to match padding
+
+                            double widthRatio = (double) maxWidth / originalWidth;
+                            double heightRatio = (double) maxHeight / originalHeight;
+                            double ratio = Math.min(widthRatio, heightRatio);
+
+                            int scaledWidth = (int) (originalWidth * ratio);
+                            int scaledHeight = (int) (originalHeight * ratio);
+
+                            java.awt.Image scaledImage = originalImage.getScaledInstance(
+                                    scaledWidth, scaledHeight, java.awt.Image.SCALE_SMOOTH);
+
+                            java.awt.image.BufferedImage bufferedImage = new java.awt.image.BufferedImage(
+                                    scaledWidth, scaledHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                            java.awt.Graphics2D g2d = bufferedImage.createGraphics();
+                            g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                                    java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                            g2d.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING,
+                                    java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+                            g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                            g2d.drawImage(scaledImage, 0, 0, null);
+                            g2d.dispose();
+
+                            logoLabel.setIcon(new javax.swing.ImageIcon(bufferedImage));
+                            logoLabel.setText("voltium sanrey"); // Cursive brand text next to icon
+                            logoLabel.setFont(fCursive);
+                            logoLabel.setForeground(new java.awt.Color(15, 23, 42)); // Slate 900
+                            logoPanel.revalidate();
+                            logoPanel.repaint();
+                            return;
                         }
-                    } else {
-                        LOGGER.log(Level.WARNING, "El archivo de logo no existe o no es un archivo válido: " + logoPath);
                     }
-                } else {
-                    LOGGER.log(Level.INFO, "No hay ruta de logo configurada en 'start.logo'");
                 }
-                
-                // Si no hay ruta válida o el archivo no existe, mostrar texto "LOGO"
+
+                // Si no hay ruta válida o el archivo no existe, mostrar texto "voltium sanrey"
                 logoLabel.setIcon(null);
-                logoLabel.setText("<html><span style='color:#EE961C'>WEBSY</span> <span style='color:#313131'>GROUP</span></html>");
-                logoLabel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 24));
-                logoLabel.setForeground(new java.awt.Color(36, 22, 7));
+                logoLabel.setText("voltium sanrey");
+                logoLabel.setFont(fCursive);
+                logoLabel.setForeground(new java.awt.Color(15, 23, 42));
                 logoPanel.revalidate();
                 logoPanel.repaint();
             } catch (Exception e) {
-                // En caso de error, mostrar texto "LOGO"
+                // En caso de error, mostrar texto
                 logoLabel.setIcon(null);
-                logoLabel.setText("<html><span style='color:#EE961C'>WEBSY</span> <span style='color:#313131'>GROUP</span></html>");
-                logoLabel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 24));
-                logoLabel.setForeground(new java.awt.Color(36, 22, 7));
-                LOGGER.log(Level.WARNING, "Error al cargar el logo desde: " + logoPath, e);
+                logoLabel.setText("voltium sanrey");
+                logoLabel.setFont(fCursive);
+                logoLabel.setForeground(new java.awt.Color(15, 23, 42));
+                LOGGER.log(Level.WARNING, "Error al cargar el logo", e);
                 logoPanel.revalidate();
                 logoPanel.repaint();
             }
         };
-        
+
         // Cargar el logo inicialmente
         try {
             com.openbravo.pos.forms.AppConfig appConfig = com.openbravo.pos.forms.AppConfig.getInstance();
             appConfig.load();
-            String logoPath = appConfig.getProperty("start.logo"); // Sebastian - Propiedad correcta desde Configuración > General > Logo
+            String logoPath = appConfig.getProperty("start.logo"); // Sebastian - Propiedad correcta desde Configuración
+                                                                   // > General > Logo
             LOGGER.log(Level.INFO, "Ruta del logo desde configuraciones: " + logoPath);
             if (logoPath != null && !logoPath.trim().isEmpty()) {
                 LOGGER.log(Level.INFO, "Intentando cargar logo desde: " + logoPath);
@@ -1107,117 +1026,201 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             LOGGER.log(Level.WARNING, "Error al cargar configuración del logo", e);
             updateLogo.accept(null);
         }
-        
+
         logoPanel.add(logoLabel, java.awt.BorderLayout.CENTER);
-        
-        // Sebastian - Guardar referencia al logoLabel para poder actualizarlo dinámicamente
+
+        // Sebastian - Guardar referencia al logoLabel para poder actualizarlo
+        // dinámicamente
         // (se puede usar más adelante para refrescar cuando cambie la configuración)
         logoPanel.putClientProperty("logoLabel", logoLabel);
         logoPanel.putClientProperty("updateLogo", updateLogo);
-        
+
         artisticTopPanel.add(logoPanel, java.awt.BorderLayout.WEST);
-        
-        // Panel derecho con "Le atiende: [perfil]"
+
+        // Panel derecho con campana de notificaciones y perfil (estilo Voltium Sanrey)
         javax.swing.JPanel rightTopPanel = new javax.swing.JPanel();
-        rightTopPanel.setLayout(new java.awt.BorderLayout());
+        rightTopPanel.setLayout(new java.awt.GridBagLayout()); // GridBag para centrar verticalmente
         rightTopPanel.setOpaque(false);
-        rightTopPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 18, 4, 24));
-        
-        // Panel contenedor para el texto y el perfil (horizontal)
+        rightTopPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 18, 0, 24));
+
+        // Panel contenedor horizontal: [campana] [avatar] [nombre ˅]
         javax.swing.JPanel atendidoPanel = new javax.swing.JPanel();
-        atendidoPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 14, 0));
+        atendidoPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 12, 0));
         atendidoPanel.setOpaque(false);
         atendidoPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
         atendidoPanel.setAlignmentX(javax.swing.JComponent.RIGHT_ALIGNMENT);
-        
-        // --- Icono de perfil circular ---
+
+        // --- Icono de campana de notificaciones ---
+        m_btnNotification = new javax.swing.JButton() {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                        java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                int w = getWidth();
+                int h = getHeight();
+
+                // Hover effect
+                if (getModel().isRollover()) {
+                    g2.setColor(new java.awt.Color(255, 255, 255, 40));
+                    g2.fillRoundRect(2, 2, w - 4, h - 4, 8, 8);
+                }
+
+                int cx = w / 2;
+                int cy = h / 2;
+
+                // Campana (bell icon) - color gris suave
+                g2.setColor(new java.awt.Color(100, 116, 139)); // slate-500
+                g2.setStroke(new java.awt.BasicStroke(1.8f, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
+
+                // Cuerpo de la campana
+                java.awt.geom.Path2D.Double bell = new java.awt.geom.Path2D.Double();
+                bell.moveTo(cx - 8, cy + 3);
+                bell.curveTo(cx - 8, cy - 6, cx - 6, cy - 10, cx, cy - 10);
+                bell.curveTo(cx + 6, cy - 10, cx + 8, cy - 6, cx + 8, cy + 3);
+                bell.lineTo(cx + 10, cy + 5);
+                bell.lineTo(cx - 10, cy + 5);
+                bell.closePath();
+                g2.draw(bell);
+
+                // Badajo (clapper)
+                g2.drawLine(cx - 3, cy + 5, cx + 3, cy + 5);
+                g2.drawArc(cx - 2, cy + 5, 4, 3, 180, 180);
+
+                // Punto rojo de notificación si hay alertas pendientes
+                if (m_notificationCount > 0) {
+                    g2.setColor(new java.awt.Color(239, 68, 68));
+                    g2.fillOval(cx + 4, cy - 10, 6, 6);
+                }
+
+                g2.dispose();
+            }
+        };
+        m_btnNotification.setOpaque(false);
+        m_btnNotification.setContentAreaFilled(false);
+        m_btnNotification.setBorderPainted(false);
+        m_btnNotification.setFocusPainted(false);
+        m_btnNotification.setFocusable(false);
+        m_btnNotification.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        m_btnNotification.setToolTipText("Notificaciones");
+        m_btnNotification.setPreferredSize(new java.awt.Dimension(36, 36));
+        m_btnNotification.setMinimumSize(new java.awt.Dimension(36, 36));
+        m_btnNotification.setMaximumSize(new java.awt.Dimension(36, 36));
+        m_btnNotification.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                toggleNotificationSidebar();
+            }
+        });
+
+        // --- Icono de perfil circular con foto real ---
+        final java.awt.image.BufferedImage[] profileImageRef = new java.awt.image.BufferedImage[1];
+        try {
+            com.openbravo.pos.forms.AppConfig appConfig = com.openbravo.pos.forms.AppConfig.getInstance();
+            appConfig.load();
+            String profileImgPath = appConfig.getProperty("profile.image");
+            java.io.File profileFile = profileImgPath != null && !profileImgPath.trim().isEmpty()
+                    ? new java.io.File(profileImgPath.trim()) : null;
+            if (profileFile != null && profileFile.isFile()) {
+                profileImageRef[0] = javax.imageio.ImageIO.read(profileFile);
+            } else {
+                java.net.URL defaultProfile = getClass().getResource("/com/openbravo/images/profile-default.png");
+                if (defaultProfile != null) profileImageRef[0] = javax.imageio.ImageIO.read(defaultProfile);
+            }
+        } catch (Exception ex) {
+            LOGGER.log(Level.WARNING, "Error al cargar imagen de perfil", ex);
+        }
+
         javax.swing.JPanel profileIconPanel = new javax.swing.JPanel() {
             @Override
             protected void paintComponent(java.awt.Graphics g) {
                 super.paintComponent(g);
                 java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
-                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-                int w = getWidth(); int h = getHeight();
-                
-                // Fondo circular blanco semitransparente muy sutil y elegante
-                g2.setColor(new java.awt.Color(255, 255, 255, 30));
-                g2.fillOval(0, 0, w - 1, h - 1);
-                g2.setColor(new java.awt.Color(255, 255, 255, 90));
-                g2.setStroke(new java.awt.BasicStroke(1.2f));
-                g2.drawOval(0, 0, w - 1, h - 1);
-                
-                // Silueta estilizada y proporcional (evita efecto cabezón)
-                g2.setColor(new java.awt.Color(255, 255, 255, 220));
-                
-                // Cabeza (30% del ancho)
-                int headR = (int)(w * 0.15f);
-                int headCX = w / 2;
-                int headCY = (int)(h * 0.32f);
-                g2.fillOval(headCX - headR, headCY - headR, headR * 2, headR * 2);
-                
-                // Cuerpo/Hombros elegantes
-                int bodyW = (int)(w * 0.56f);
-                int bodyH = (int)(h * 0.36f);
-                int bodyX = (w - bodyW) / 2;
-                int bodyY = (int)(h * 0.56f);
-                
-                java.awt.geom.Ellipse2D.Double clipCircle = new java.awt.geom.Ellipse2D.Double(0, 0, w, h);
-                g2.setClip(clipCircle);
-                g2.fillArc(bodyX, bodyY, bodyW, bodyH, 0, 180);
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                        java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                        java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                int w = getWidth();
+                int h = getHeight();
+                int sz = Math.min(w, h) - 2;
+
+                // Clip circular
+                java.awt.geom.Ellipse2D.Double circle = new java.awt.geom.Ellipse2D.Double(
+                        (w - sz) / 2.0, (h - sz) / 2.0, sz, sz);
+
+                if (profileImageRef[0] != null) {
+                    // Dibujar imagen recortada en circulo
+                    g2.setClip(circle);
+                    g2.drawImage(profileImageRef[0],
+                            (w - sz) / 2, (h - sz) / 2, sz, sz, null);
+                    g2.setClip(null);
+                } else {
+                    // Fallback: silueta genérica
+                    g2.setColor(new java.awt.Color(203, 213, 225)); // slate-300
+                    g2.fill(circle);
+                    g2.setColor(new java.awt.Color(148, 163, 184)); // slate-400
+                    int headR = (int) (sz * 0.15f);
+                    int headCX = w / 2;
+                    int headCY = (int) (h * 0.35f);
+                    g2.fillOval(headCX - headR, headCY - headR, headR * 2, headR * 2);
+                    int bodyW = (int) (sz * 0.5f);
+                    int bodyH = (int) (sz * 0.35f);
+                    int bodyX = (w - bodyW) / 2;
+                    int bodyY = (int) (h * 0.55f);
+                    g2.setClip(circle);
+                    g2.fillArc(bodyX, bodyY, bodyW, bodyH, 0, 180);
+                    g2.setClip(null);
+                }
+
+                // Borde circular suave
+                g2.setColor(new java.awt.Color(226, 232, 240)); // slate-200
+                g2.setStroke(new java.awt.BasicStroke(1.5f));
+                g2.draw(circle);
+
                 g2.dispose();
             }
         };
         profileIconPanel.setOpaque(false);
-        profileIconPanel.setPreferredSize(new java.awt.Dimension(32, 32));
-        profileIconPanel.setMinimumSize(new java.awt.Dimension(32, 32));
-        profileIconPanel.setMaximumSize(new java.awt.Dimension(32, 32));
-        
-        // Label "Le atiende:"
-        javax.swing.JLabel lblLeAtiende = new javax.swing.JLabel("Le atiende:");
-        lblLeAtiende.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 10));
-        lblLeAtiende.setForeground(new java.awt.Color(241, 245, 249));
-        lblLeAtiende.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        
-        // Perfil del usuario - se agregarÃ¡ despuÃ©s de inicializar m_principalnotificator
+        profileIconPanel.setPreferredSize(new java.awt.Dimension(38, 38));
+        profileIconPanel.setMinimumSize(new java.awt.Dimension(38, 38));
+        profileIconPanel.setMaximumSize(new java.awt.Dimension(38, 38));
+
+        // --- Nombre del usuario + flecha dropdown (horizontal) ---
+        String userName = m_appuser.getName();
+        if (userName == null || userName.isEmpty()) userName = "admin";
+        javax.swing.JLabel lblUserName = new javax.swing.JLabel(userName + "  \u25BE");
+        lblUserName.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
+        lblUserName.setForeground(new java.awt.Color(15, 23, 42)); // slate-900
+
+        // Perfil del usuario - se agregará después de inicializar m_principalnotificator
         profilePanelRef = new javax.swing.JPanel();
         profilePanelRef.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 0, 0));
         profilePanelRef.setOpaque(false);
-        
-        // Panel agrupador de perfil (icono + textos) - Diseño vertical mejor hecho y compacto
+
+        // Panel agrupador horizontal: [avatar] [nombre ˅]
         javax.swing.JPanel profileGroupPanel = new javax.swing.JPanel() {
             @Override
             protected void paintComponent(java.awt.Graphics g) {
                 Boolean hovered = (Boolean) getClientProperty("hovered");
                 if (hovered != null && hovered) {
                     java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
-                    g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setColor(new java.awt.Color(255, 255, 255, 35));
+                    g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                            java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(new java.awt.Color(0, 0, 0, 15));
                     g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
                     g2.dispose();
                 }
                 super.paintComponent(g);
             }
         };
-        profileGroupPanel.setLayout(new java.awt.GridBagLayout());
+        profileGroupPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 4));
         profileGroupPanel.setOpaque(false);
-        profileGroupPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 8, 4, 8));
-        
-        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.anchor = java.awt.GridBagConstraints.CENTER;
-        gbc.insets = new java.awt.Insets(0, 0, 2, 0);
-        profileGroupPanel.add(profileIconPanel, gbc);
-        
-        gbc.gridy = 1;
-        gbc.insets = new java.awt.Insets(0, 0, 1, 0);
-        profileGroupPanel.add(lblLeAtiende, gbc);
-        
-        gbc.gridy = 2;
-        gbc.insets = new java.awt.Insets(0, 0, 0, 0);
-        profileGroupPanel.add(profilePanelRef, gbc);
-        
-        // Sebastian - Al hacer clic en el perfil, llevar al panel de perfil del usuario
+        profileGroupPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(2, 6, 2, 6));
+
+        profileGroupPanel.add(profileIconPanel);
+        profileGroupPanel.add(lblUserName);
+
+        // Al hacer clic en el perfil, mostrar popup de opciones
         profileGroupPanel.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         profileGroupPanel.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
@@ -1225,245 +1228,82 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                 profileGroupPanel.putClientProperty("hovered", Boolean.TRUE);
                 profileGroupPanel.repaint();
             }
-            
+
             @Override
             public void mouseExited(java.awt.event.MouseEvent evt) {
                 profileGroupPanel.putClientProperty("hovered", Boolean.FALSE);
                 profileGroupPanel.repaint();
             }
+
             @Override
             public void mouseClicked(java.awt.event.MouseEvent evt) {
-                if (m_appuser.hasPermission("com.openbravo.pos.config.JPanelConfiguration")) {
-                    showTask("com.openbravo.pos.config.JPanelConfiguration");
-                    // Seleccionar la pestaña de perfil en un invokeLater para esperar que cargue el panel
-                    javax.swing.SwingUtilities.invokeLater(() -> {
-                        try {
-                            JPanelView viewPanel = rMenu.getViewManager().getCreatedViews().get("com.openbravo.pos.config.JPanelConfiguration");
-                            if (viewPanel instanceof com.openbravo.pos.config.JPanelConfiguration) {
-                                ((com.openbravo.pos.config.JPanelConfiguration) viewPanel).selectProfileTab();
+                // Mostrar popup menu de opciones del sistema
+                JPopupMenu profileMenu = new JPopupMenu();
+                profileMenu.setBackground(new java.awt.Color(30, 41, 59));
+                profileMenu.setBorder(BorderFactory.createLineBorder(new java.awt.Color(202, 159, 65), 1));
+
+                JMenuItem itemPerfil = new JMenuItem("Mi Perfil");
+                styleMenuItem(itemPerfil);
+                itemPerfil.addActionListener(e -> {
+                    if (m_appuser.hasPermission("com.openbravo.pos.config.JPanelConfiguration")) {
+                        showTask("com.openbravo.pos.config.JPanelConfiguration");
+                        javax.swing.SwingUtilities.invokeLater(() -> {
+                            try {
+                                JPanelView viewPanel = rMenu.getViewManager().getCreatedViews()
+                                        .get("com.openbravo.pos.config.JPanelConfiguration");
+                                if (viewPanel instanceof com.openbravo.pos.config.JPanelConfiguration) {
+                                    ((com.openbravo.pos.config.JPanelConfiguration) viewPanel).selectProfileTab();
+                                }
+                            } catch (Exception ex2) {
+                                LOGGER.log(Level.WARNING, "Error al seleccionar pestaña de perfil", ex2);
                             }
-                        } catch (Exception ex) {
-                            LOGGER.log(Level.WARNING, "Error al seleccionar pestaña de perfil", ex);
-                        }
-                    });
-                } else if (m_appuser.hasPermission("com.openbravo.pos.admin.PeoplePanel")) {
-                    showTask("com.openbravo.pos.admin.PeoplePanel");
-                } else {
-                    // Si no tiene permisos de configuración ni de personas, abrir diálogo para cambiar su propia contraseña
-                    String sNewPassword = com.openbravo.beans.JPasswordDialog.changePassword(JPrincipalApp.this, m_appuser.getPassword());
-                    if (sNewPassword != null) {
-                        try {
-                            m_dlSystem.execChangePassword(new Object[]{sNewPassword, m_appuser.getId()});
-                            javax.swing.JOptionPane.showMessageDialog(JPrincipalApp.this,
-                                "Contraseña actualizada correctamente.",
-                                "Éxito",
-                                javax.swing.JOptionPane.INFORMATION_MESSAGE);
-                        } catch (Exception ex) {
-                            LOGGER.log(Level.WARNING, "Error al cambiar contraseña", ex);
-                            javax.swing.JOptionPane.showMessageDialog(JPrincipalApp.this,
-                                "No se pudo cambiar la contraseña.",
-                                "Error",
-                                javax.swing.JOptionPane.ERROR_MESSAGE);
-                        }
+                        });
                     }
-                }
+                });
+                profileMenu.add(itemPerfil);
+
+                JMenuItem itemConfig2 = new JMenuItem("Configuración");
+                styleMenuItem(itemConfig2);
+                itemConfig2.addActionListener(e -> {
+                    if (m_appuser.hasPermission("com.openbravo.pos.config.JPanelConfiguration")) {
+                        showTask("com.openbravo.pos.config.JPanelConfiguration");
+                    }
+                });
+                profileMenu.add(itemConfig2);
+
+                JMenuItem itemSalir2 = new JMenuItem("Salir / Apagar");
+                styleMenuItem(itemSalir2);
+                itemSalir2.addMouseListener(new java.awt.event.MouseAdapter() {
+                    @Override
+                    public void mouseEntered(java.awt.event.MouseEvent e2) {
+                        itemSalir2.setBackground(new java.awt.Color(190, 18, 60));
+                        itemSalir2.setForeground(java.awt.Color.WHITE);
+                    }
+                    @Override
+                    public void mouseExited(java.awt.event.MouseEvent e2) {
+                        itemSalir2.setBackground(new java.awt.Color(30, 41, 59));
+                        itemSalir2.setForeground(new java.awt.Color(241, 245, 249));
+                    }
+                });
+                itemSalir2.addActionListener(e -> m_appview.tryToClose());
+                profileMenu.add(itemSalir2);
+
+                profileMenu.show(profileGroupPanel,
+                        profileGroupPanel.getWidth() - profileMenu.getPreferredSize().width,
+                        profileGroupPanel.getHeight() + 4);
             }
         });
 
-        
-        // --- Bandera de Argentina ---
-        javax.swing.JPanel flagArPanel = new javax.swing.JPanel() {
-            @Override
-            protected void paintComponent(java.awt.Graphics g) {
-                super.paintComponent(g);
-                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
-                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-                int w = getWidth(); int h = getHeight();
-                int stripe = h / 3;
-                java.awt.Color lightBlue = new java.awt.Color(116, 172, 220); // celeste argentina
-                java.awt.Color white = java.awt.Color.WHITE;
-                // Franja superior celeste
-                g2.setColor(lightBlue);
-                g2.fillRect(0, 0, w, stripe);
-                // Franja media blanca
-                g2.setColor(white);
-                g2.fillRect(0, stripe, w, stripe);
-                // Franja inferior celeste
-                g2.setColor(lightBlue);
-                g2.fillRect(0, stripe * 2, w, h - stripe * 2);
-                // Sol de mayo (centro)
-                int cx = w / 2; int cy = h / 2;
-                int sunR = stripe / 2 - 1;
-                g2.setColor(new java.awt.Color(252, 191, 73)); // dorado
-                // Rayos del sol
-                g2.setStroke(new java.awt.BasicStroke(1.0f));
-                int rays = 16;
-                for (int i = 0; i < rays; i++) {
-                    double angle = Math.toRadians(i * (360.0 / rays));
-                    int x1 = cx + (int)((sunR + 1) * Math.cos(angle));
-                    int y1 = cy + (int)((sunR + 1) * Math.sin(angle));
-                    int x2 = cx + (int)((sunR + 3) * Math.cos(angle));
-                    int y2 = cy + (int)((sunR + 3) * Math.sin(angle));
-                    g2.drawLine(x1, y1, x2, y2);
-                }
-                // CÃ­rculo del sol
-                g2.fillOval(cx - sunR, cy - sunR, sunR * 2, sunR * 2);
-                // Contorno sutil de la bandera
-                g2.setColor(new java.awt.Color(0, 0, 0, 60));
-                g2.setStroke(new java.awt.BasicStroke(1f));
-                g2.drawRoundRect(0, 0, w - 1, h - 1, 3, 3);
-                g2.dispose();
-            }
-        };
-        flagArPanel.setOpaque(false);
-        flagArPanel.setPreferredSize(new java.awt.Dimension(36, 24));
-        flagArPanel.setMinimumSize(new java.awt.Dimension(36, 24));
-        flagArPanel.setMaximumSize(new java.awt.Dimension(36, 24));
-        flagArPanel.setToolTipText("Argentina");
-        flagArPanel.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        flagArPanel.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                if (m_appuser.hasPermission("com.openbravo.pos.config.JPanelConfiguration")) {
-                    showTask("com.openbravo.pos.config.JPanelConfiguration");
-                    // Seleccionar la pestaña de Localización (Idioma)
-                    javax.swing.SwingUtilities.invokeLater(() -> {
-                        try {
-                            JPanelView viewPanel = rMenu.getViewManager().getCreatedViews().get("com.openbravo.pos.config.JPanelConfiguration");
-                            if (viewPanel instanceof com.openbravo.pos.config.JPanelConfiguration) {
-                                ((com.openbravo.pos.config.JPanelConfiguration) viewPanel).selectLocaleTab();
-                            }
-                        } catch (Exception ex) {
-                            LOGGER.log(Level.WARNING, "Error al seleccionar pestaña de idioma", ex);
-                        }
-                    });
-                } else {
-                    javax.swing.JOptionPane.showMessageDialog(JPrincipalApp.this, 
-                        "No tienes permiso para acceder a la configuración de idioma.", 
-                        "Acceso Denegado", 
-                        javax.swing.JOptionPane.WARNING_MESSAGE);
-                }
-            }
-        });
-        
-        // Wrapper para centrar verticalmente la bandera
-        javax.swing.JPanel flagWrapper = new javax.swing.JPanel();
-        flagWrapper.setLayout(new java.awt.GridBagLayout());
-        flagWrapper.setOpaque(false);
-        flagWrapper.setPreferredSize(new java.awt.Dimension(36, 32));
-        flagWrapper.add(flagArPanel);
-        
-        // BotÃ³n de Apagar / Cerrar Programa (con sÃ­mbolo power vectorizado en rojo)
-        javax.swing.JButton btnCerrar = new javax.swing.JButton() {
-            @Override
-            protected void paintComponent(java.awt.Graphics g) {
-                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
-                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-                int w = getWidth(); int h = getHeight();
-                
-                // Fondo circular rojo
-                g2.setColor(COLOR_DANGER);
-                if (getModel().isRollover()) {
-                    g2.setColor(COLOR_DANGER.brighter());
-                }
-                g2.fillOval(2, 2, w - 5, h - 5);
-                
-                // SÃ­mbolo de power blanco
-                g2.setColor(java.awt.Color.WHITE);
-                g2.setStroke(new java.awt.BasicStroke(2.2f));
-                // Arco abierto arriba
-                g2.drawArc(8, 8, w - 17, h - 17, 120, 300);
-                // LÃ­nea vertical central
-                g2.drawLine(w / 2, 6, w / 2, h / 2 - 2);
-                g2.dispose();
-            }
-        };
-        btnCerrar.setOpaque(false);
-        btnCerrar.setContentAreaFilled(false);
-        btnCerrar.setBorderPainted(false);
-        btnCerrar.setFocusPainted(false);
-        btnCerrar.setFocusable(false);
-        btnCerrar.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnCerrar.setToolTipText("Apagar / Salir del Sistema");
-        btnCerrar.setPreferredSize(new java.awt.Dimension(32, 32));
-        btnCerrar.setMinimumSize(new java.awt.Dimension(32, 32));
-        btnCerrar.setMaximumSize(new java.awt.Dimension(32, 32));
-        btnCerrar.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                m_appview.tryToClose();
-            }
-        });
-        
-        // BotÃ³n de ConfiguraciÃ³n (con sÃ­mbolo de engranaje vectorizado grande)
-        javax.swing.JButton btnConfig = new javax.swing.JButton() {
-            @Override
-            protected void paintComponent(java.awt.Graphics g) {
-                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
-                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-                int w = getWidth(); int h = getHeight();
-                
-                int cx = w / 2; int cy = h / 2;
-                int rOuter = 11; // Dientes del engranaje mÃ¡s grandes
-                int rInner = 6;
-                
-                g2.setColor(new java.awt.Color(200, 200, 200));
-                if (getModel().isRollover()) {
-                    g2.setColor(COLOR_BRAND_ORANGE);
-                }
-                
-                // Dibujar 8 dientes del engranaje
-                g2.setStroke(new java.awt.BasicStroke(3.5f));
-                for (int i = 0; i < 8; i++) {
-                    double angle = Math.toRadians(i * 45);
-                    int x1 = cx + (int)(rInner * Math.cos(angle));
-                    int y1 = cy + (int)(rInner * Math.sin(angle));
-                    int x2 = cx + (int)(rOuter * Math.cos(angle));
-                    int y2 = cy + (int)(rOuter * Math.sin(angle));
-                    g2.drawLine(x1, y1, x2, y2);
-                }
-                
-                // Dibujar anillo exterior
-                g2.setStroke(new java.awt.BasicStroke(2.5f));
-                g2.drawOval(cx - rInner, cy - rInner, rInner * 2, rInner * 2);
-                
-                // Agujero central
-                g2.setColor(new java.awt.Color(32, 32, 32)); // Color de fondo oscuro sutil
-                g2.fillOval(cx - 3, cy - 3, 6, 6);
-                g2.dispose();
-            }
-        };
-        btnConfig.setOpaque(false);
-        btnConfig.setContentAreaFilled(false);
-        btnConfig.setBorderPainted(false);
-        btnConfig.setFocusPainted(false);
-        btnConfig.setFocusable(false);
-        btnConfig.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnConfig.setToolTipText("Configuración del Sistema");
-        btnConfig.setPreferredSize(new java.awt.Dimension(36, 36));
-        btnConfig.setMinimumSize(new java.awt.Dimension(36, 36));
-        btnConfig.setMaximumSize(new java.awt.Dimension(36, 36));
-        btnConfig.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                if (m_appuser.hasPermission("com.openbravo.pos.config.JPanelConfiguration")) {
-                    showTask("com.openbravo.pos.config.JPanelConfiguration");
-                } else {
-                    javax.swing.JOptionPane.showMessageDialog(null, 
-                        "No tienes permiso para acceder a la configuración.", 
-                        "Acceso Denegado", 
-                        javax.swing.JOptionPane.WARNING_MESSAGE);
-                }
-            }
-        });
-        
-        // Agregar componentes al panel en el orden solicitado:
-        // BotÃ³n apagar, Bandera, Perfil, ConfiguraciÃ³n
-        atendidoPanel.add(btnConfig);
+        atendidoPanel.removeAll();
+        atendidoPanel.add(m_btnNotification);
         atendidoPanel.add(profileGroupPanel);
-        atendidoPanel.add(flagWrapper);
-        atendidoPanel.add(btnCerrar);
-        
-        rightTopPanel.add(atendidoPanel, java.awt.BorderLayout.CENTER);
-        
+
+        java.awt.GridBagConstraints gbcCentred = new java.awt.GridBagConstraints();
+        gbcCentred.gridx = 0;
+        gbcCentred.gridy = 0;
+        gbcCentred.anchor = java.awt.GridBagConstraints.CENTER;
+        rightTopPanel.add(atendidoPanel, gbcCentred);
+
         artisticTopPanel.add(rightTopPanel, java.awt.BorderLayout.EAST);
         // Sebastian - Agregar barra de menú horizontal arriba del título (con múltiples
         // filas automáticas)
@@ -1473,10 +1313,10 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         topContainer.setLayout(new java.awt.BorderLayout());
         topContainer.setOpaque(true);
         topContainer.setBackground(COLOR_HEADER_BLACK);
-        
+
         // Agregar panel artístico arriba
         topContainer.add(artisticTopPanel, java.awt.BorderLayout.NORTH);
-        
+
         // Panel para la barra de menú y título
         javax.swing.JPanel menuContainer = new javax.swing.JPanel();
         menuContainer.setLayout(new javax.swing.BoxLayout(menuContainer, javax.swing.BoxLayout.Y_AXIS));
@@ -1494,7 +1334,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         // No forzar tamaño preferido para evitar espacio cuando m_jPanelTitle está
         // oculto
         // El tamaño se calculará automáticamente basado en los componentes visibles
-        
+
         topContainer.add(menuContainer, java.awt.BorderLayout.CENTER);
 
         m_jPanelRightSide.setOpaque(true);
@@ -1518,30 +1358,97 @@ public class JPrincipalApp extends JPanel implements AppUserView {
     }// GEN-LAST:event_colapseButtonActionPerformed
 
     /**
+     * Sebastian - Aplica el estilo moderno sin ícono a un JMenuItem del menú de
+     * cabecera
+     */
+    private void styleMenuItem(JMenuItem item) {
+        item.setFont(com.openbravo.pos.util.ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 13));
+        item.setBackground(new java.awt.Color(30, 41, 59)); // Gris pizarra
+        item.setForeground(new java.awt.Color(241, 245, 249)); // Off-white
+        item.setOpaque(true);
+        item.setIcon(null); // Sin ícono
+        item.setBorder(BorderFactory.createEmptyBorder(10, 24, 10, 24));
+        item.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+
+        item.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                item.setBackground(new java.awt.Color(202, 159, 65)); // Oro corporativo
+                item.setForeground(java.awt.Color.WHITE);
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                item.setBackground(new java.awt.Color(30, 41, 59));
+                item.setForeground(new java.awt.Color(241, 245, 249));
+            }
+        });
+    }
+
+    /**
+     * Sebastian - Agrega una opción de texto sin ícono al menú hamburguesa
+     */
+    private void addMenuItem(JPopupMenu menu, String text, String taskClass) {
+        JMenuItem item = new JMenuItem(text);
+        item.setFont(com.openbravo.pos.util.ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 13));
+        item.setBackground(new java.awt.Color(30, 41, 59)); // Gris pizarra
+        item.setForeground(new java.awt.Color(241, 245, 249)); // Off-white
+        item.setOpaque(true);
+        item.setIcon(null); // Sin ícono
+        item.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        item.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+
+        item.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                item.setBackground(new java.awt.Color(202, 159, 65)); // Oro corporativo al hacer hover
+                item.setForeground(java.awt.Color.WHITE);
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                item.setBackground(new java.awt.Color(30, 41, 59));
+                item.setForeground(new java.awt.Color(241, 245, 249));
+            }
+        });
+
+        item.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                showTask(taskClass);
+            }
+        });
+
+        menu.add(item);
+    }
+
+    /**
      * Método helper para crear botones del menú de forma consistente
      */
     private javax.swing.JButton createMenuButton(String iconPath, String text, String taskClass) {
         return createMenuButton(iconPath, text, taskClass, null);
     }
-    
+
     /**
      * Método helper para crear botones del menú con color personalizado
      */
-    private javax.swing.JButton createMenuButton(String iconPath, String text, String taskClass, java.awt.Color backgroundColor) {
+    private javax.swing.JButton createMenuButton(String iconPath, String text, String taskClass,
+            java.awt.Color backgroundColor) {
         javax.swing.JButton button = new javax.swing.JButton();
         // Iconos removidos para diseño compacto como eleventa
         button.setText(text);
-        
+
         // Calcular ancho basado en la longitud del texto para que se lea bien
         int textLength = text.length();
-        int buttonWidth = Math.max(60, Math.min(130, 30 + (textLength * 6))); // Mínimo 60, máximo 130, más proporcional al texto
-        
+        int buttonWidth = Math.max(60, Math.min(130, 30 + (textLength * 6))); // Mínimo 60, máximo 130, más proporcional
+                                                                              // al texto
+
         // Tamaño compacto y proporcional al texto
         button.setPreferredSize(new java.awt.Dimension(buttonWidth, 25));
         button.setMinimumSize(new java.awt.Dimension(60, 25));
         button.setMaximumSize(new java.awt.Dimension(130, 25));
-        button.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 15)); // Tamaño de fuente aumentado para mejor legibilidad
-        
+        button.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 15)); // Tamaño de fuente aumentado para mejor
+                                                                             // legibilidad
+
         // Color de fondo personalizado o blanco por defecto
         if (backgroundColor != null) {
             button.setBackground(backgroundColor);
@@ -1552,13 +1459,13 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             button.setBackground(java.awt.Color.WHITE);
             button.setForeground(java.awt.Color.BLACK);
         }
-        
+
         button.setOpaque(true);
         button.setFocusPainted(false);
         button.setBorderPainted(true);
         button.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200), 1),
-            javax.swing.BorderFactory.createEmptyBorder(2, 5, 2, 5)));
+                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200), 1),
+                javax.swing.BorderFactory.createEmptyBorder(2, 5, 2, 5)));
         button.setPreferredSize(new java.awt.Dimension(Math.max(90, Math.min(180, 54 + (textLength * 7))), 34));
         button.setMinimumSize(new java.awt.Dimension(90, 34));
         button.setMaximumSize(new java.awt.Dimension(180, 34));
@@ -1578,7 +1485,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                 refreshNavigationButtonStyle(button, false);
             }
         });
-        
+
         button.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 showTask(taskClass);
@@ -1661,7 +1568,8 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         if (btnCierreRef != null) {
             inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F2, 0), "shortcutCierre");
             actionMap.put("shortcutCierre", new javax.swing.AbstractAction() {
-                @Override
+
+    @Override
                 public void actionPerformed(java.awt.event.ActionEvent e) {
                     if (btnCierreRef != null && btnCierreRef.isEnabled()) {
                         btnCierreRef.doClick();
@@ -1682,21 +1590,23 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                 }
             });
         }
-        
-        // F4: Reportes
-        if (btnReportesRef != null) {
-            inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F4, 0), "shortcutReportes");
-            actionMap.put("shortcutReportes", new javax.swing.AbstractAction() {
-                @Override
-                public void actionPerformed(java.awt.event.ActionEvent e) {
-                    if (btnReportesRef != null && btnReportesRef.isEnabled()) {
-                        btnReportesRef.doClick();
-                    }
+
+    // F4: Reportes
+    if(btnReportesRef!=null)
+
+    {
+        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F4, 0), "shortcutReportes");
+        actionMap.put("shortcutReportes", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                if (btnReportesRef != null && btnReportesRef.isEnabled()) {
+                    btnReportesRef.doClick();
                 }
-            });
-        }
-        
-        LOGGER.log(Level.INFO, "✅ Atajos de teclado globales configurados: F1=Ventas, F2=Cerrar Caja, F3=Stock, F4=Reportes");
+            }
+        });
+    }
+
+    LOGGER.log(Level.INFO,"✅ Atajos de teclado globales configurados: F1=Ventas, F2=Cerrar Caja, F3=Stock, F4=Reportes");
     }
 
     /**
@@ -1785,9 +1695,9 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         }
         return null;
     }
-    
+
     private javax.swing.JPanel m_jPanelBreadcrumbs = null;
-    
+
     private void updateBreadcrumbs(String sTaskClass, String sTitle) {
         if (m_jPanelTitle == null) {
             return;
@@ -1886,7 +1796,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         m_jPanelTitle.revalidate();
         m_jPanelTitle.repaint();
     }
-    
+
     private javax.swing.JLabel createBreadcrumbLink(String text, final Runnable action) {
         final javax.swing.JLabel link = new javax.swing.JLabel(stripHtml(text));
         link.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 15));
@@ -1896,7 +1806,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         link.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseEntered(java.awt.event.MouseEvent e) {
-                link.setForeground(new java.awt.Color(243, 153, 18)); // COLOR_BRAND_ORANGE
+                link.setForeground(COLOR_BRAND_ORANGE);
             }
             
             @Override
@@ -1912,14 +1822,14 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         
         return link;
     }
-    
+
     private javax.swing.JLabel createBreadcrumbSeparator() {
         javax.swing.JLabel sep = new javax.swing.JLabel("\u203a");
         sep.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 15));
         sep.setForeground(new java.awt.Color(110, 110, 110));
         return sep;
     }
-    
+
     private String stripHtml(String value) {
         if (value == null) {
             return "";
@@ -1943,4 +1853,523 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         }
     }
 
+    private void createNotificationSidebar() {
+        m_jPanelNotificationSidebar = new javax.swing.JPanel(new java.awt.BorderLayout()) {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                super.paintComponent(g);
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                // Borde izquierdo sutil
+                g2.setColor(COLOR_LINE);
+                g2.drawLine(0, 0, 0, getHeight());
+                g2.dispose();
+            }
+        };
+        m_jPanelNotificationSidebar.setOpaque(true);
+        m_jPanelNotificationSidebar.setBackground(java.awt.Color.WHITE);
+        m_jPanelNotificationSidebar.setPreferredSize(new java.awt.Dimension(320, 200));
+
+        // Header de la barra lateral con altura cómoda y fija
+        javax.swing.JPanel headerPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+        headerPanel.setOpaque(true);
+        headerPanel.setBackground(new java.awt.Color(248, 250, 252)); // Slate-50
+        headerPanel.setPreferredSize(new java.awt.Dimension(320, 52));
+        headerPanel.setMinimumSize(new java.awt.Dimension(320, 52));
+        headerPanel.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 52));
+        headerPanel.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, COLOR_LINE),
+                javax.swing.BorderFactory.createEmptyBorder(0, 16, 0, 10)
+        ));
+
+        m_lblNotificationTitle = new javax.swing.JLabel("Alertas y Notificaciones");
+        m_lblNotificationTitle.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
+        m_lblNotificationTitle.setForeground(COLOR_TEXT);
+        headerPanel.add(m_lblNotificationTitle, java.awt.BorderLayout.CENTER);
+
+        // Botón Cerrar (X) con renderizado vectorial perfecto centrado y respuesta instantánea
+        javax.swing.JButton btnClose = new javax.swing.JButton() {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                int w = getWidth();
+                int h = getHeight();
+
+                int boxSize = 30;
+                int bx = (w - boxSize) / 2;
+                int by = (h - boxSize) / 2;
+
+                if (getModel().isPressed()) {
+                    g2.setColor(new java.awt.Color(226, 232, 240)); // slate-200
+                    g2.fillRoundRect(bx, by, boxSize, boxSize, 8, 8);
+                } else if (getModel().isRollover()) {
+                    g2.setColor(new java.awt.Color(241, 245, 249)); // slate-100
+                    g2.fillRoundRect(bx, by, boxSize, boxSize, 8, 8);
+                }
+
+                int cx = w / 2;
+                int cy = h / 2;
+                int arm = 5;
+                g2.setColor(getModel().isRollover() ? new java.awt.Color(15, 23, 42) : new java.awt.Color(100, 116, 139)); // slate-900 en hover, slate-500 normal
+                g2.setStroke(new java.awt.BasicStroke(2.2f, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
+                g2.drawLine(cx - arm, cy - arm, cx + arm, cy + arm);
+                g2.drawLine(cx + arm, cy - arm, cx - arm, cy + arm);
+
+                g2.dispose();
+            }
+        };
+        btnClose.setPreferredSize(new java.awt.Dimension(36, 36));
+        btnClose.setMinimumSize(new java.awt.Dimension(36, 36));
+        btnClose.setMaximumSize(new java.awt.Dimension(36, 36));
+        btnClose.setOpaque(false);
+        btnClose.setContentAreaFilled(false);
+        btnClose.setBorderPainted(false);
+        btnClose.setFocusPainted(false);
+        btnClose.setFocusable(false);
+        btnClose.setRolloverEnabled(true);
+        btnClose.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnClose.setToolTipText("Cerrar notificaciones (Esc)");
+
+        // Cerrar de forma instantánea al presionar el ratón o por evento de botón (idempotente)
+        btnClose.addActionListener(e -> closeNotificationSidebar());
+        btnClose.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                if (javax.swing.SwingUtilities.isLeftMouseButton(e)) {
+                    closeNotificationSidebar();
+                }
+            }
+        });
+
+        javax.swing.JPanel btnWrapper = new javax.swing.JPanel(new java.awt.GridBagLayout());
+        btnWrapper.setOpaque(false);
+        btnWrapper.add(btnClose);
+        headerPanel.add(btnWrapper, java.awt.BorderLayout.EAST);
+
+        // Atajo ESC para cerrar la barra de notificaciones
+        m_jPanelNotificationSidebar.getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW)
+                .put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ESCAPE, 0), "closeNotificationSidebar");
+        m_jPanelNotificationSidebar.getActionMap().put("closeNotificationSidebar", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                closeNotificationSidebar();
+            }
+        });
+
+        m_jPanelNotificationSidebar.add(headerPanel, java.awt.BorderLayout.NORTH);
+
+        // Panel de lista scrollable
+        m_notificationsListPanel = new javax.swing.JPanel();
+        m_notificationsListPanel.setLayout(new javax.swing.BoxLayout(m_notificationsListPanel, javax.swing.BoxLayout.Y_AXIS));
+        m_notificationsListPanel.setOpaque(true);
+        m_notificationsListPanel.setBackground(java.awt.Color.WHITE);
+        m_notificationsListPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 12, 12, 12));
+
+        javax.swing.JScrollPane scrollPane = new javax.swing.JScrollPane(m_notificationsListPanel);
+        scrollPane.setBorder(null);
+        scrollPane.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.getVerticalScrollBar().setPreferredSize(new java.awt.Dimension(8, 8));
+        
+        m_jPanelNotificationSidebar.add(scrollPane, java.awt.BorderLayout.CENTER);
+
+        m_jPanelRightSide.add(m_jPanelNotificationSidebar, java.awt.BorderLayout.EAST);
+        m_jPanelNotificationSidebar.setVisible(false);
+    }
+
+    public void toggleNotificationSidebar() {
+        if (m_jPanelNotificationSidebar == null) {
+            createNotificationSidebar();
+        }
+        boolean isVisible = !m_jPanelNotificationSidebar.isVisible();
+        m_jPanelNotificationSidebar.setVisible(isVisible);
+        if (isVisible) {
+            refreshNotifications();
+        }
+        revalidate();
+        repaint();
+    }
+
+    public void closeNotificationSidebar() {
+        if (m_jPanelNotificationSidebar != null && m_jPanelNotificationSidebar.isVisible()) {
+            m_jPanelNotificationSidebar.setVisible(false);
+            revalidate();
+            repaint();
+        }
+    }
+
+    private static class NotificationData {
+        java.util.List<com.openbravo.pos.inventory.LowStockProduct> lowStockProducts;
+        java.util.List<com.openbravo.pos.admin.PayrollPendingAlert> payrollAlerts;
+    }
+
+    private void refreshNotifications() {
+        if (m_notificationsListPanel == null) return;
+        m_notificationsListPanel.removeAll();
+
+        final boolean isAdminOrHR = m_appuser != null && (
+            m_appuser.hasPermission("com.openbravo.pos.admin.JPanelHR") ||
+            "admin".equalsIgnoreCase(m_appuser.getName()) ||
+            "Administrator".equalsIgnoreCase(m_appuser.getRole())
+        );
+
+        new javax.swing.SwingWorker<NotificationData, Void>() {
+            @Override
+            protected NotificationData doInBackground() throws Exception {
+                NotificationData data = new NotificationData();
+                try {
+                    com.openbravo.pos.forms.DataLogicSales dlSales = (com.openbravo.pos.forms.DataLogicSales) m_appview.getBean("com.openbravo.pos.forms.DataLogicSales");
+                    if (dlSales != null) {
+                        data.lowStockProducts = dlSales.getLowStockProducts();
+                    }
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Error al obtener stock bajo para notificaciones", e);
+                }
+
+                if (isAdminOrHR) {
+                    try {
+                        com.openbravo.pos.admin.DataLogicHR dlHR = (com.openbravo.pos.admin.DataLogicHR) m_appview.getBean("com.openbravo.pos.admin.DataLogicHR");
+                        if (dlHR != null) {
+                            data.payrollAlerts = dlHR.getPendingPayrollAlerts(new java.util.Date());
+                        }
+                    } catch (Exception e) {
+                        LOGGER.log(Level.WARNING, "Error al obtener nóminas pendientes para notificaciones", e);
+                    }
+                }
+                return data;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    NotificationData data = get();
+                    int stockCount = (data != null && data.lowStockProducts != null) ? data.lowStockProducts.size() : 0;
+                    int payrollCount = (data != null && data.payrollAlerts != null) ? data.payrollAlerts.size() : 0;
+                    int totalAlerts = stockCount + payrollCount;
+
+                    m_notificationCount = totalAlerts;
+                    if (m_lblNotificationTitle != null) {
+                        m_lblNotificationTitle.setText("Alertas y Notificaciones" + (totalAlerts > 0 ? " (" + totalAlerts + ")" : ""));
+                    }
+                    if (m_btnNotification != null) {
+                        m_btnNotification.repaint();
+                    }
+
+                    if (totalAlerts == 0) {
+                        showEmptyState();
+                    } else {
+                        // 1. Mostrar alertas de nómina para el administrador
+                        if (payrollCount > 0) {
+                            if (stockCount > 0) {
+                                addNotificationSectionHeader("Nóminas pendientes (" + payrollCount + ")");
+                            }
+                            for (com.openbravo.pos.admin.PayrollPendingAlert alert : data.payrollAlerts) {
+                                addPayrollNotificationItem(alert);
+                            }
+                        }
+
+                        // 2. Mostrar alertas de inventario bajo
+                        if (stockCount > 0) {
+                            if (payrollCount > 0) {
+                                addNotificationSectionHeader("Inventario bajo (" + stockCount + ")");
+                            }
+                            for (com.openbravo.pos.inventory.LowStockProduct p : data.lowStockProducts) {
+                                addNotificationItem(p);
+                            }
+                        }
+                    }
+                } catch (Exception ex) {
+                    showErrorState(ex.getMessage());
+                }
+                m_notificationsListPanel.revalidate();
+                m_notificationsListPanel.repaint();
+            }
+        }.execute();
+    }
+
+    private void addNotificationSectionHeader(String title) {
+        javax.swing.JLabel lbl = new javax.swing.JLabel(title);
+        lbl.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 11));
+        lbl.setForeground(new java.awt.Color(71, 85, 105)); // Slate-600
+        lbl.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 4, 6, 4));
+        m_notificationsListPanel.add(lbl);
+    }
+
+    private void showEmptyState() {
+        javax.swing.JPanel emptyPanel = new javax.swing.JPanel();
+        emptyPanel.setLayout(new javax.swing.BoxLayout(emptyPanel, javax.swing.BoxLayout.Y_AXIS));
+        emptyPanel.setOpaque(false);
+        emptyPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(40, 20, 40, 20));
+
+        javax.swing.JLabel checkLabel = new javax.swing.JLabel("✓");
+        checkLabel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 48));
+        checkLabel.setForeground(new java.awt.Color(34, 197, 94)); // verde-500
+        checkLabel.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+
+        javax.swing.JLabel text1 = new javax.swing.JLabel("Todo en orden por el momento");
+        text1.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
+        text1.setForeground(COLOR_TEXT_MUTED);
+        text1.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+
+        emptyPanel.add(checkLabel);
+        emptyPanel.add(javax.swing.Box.createVerticalStrut(16));
+        emptyPanel.add(text1);
+
+        m_notificationsListPanel.add(emptyPanel);
+    }
+
+    private void showErrorState(String errorMsg) {
+        javax.swing.JLabel errLbl = new javax.swing.JLabel("Error al cargar alertas: " + errorMsg);
+        errLbl.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        errLbl.setForeground(COLOR_DANGER);
+        m_notificationsListPanel.add(errLbl);
+    }
+
+    private void addPayrollNotificationItem(com.openbravo.pos.admin.PayrollPendingAlert p) {
+        javax.swing.JPanel item = new javax.swing.JPanel(new java.awt.BorderLayout(12, 0)) {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                super.paintComponent(g);
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                boolean hover = Boolean.TRUE.equals(getClientProperty("hover"));
+                if (hover) {
+                    g2.setColor(new java.awt.Color(226, 232, 240)); // slate-200
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                    g2.setColor(new java.awt.Color(203, 213, 225)); // slate-300
+                } else {
+                    g2.setColor(new java.awt.Color(241, 245, 249)); // slate-100
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                    g2.setColor(new java.awt.Color(226, 232, 240)); // slate-200
+                }
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
+                g2.dispose();
+            }
+        };
+        item.setOpaque(false);
+        item.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        item.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 68));
+        item.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        item.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                item.putClientProperty("hover", Boolean.TRUE);
+                item.repaint();
+            }
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                item.putClientProperty("hover", Boolean.FALSE);
+                item.repaint();
+            }
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                closeNotificationSidebar();
+                openHRPayroll(p.getEmployeeId());
+            }
+        });
+
+        // Icono de nómina ($): Rojo si está vencida, Azul si es hoy/programada
+        final boolean isOverdue = p.isOverdue();
+        javax.swing.JPanel iconPanel = new javax.swing.JPanel() {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                int w = getWidth();
+                int h = getHeight();
+                
+                if (isOverdue) {
+                    g2.setColor(new java.awt.Color(239, 68, 68)); // red-500
+                } else {
+                    g2.setColor(new java.awt.Color(37, 99, 235)); // blue-600
+                }
+                g2.fillOval(0, 0, w, h);
+
+                g2.setColor(java.awt.Color.WHITE);
+                g2.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
+                java.awt.FontMetrics fm = g2.getFontMetrics();
+                String text = "$";
+                int tx = (w - fm.stringWidth(text)) / 2;
+                int ty = (h - fm.getHeight()) / 2 + fm.getAscent();
+                g2.drawString(text, tx, ty);
+                
+                g2.dispose();
+            }
+        };
+        iconPanel.setOpaque(false);
+        iconPanel.setPreferredSize(new java.awt.Dimension(28, 28));
+        iconPanel.setMinimumSize(new java.awt.Dimension(28, 28));
+        iconPanel.setMaximumSize(new java.awt.Dimension(28, 28));
+
+        item.add(iconPanel, java.awt.BorderLayout.WEST);
+
+        // Textos de la nómina
+        javax.swing.JPanel textPanel = new javax.swing.JPanel();
+        textPanel.setLayout(new javax.swing.BoxLayout(textPanel, javax.swing.BoxLayout.Y_AXIS));
+        textPanel.setOpaque(false);
+
+        String empName = p.getEmployeeName();
+        if (empName != null && empName.length() > 24) {
+            empName = empName.substring(0, 22) + "...";
+        }
+        javax.swing.JLabel nameLabel = new javax.swing.JLabel("Nómina: " + (empName == null ? "Colaborador" : empName));
+        nameLabel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        nameLabel.setForeground(COLOR_TEXT);
+
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+        String dateStr = p.getPaymentDate() != null ? sdf.format(p.getPaymentDate()) : "Hoy";
+        String amountStr = Formats.CURRENCY.formatValue(p.getAmount());
+
+        String statusStr = p.isOverdue() ? "Vencida" : p.getStatus();
+        javax.swing.JLabel detailLabel = new javax.swing.JLabel(
+            p.getPeriodLabel() + " • " + statusStr
+        );
+        detailLabel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+        detailLabel.setForeground(p.isOverdue() ? new java.awt.Color(220, 38, 38) : new java.awt.Color(71, 85, 105));
+
+        javax.swing.JLabel payLabel = new javax.swing.JLabel(
+            "Pago: " + dateStr + " • " + amountStr
+        );
+        payLabel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 11));
+        payLabel.setForeground(new java.awt.Color(37, 99, 235));
+
+        textPanel.add(nameLabel);
+        textPanel.add(javax.swing.Box.createVerticalStrut(2));
+        textPanel.add(detailLabel);
+        textPanel.add(javax.swing.Box.createVerticalStrut(1));
+        textPanel.add(payLabel);
+
+        item.add(textPanel, java.awt.BorderLayout.CENTER);
+
+        m_notificationsListPanel.add(item);
+        m_notificationsListPanel.add(javax.swing.Box.createVerticalStrut(8));
+    }
+
+    private void addNotificationItem(com.openbravo.pos.inventory.LowStockProduct p) {
+        javax.swing.JPanel item = new javax.swing.JPanel(new java.awt.BorderLayout(12, 0)) {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                super.paintComponent(g);
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                boolean hover = Boolean.TRUE.equals(getClientProperty("hover"));
+                if (hover) {
+                    g2.setColor(new java.awt.Color(226, 232, 240)); // slate-200
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                    g2.setColor(new java.awt.Color(203, 213, 225)); // slate-300
+                } else {
+                    g2.setColor(new java.awt.Color(241, 245, 249)); // slate-100
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                    g2.setColor(new java.awt.Color(226, 232, 240)); // slate-200
+                }
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
+                g2.dispose();
+            }
+        };
+        item.setOpaque(false);
+        item.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        item.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 64));
+        item.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        item.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                item.putClientProperty("hover", Boolean.TRUE);
+                item.repaint();
+            }
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                item.putClientProperty("hover", Boolean.FALSE);
+                item.repaint();
+            }
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                closeNotificationSidebar();
+                openProductDetails(p.getProductId());
+            }
+        });
+
+        // Icono de advertencia
+        javax.swing.JPanel iconPanel = new javax.swing.JPanel() {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                int w = getWidth();
+                int h = getHeight();
+                
+                // Círculo ámbar
+                g2.setColor(new java.awt.Color(251, 191, 36)); // amber-400
+                g2.fillOval(0, 0, w, h);
+
+                // Exclamación blanca
+                g2.setColor(java.awt.Color.WHITE);
+                g2.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
+                java.awt.FontMetrics fm = g2.getFontMetrics();
+                String text = "!";
+                int tx = (w - fm.stringWidth(text)) / 2;
+                int ty = (h - fm.getHeight()) / 2 + fm.getAscent();
+                g2.drawString(text, tx, ty);
+                
+                g2.dispose();
+            }
+        };
+        iconPanel.setOpaque(false);
+        iconPanel.setPreferredSize(new java.awt.Dimension(28, 28));
+        iconPanel.setMinimumSize(new java.awt.Dimension(28, 28));
+        iconPanel.setMaximumSize(new java.awt.Dimension(28, 28));
+
+        item.add(iconPanel, java.awt.BorderLayout.WEST);
+
+        // Textos del producto
+        javax.swing.JPanel textPanel = new javax.swing.JPanel();
+        textPanel.setLayout(new javax.swing.BoxLayout(textPanel, javax.swing.BoxLayout.Y_AXIS));
+        textPanel.setOpaque(false);
+
+        String prodName = p.getProductName();
+        if (prodName.length() > 28) {
+            prodName = prodName.substring(0, 26) + "...";
+        }
+        javax.swing.JLabel nameLabel = new javax.swing.JLabel(prodName);
+        nameLabel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        nameLabel.setForeground(COLOR_TEXT);
+        
+        javax.swing.JLabel stockLabel = new javax.swing.JLabel(
+            "Stock: " + Formats.DOUBLE.formatValue(p.getUnits()) + " (Mín: " + Formats.DOUBLE.formatValue(p.getMinimum()) + ")"
+        );
+        stockLabel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+        stockLabel.setForeground(new java.awt.Color(239, 68, 68)); // Rojo suave para resaltar stock crítico
+
+        textPanel.add(nameLabel);
+        textPanel.add(javax.swing.Box.createVerticalStrut(2));
+        textPanel.add(stockLabel);
+
+        item.add(textPanel, java.awt.BorderLayout.CENTER);
+
+        m_notificationsListPanel.add(item);
+        m_notificationsListPanel.add(javax.swing.Box.createVerticalStrut(8));
+    }
+
+    private void openProductDetails(String productId) {
+        String taskClass = "com.openbravo.pos.inventory.ProductsPanel";
+        showTask(taskClass);
+        
+        JPanelView viewPanel = rMenu.getViewManager().getCreatedViews().get(taskClass);
+        if (viewPanel instanceof com.openbravo.pos.inventory.ProductsPanel) {
+            com.openbravo.pos.inventory.ProductsPanel productsPanel = (com.openbravo.pos.inventory.ProductsPanel) viewPanel;
+            productsPanel.showProductById(productId);
+        }
+    }
+
+    private void openHRPayroll(String employeeId) {
+        String taskClass = "com.openbravo.pos.admin.JPanelHR";
+        showTask(taskClass);
+        
+        JPanelView viewPanel = rMenu.getViewManager().getCreatedViews().get(taskClass);
+        if (viewPanel instanceof com.openbravo.pos.admin.JPanelHR) {
+            com.openbravo.pos.admin.JPanelHR hrPanel = (com.openbravo.pos.admin.JPanelHR) viewPanel;
+            hrPanel.showEmployeePayroll(employeeId);
+        }
+    }
 }

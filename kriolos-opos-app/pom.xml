@@ -67,6 +67,30 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             <artifactId>kriolos-opos-assets-image</artifactId>
         </dependency>
 
+        <!-- Java Mail -->
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>javax.mail</artifactId>
+        </dependency>
+
+        <!-- Google Authenticator TOTP -->
+        <dependency>
+            <groupId>com.warrenstrange</groupId>
+            <artifactId>googleauth</artifactId>
+            <version>1.5.0</version>
+        </dependency>
+        <!-- ZXing for QR Code Generation -->
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>core</artifactId>
+            <version>3.5.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>javase</artifactId>
+            <version>3.5.2</version>
+        </dependency>
+
         <!-- Spring Boot DevTools for hot reload -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -162,6 +186,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             <version>2.2.224</version>
             <scope>runtime</scope>
         </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.2</version>
+        </dependency>
         
         <!-- JASPER REPOR -->
         <dependency> 
@@ -197,7 +226,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             <groupId>org.apache.poi</groupId>
             <artifactId>poi</artifactId>
             <version>5.2.3</version>
-            <scope>runtime</scope>
         </dependency>
         
         <!-- rsyntaxtextarea -->
@@ -375,6 +403,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                 <resource>
                                     <directory>src/main/resources</directory>
                                     <filtering>true</filtering>
+                                    <excludes>
+                                        <exclude>**/Window.Title.txt</exclude>
+                                    </excludes>
                                 </resource>
                             </resources>
                         </configuration>

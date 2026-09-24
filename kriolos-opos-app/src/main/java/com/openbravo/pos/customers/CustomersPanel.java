@@ -16,6 +16,8 @@
 
 package com.openbravo.pos.customers;
 
+import com.openbravo.pos.util.ModernLookAndFeel;
+import javax.swing.BorderFactory;
 import com.openbravo.basic.BasicException;
 import com.openbravo.data.gui.ListCellRendererBasic;
 import com.openbravo.data.loader.ComparatorCreator;
@@ -96,6 +98,9 @@ public class CustomersPanel extends JPanelTable {
         super.activate();
         ensureDlCustomersInitialized(); // Asegurar inicialización antes de usar
         jeditor.activate();     
+        try {
+            com.openbravo.pos.sync.VoltiumSyncService.sincronizarClientesAsync();
+        } catch (Exception ignored) {}
     }
 
     @Override
@@ -113,11 +118,42 @@ public class CustomersPanel extends JPanelTable {
         if (dlCustomers == null) {
             throw new IllegalStateException("DataLogicCustomers no está inicializado");
         }
-        return dlCustomers.getCustomerSaveProvider();
-        /*return new DefaultSaveProvider(dlCustomers.getTableCustomers(), new int[] {
-            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,            
-            15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26});  
-       */
+        final SaveProvider orig = dlCustomers.getCustomerSaveProvider();
+        return new SaveProvider() {
+            @Override
+            public boolean canDelete() {
+                return orig.canDelete();
+            }
+
+            @Override
+            public boolean canInsert() {
+                return orig.canInsert();
+            }
+
+            @Override
+            public boolean canUpdate() {
+                return orig.canUpdate();
+            }
+
+            @Override
+            public int insertData(Object value) throws BasicException {
+                int r = orig.insertData(value);
+                com.openbravo.pos.sync.VoltiumSyncService.sincronizarClientesAsync();
+                return r;
+            }
+
+            @Override
+            public int updateData(Object value) throws BasicException {
+                int r = orig.updateData(value);
+                com.openbravo.pos.sync.VoltiumSyncService.sincronizarClientesAsync();
+                return r;
+            }
+
+            @Override
+            public int deleteData(Object value) throws BasicException {
+                return orig.deleteData(value);
+            }
+        };
     }
 
     @Override
@@ -151,12 +187,27 @@ public class CustomersPanel extends JPanelTable {
     @Override
     public Component getToolbarExtras() {
         JButton btnPuntos = new JButton("Puntos");
-        btnPuntos.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
-        btnPuntos.setBackground(Color.RED);
+        btnPuntos.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 12));
+        btnPuntos.setBackground(new Color(202, 159, 65)); // Oro
         btnPuntos.setForeground(Color.WHITE);
         btnPuntos.setFocusPainted(false);
+        btnPuntos.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(180, 140, 50), 1),
+                BorderFactory.createEmptyBorder(6, 12, 6, 12)));
+        btnPuntos.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         btnPuntos.setToolTipText("Gestionar sistema de puntos de clientes");
         
+        btnPuntos.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btnPuntos.setBackground(new Color(220, 175, 75)); // Hover gold
+            }
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btnPuntos.setBackground(new Color(202, 159, 65));
+            }
+        });
+
         btnPuntos.addActionListener(e -> abrirVentanaPuntos());
         
         return btnPuntos;
@@ -169,130 +220,185 @@ public class CustomersPanel extends JPanelTable {
         try {
             // Cargar configuración actual
             PuntosConfiguracion configActual = puntosDataLogic.getConfiguracionActiva();
-            
+            Color creamBg = new Color(250, 247, 242);
+            Color goldColor = new Color(202, 159, 65);
+            Color slateColor = new Color(100, 116, 139);
+            Color crimsonColor = new Color(190, 18, 60);
+
             JDialog ventanaPuntos = new JDialog();
             ventanaPuntos.setTitle("Sistema de Puntos - Configuración Real");
-            ventanaPuntos.setSize(650, 500);
+            ventanaPuntos.setSize(650, 520);
             ventanaPuntos.setLocationRelativeTo(this);
             ventanaPuntos.setModal(true);
             
             JPanel panelPrincipal = new JPanel(new BorderLayout());
-            panelPrincipal.setBorder(javax.swing.BorderFactory.createEmptyBorder(20, 20, 20, 20));
+            panelPrincipal.setBackground(creamBg);
+            panelPrincipal.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
             
             // Panel de título
             JPanel panelTitulo = new JPanel();
+            panelTitulo.setBackground(creamBg);
             JLabel titulo = new JLabel("⚙️ CONFIGURACIÓN SISTEMA DE PUNTOS");
-            titulo.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 20));
-            titulo.setForeground(Color.RED);
+            titulo.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 20));
+            titulo.setForeground(goldColor);
             panelTitulo.add(titulo);
             
             // Panel principal de configuración
             JPanel panelConfiguracion = new JPanel(new GridLayout(8, 2, 15, 15));
-            panelConfiguracion.setBorder(javax.swing.BorderFactory.createTitledBorder("Configuración del Sistema"));
+            panelConfiguracion.setBackground(Color.WHITE);
+            panelConfiguracion.setBorder(BorderFactory.createTitledBorder(
+                    BorderFactory.createLineBorder(new Color(224, 224, 224), 1),
+                    "Configuración del Sistema",
+                    javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION,
+                    javax.swing.border.TitledBorder.DEFAULT_POSITION,
+                    ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 12),
+                    new Color(51, 65, 85)
+            ));
             
             // Configuración principal
-            panelConfiguracion.add(new JLabel("💰 Monto requerido (MX):"));
+            JLabel lblMonto = new JLabel("💰 Monto requerido (MX):");
+            lblMonto.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.PLAIN, 12));
+            panelConfiguracion.add(lblMonto);
             JTextField txtMontoRequerido = new JTextField(String.valueOf(configActual.getMontoPorPunto()));
-            txtMontoRequerido.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
+            txtMontoRequerido.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 13));
             txtMontoRequerido.setToolTipText("Ejemplo: 400.00 para otorgar puntos cada $400 MX");
             panelConfiguracion.add(txtMontoRequerido);
             
-            panelConfiguracion.add(new JLabel("⭐ Puntos a otorgar:"));
+            JLabel lblPuntos = new JLabel("⭐ Puntos a otorgar:");
+            lblPuntos.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.PLAIN, 12));
+            panelConfiguracion.add(lblPuntos);
             JTextField txtCantidadPuntos = new JTextField(String.valueOf(configActual.getPuntosOtorgados()));
-            txtCantidadPuntos.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
+            txtCantidadPuntos.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 13));
             txtCantidadPuntos.setToolTipText("Ejemplo: 10 puntos por cada $400 MX");
             panelConfiguracion.add(txtCantidadPuntos);
             
-            panelConfiguracion.add(new JLabel("💱 Moneda:"));
+            JLabel lblMoneda = new JLabel("💱 Moneda:");
+            lblMoneda.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.PLAIN, 12));
+            panelConfiguracion.add(lblMoneda);
             JTextField txtMoneda = new JTextField(configActual.getMoneda());
-            txtMoneda.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
+            txtMoneda.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 13));
             panelConfiguracion.add(txtMoneda);
             
             // Sebastian - Campo para límite diario de puntos
-            panelConfiguracion.add(new JLabel("🚫 Límite diario de puntos:"));
+            JLabel lblLimite = new JLabel("🚫 Límite diario de puntos:");
+            lblLimite.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.PLAIN, 12));
+            panelConfiguracion.add(lblLimite);
             JTextField txtLimiteDiario = new JTextField(String.valueOf(configActual.getLimiteDiarioPuntos()));
-            txtLimiteDiario.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
+            txtLimiteDiario.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 13));
             txtLimiteDiario.setToolTipText("Máximo de puntos que un cliente puede ganar por día");
             panelConfiguracion.add(txtLimiteDiario);
             
-            panelConfiguracion.add(new JLabel("✅ Sistema activado:"));
+            JLabel lblActivo = new JLabel("✅ Sistema activado:");
+            lblActivo.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.PLAIN, 12));
+            panelConfiguracion.add(lblActivo);
             javax.swing.JCheckBox chkSistemaActivo = new javax.swing.JCheckBox("Activar sistema automático en ventas");
             chkSistemaActivo.setSelected(configActual.isSistemaActivo());
-            chkSistemaActivo.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
+            chkSistemaActivo.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 12));
+            chkSistemaActivo.setBackground(Color.WHITE);
             panelConfiguracion.add(chkSistemaActivo);
             
-            // Ejemplo en tiempo real
             panelConfiguracion.add(new JLabel("📊 Configuración actual:"));
             JLabel lblEjemplo = new JLabel(String.format("$%.2f %s = %d puntos", 
                 configActual.getMontoPorPunto(), configActual.getMoneda(), configActual.getPuntosOtorgados()));
-            lblEjemplo.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
-            lblEjemplo.setForeground(Color.BLUE);
+            lblEjemplo.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 13));
+            lblEjemplo.setForeground(goldColor);
             panelConfiguracion.add(lblEjemplo);
             
             // Botones de acción (negrita y tamaño 14 para mejor lectura sobre colores vivos)
             JButton btnActualizarEjemplo = new JButton("🔄 Actualizar Vista");
-            btnActualizarEjemplo.setBackground(Color.ORANGE);
-            btnActualizarEjemplo.setForeground(Color.BLACK);
-            btnActualizarEjemplo.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
+            btnActualizarEjemplo.setBackground(slateColor);
+            btnActualizarEjemplo.setForeground(Color.WHITE);
+            btnActualizarEjemplo.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 12));
+            btnActualizarEjemplo.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
             panelConfiguracion.add(btnActualizarEjemplo);
             
             JButton btnGuardarConfig = new JButton("💾 Guardar Configuración");
-            btnGuardarConfig.setBackground(Color.GREEN);
-            btnGuardarConfig.setForeground(Color.BLACK);
-            btnGuardarConfig.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
+            btnGuardarConfig.setBackground(goldColor);
+            btnGuardarConfig.setForeground(Color.WHITE);
+            btnGuardarConfig.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 12));
+            btnGuardarConfig.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
             panelConfiguracion.add(btnGuardarConfig);
             
             // Botón para recrear tablas (troubleshooting)
             JButton btnRecrearTablas = new JButton("🔧 Recrear Tablas");
-            btnRecrearTablas.setBackground(Color.RED);
+            btnRecrearTablas.setBackground(crimsonColor);
             btnRecrearTablas.setForeground(Color.WHITE);
-            btnRecrearTablas.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
+            btnRecrearTablas.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 11));
+            btnRecrearTablas.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
             btnRecrearTablas.setToolTipText("Fuerza la recreación de las tablas de puntos (usar solo si hay problemas)");
             panelConfiguracion.add(btnRecrearTablas);
             
             // Panel de asignación manual de puntos
             JPanel panelAsignacion = new JPanel(new GridLayout(6, 2, 15, 15));
-            panelAsignacion.setBorder(javax.swing.BorderFactory.createTitledBorder("Asignación Manual de Puntos"));
+            panelAsignacion.setBackground(Color.WHITE);
+            panelAsignacion.setBorder(BorderFactory.createTitledBorder(
+                    BorderFactory.createLineBorder(new Color(224, 224, 224), 1),
+                    "Asignación Manual de Puntos",
+                    javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION,
+                    javax.swing.border.TitledBorder.DEFAULT_POSITION,
+                    ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 12),
+                    new Color(51, 65, 85)
+            ));
             
-            panelAsignacion.add(new JLabel("🆔 ID del Cliente:"));
+            JLabel lblCliId = new JLabel("🆔 ID del Cliente:");
+            lblCliId.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.PLAIN, 12));
+            panelAsignacion.add(lblCliId);
             JTextField txtClienteId = new JTextField();
-            txtClienteId.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
+            txtClienteId.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 13));
             txtClienteId.setToolTipText("ID único del cliente en el sistema");
             panelAsignacion.add(txtClienteId);
             
-            panelAsignacion.add(new JLabel("📦 Producto/Descripción:"));
+            JLabel lblDesc = new JLabel("📦 Producto/Descripción:");
+            lblDesc.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.PLAIN, 12));
+            panelAsignacion.add(lblDesc);
             JTextField txtDescripcion = new JTextField();
-            txtDescripcion.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
+            txtDescripcion.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.PLAIN, 13));
             txtDescripcion.setToolTipText("Nombre del producto o descripción de la asignación");
             panelAsignacion.add(txtDescripcion);
             
-            panelAsignacion.add(new JLabel("⭐ Puntos a asignar:"));
+            JLabel lblPtsAsig = new JLabel("⭐ Puntos a asignar:");
+            lblPtsAsig.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.PLAIN, 12));
+            panelAsignacion.add(lblPtsAsig);
             JTextField txtPuntosAsignar = new JTextField("0");
-            txtPuntosAsignar.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
+            txtPuntosAsignar.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 13));
             txtPuntosAsignar.setToolTipText("Cantidad específica de puntos para este producto");
             panelAsignacion.add(txtPuntosAsignar);
             
-            panelAsignacion.add(new JLabel("🔍 Consultar Cliente:"));
+            JLabel lblCons = new JLabel("🔍 Consultar Cliente:");
+            lblCons.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.PLAIN, 12));
+            panelAsignacion.add(lblCons);
             JButton btnConsultarCliente = new JButton("Ver Puntos Actuales");
-            btnConsultarCliente.setBackground(Color.BLUE);
+            btnConsultarCliente.setBackground(slateColor);
             btnConsultarCliente.setForeground(Color.WHITE);
-            btnConsultarCliente.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 11));
+            btnConsultarCliente.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 11));
+            btnConsultarCliente.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
             panelAsignacion.add(btnConsultarCliente);
             
-            panelAsignacion.add(new JLabel("➕ Acción:"));
+            JLabel lblAcc = new JLabel("➕ Acción:");
+            lblAcc.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.PLAIN, 12));
+            panelAsignacion.add(lblAcc);
             JButton btnAsignarPuntos = new JButton("Asignar Puntos");
-            btnAsignarPuntos.setBackground(Color.GREEN);
+            btnAsignarPuntos.setBackground(goldColor);
             btnAsignarPuntos.setForeground(Color.WHITE);
-            btnAsignarPuntos.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
+            btnAsignarPuntos.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 12));
+            btnAsignarPuntos.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
             panelAsignacion.add(btnAsignarPuntos);
             
             // Panel informativo
             JPanel panelInfo = new JPanel(new BorderLayout());
-            panelInfo.setBorder(javax.swing.BorderFactory.createTitledBorder("Información del Sistema"));
+            panelInfo.setBackground(Color.WHITE);
+            panelInfo.setBorder(BorderFactory.createTitledBorder(
+                    BorderFactory.createLineBorder(new Color(224, 224, 224), 1),
+                    "Información del Sistema",
+                    javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION,
+                    javax.swing.border.TitledBorder.DEFAULT_POSITION,
+                    ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 12),
+                    new Color(51, 65, 85)
+            ));
             
             JTextArea txtInfo = new JTextArea(4, 50);
             txtInfo.setEditable(false);
-            txtInfo.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
+            txtInfo.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.PLAIN, 12));
             txtInfo.setText(
                 "FUNCIONAMIENTO:\n" +
                 "• El sistema se conectará automáticamente con el módulo de ventas\n" +
@@ -307,9 +413,13 @@ public class CustomersPanel extends JPanelTable {
             
             // Panel de botones principales
             JPanel panelBotones = new JPanel(new FlowLayout());
+            panelBotones.setBackground(creamBg);
             
             JButton btnCerrar = new JButton("❌ Cerrar");
-            btnCerrar.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
+            btnCerrar.setFont(ModernLookAndFeel.getPreferredFont("Baradig", java.awt.Font.BOLD, 12));
+            btnCerrar.setBackground(slateColor);
+            btnCerrar.setForeground(Color.WHITE);
+            btnCerrar.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
             
             panelBotones.add(btnCerrar);
             
@@ -359,8 +469,8 @@ public class CustomersPanel extends JPanelTable {
                         String.format("✅ Configuración guardada exitosamente:\n\n" +
                                     "💰 Monto: $%.2f %s\n" +
                                     "⭐ Puntos: %d\n" +
-                                    "� Límite diario: %d puntos\n" +
-                                    "�🔄 Sistema: %s\n\n" +
+                                    "🚫 Límite diario: %d puntos\n" +
+                                    "🔄 Sistema: %s\n\n" +
                                     "Esta configuración se aplicará automáticamente en las ventas.", 
                                     monto, moneda, puntos, limiteDiario,
                                     activo ? "ACTIVO" : "INACTIVO"),
@@ -511,6 +621,7 @@ public class CustomersPanel extends JPanelTable {
             
             // Ensamblar la ventana
             JPanel panelContenido = new JPanel(new BorderLayout(10, 10));
+            panelContenido.setBackground(creamBg);
             panelContenido.add(panelConfiguracion, BorderLayout.NORTH);
             panelContenido.add(panelAsignacion, BorderLayout.CENTER);
             panelContenido.add(panelInfo, BorderLayout.SOUTH);
@@ -520,6 +631,10 @@ public class CustomersPanel extends JPanelTable {
             panelPrincipal.add(panelBotones, BorderLayout.SOUTH);
             
             ventanaPuntos.add(panelPrincipal);
+            
+            // Aplicar estilo moderno al diálogo
+            ModernLookAndFeel.aplicarEstiloModernoADialogo(ventanaPuntos);
+            
             ventanaPuntos.setVisible(true);
             
         } catch (BasicException e) {

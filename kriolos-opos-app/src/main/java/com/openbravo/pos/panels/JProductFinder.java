@@ -24,6 +24,7 @@ import com.openbravo.pos.forms.DataLogicSales;
 import com.openbravo.pos.ticket.ProductFilterSales;
 import com.openbravo.pos.ticket.ProductInfoExt;
 import com.openbravo.pos.ticket.ProductRenderer;
+import com.openbravo.pos.util.ModernActionIcon;
 import java.awt.*;
 import javax.swing.JFrame;
 
@@ -183,7 +184,7 @@ public class JProductFinder extends javax.swing.JDialog {
         m_jProductSelect.setLayout(new java.awt.BorderLayout());
 
         jButton3.setFont(new java.awt.Font("Segoe UI", Font.BOLD, 14)); // NOI18N
-        jButton3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ok.png"))); // NOI18N
+        jButton3.setIcon(new ModernActionIcon(ModernActionIcon.Type.SEARCH, 20));
         jButton3.setText(AppLocal.getIntString("button.executefilter")); // NOI18N
         jButton3.setToolTipText("Ejecutar filtro de productos");
         jButton3.setPreferredSize(new java.awt.Dimension(220, 50)); // Más grande y centrado
@@ -228,7 +229,7 @@ public class JProductFinder extends javax.swing.JDialog {
         jPanel1.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         jcmdCancel.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jcmdCancel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/cancel.png"))); // NOI18N
+        jcmdCancel.setIcon(new ModernActionIcon(ModernActionIcon.Type.DELETE, 20));
         jcmdCancel.setText(AppLocal.getIntString("button.cancel")); // NOI18N
         jcmdCancel.setMargin(new java.awt.Insets(8, 16, 8, 16));
         jcmdCancel.setMaximumSize(new java.awt.Dimension(103, 44));
@@ -242,7 +243,7 @@ public class JProductFinder extends javax.swing.JDialog {
         jPanel1.add(jcmdCancel);
 
         jcmdOK.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jcmdOK.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ok.png"))); // NOI18N
+        jcmdOK.setIcon(new ModernActionIcon(ModernActionIcon.Type.SAVE, 20));
         jcmdOK.setText(AppLocal.getIntString("button.ok")); // NOI18N
         jcmdOK.setEnabled(false);
         jcmdOK.setMargin(new java.awt.Insets(8, 16, 8, 16));

@@ -256,7 +256,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
         }
 
         /**
-         * Sebastian - Getter para acceder a la sesión desde PuntosDataLogic
+         * Sebastian - Getter para acceder a la sesiÃ³n desde PuntosDataLogic
          * 
          * @return Session actual
          */
@@ -289,6 +289,44 @@ public class DataLogicSales extends BeanFactoryDataSingle {
         public List<ProductPriceHistory> getProductPriceHistory(String productId) throws BasicException {
                 initPriceHistoryTable();
                 return m_sentPriceHistoryList.list(productId);
+        }
+        /**
+         * Sebastian - Guardar factura electronica
+         */
+        public final void insertFacturaElectronica(String ticketId, String uuid, double total, String estatus) throws com.openbravo.basic.BasicException {
+            insertFacturaElectronica(ticketId, uuid, null, total, estatus);
+        }
+
+        public final void insertFacturaElectronica(String ticketId, String uuid, String providerId, double total, String estatus) throws com.openbravo.basic.BasicException {
+            new com.openbravo.data.loader.PreparedSentence(s,
+                "INSERT INTO facturas_electronicas (id, ticket_id, uuid, provider_id, fecha, total, estatus) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                new com.openbravo.data.loader.SerializerWriteBasic(new com.openbravo.data.loader.Datas[]{com.openbravo.data.loader.Datas.STRING, com.openbravo.data.loader.Datas.STRING, com.openbravo.data.loader.Datas.STRING, com.openbravo.data.loader.Datas.STRING, com.openbravo.data.loader.Datas.TIMESTAMP, com.openbravo.data.loader.Datas.DOUBLE, com.openbravo.data.loader.Datas.STRING})
+            ).exec(new Object[] { java.util.UUID.randomUUID().toString(), ticketId, uuid, providerId, new java.util.Date(), total, estatus });
+        }
+
+        /** Returns true when a ticket already has an active issued invoice. */
+        public final boolean isTicketInvoiced(String ticketId) throws com.openbravo.basic.BasicException {
+            Object value = new com.openbravo.data.loader.PreparedSentence(s,
+                "SELECT COUNT(*) FROM facturas_electronicas WHERE ticket_id = ? AND UPPER(estatus) <> 'CANCELADA'",
+                com.openbravo.data.loader.SerializerWriteString.INSTANCE,
+                com.openbravo.data.loader.SerializerReadInteger.INSTANCE
+            ).find(ticketId);
+            return value != null && ((Integer) value) > 0;
+        }
+
+        /**
+         * Sebastian - Obtener facturas electronicas en un rango de fechas
+         */
+        public final java.util.List<Object[]> getFacturasElectronicas(java.util.Date start, java.util.Date end) throws com.openbravo.basic.BasicException {
+            return new com.openbravo.data.loader.PreparedSentence(s,
+                "SELECT f.uuid, t.ticketid, f.fecha, f.total, f.estatus, f.ticket_id, f.provider_id " +
+                "FROM facturas_electronicas f " +
+                "JOIN tickets t ON f.ticket_id = t.id " +
+                "WHERE f.fecha >= ? AND f.fecha < ? " +
+                "ORDER BY f.fecha DESC",
+                new com.openbravo.data.loader.SerializerWriteBasic(new com.openbravo.data.loader.Datas[]{com.openbravo.data.loader.Datas.TIMESTAMP, com.openbravo.data.loader.Datas.TIMESTAMP}),
+                new com.openbravo.data.loader.SerializerReadBasic(new com.openbravo.data.loader.Datas[]{com.openbravo.data.loader.Datas.STRING, com.openbravo.data.loader.Datas.INT, com.openbravo.data.loader.Datas.TIMESTAMP, com.openbravo.data.loader.Datas.DOUBLE, com.openbravo.data.loader.Datas.STRING, com.openbravo.data.loader.Datas.STRING, com.openbravo.data.loader.Datas.STRING})
+            ).list(new Object[]{start, end});
         }
 
         /**
@@ -684,6 +722,52 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                                                 + "ORDER BY O.CATORDER, P.NAME ",
                                 SerializerWriteString.INSTANCE,
                                 ProductInfoExt.getSerializerRead()).list(category);
+        }
+
+        /**
+         *
+         * @return List of ProductInfoExt
+         * @throws BasicException
+         */
+        public List<ProductInfoExt> getAllProductCatalog() throws BasicException {
+                return new PreparedSentence<Void, ProductInfoExt>(s,
+                                "SELECT "
+                                                + "P.ID, "
+                                                + "P.REFERENCE, "
+                                                + "P.CODE, "
+                                                + "P.CODETYPE, "
+                                                + "P.NAME, "
+                                                + "P.PRICEBUY, "
+                                                + "P.PRICESELL, "
+                                                + "P.CATEGORY, "
+                                                + "P.TAXCAT, "
+                                                + "P.ATTRIBUTESET_ID, "
+                                                + "P.STOCKCOST, "
+                                                + "P.STOCKVOLUME, "
+                                                + "P.IMAGE, "
+                                                + "P.ISCOM, "
+                                                + "P.ISSCALE, "
+                                                + "P.ISCONSTANT, "
+                                                + "P.PRINTKB, "
+                                                + "P.SENDSTATUS, "
+                                                + "P.ISSERVICE, "
+                                                + "P.ATTRIBUTES, "
+                                                + "P.DISPLAY, "
+                                                + "P.ISVPRICE, "
+                                                + "P.ISVERPATRIB, "
+                                                + "P.TEXTTIP, "
+                                                + "P.WARRANTY, "
+                                                + "P.STOCKUNITS, "
+                                                + "P.PRINTTO, "
+                                                + "P.SUPPLIER, "
+                                                + "P.UOM, "
+                                                + "P.MEMODATE, "
+                                                + "P.ACCUMULATES_POINTS, P.LOTE, P.MODELO, P.COLOR, P.VOLTAJE, P.NOSERIE "
+                                                + "FROM products P, products_cat O "
+                                                + "WHERE P.ID = O.PRODUCT "
+                                                + "ORDER BY O.CATORDER, P.NAME ",
+                                null,
+                                ProductInfoExt.getSerializerRead()).list();
         }
 
         /**
@@ -1463,7 +1547,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
 
                 return new PreparedSentence<>(s,
                                 "SELECT t.TICKETID, "
-                                                + "CASE WHEN t.PRODUCT_COUNT = 1 THEN t.PRODUCT_NAME ELSE CONCAT('Venta múltiple (', t.PRODUCT_COUNT, ' items)') END AS PNAME, "
+                                                + "CASE WHEN t.PRODUCT_COUNT = 1 THEN t.PRODUCT_NAME ELSE CONCAT('Venta mÃºltiple (', t.PRODUCT_COUNT, ' items)') END AS PNAME, "
                                                 + "t.TOTAL_UNITS AS UNITS, "
                                                 + "t.TOTAL_AMOUNT AS AMOUNT, "
                                                 + "t.TOTAL_WITH_TAX AS TOTAL, "
@@ -1933,7 +2017,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                                 // Ticket: Update status (This is Receipt or TicketType: 0)
                                 // Sebastian FIX: Solo actualizar el STATUS del ticket ORIGINAL si es un
                                 // reembolso
-                                // Si es una venta normal (RECEIPT_NORMAL), no actualizar ningún otro ticket
+                                // Si es una venta normal (RECEIPT_NORMAL), no actualizar ningÃºn otro ticket
                                 if (ticket.getTicketType() == TicketInfo.RECEIPT_REFUND
                                                 && ticket.getTicketStatus() > 0) {
                                         new PreparedSentence(s,
@@ -2005,7 +2089,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                                                 }
 
                                                 // Log antes de registrar movimiento de stock
-                                                LOGGER.info("═══════════════════════════════════════════════════════════");
+                                                LOGGER.info("â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•");
                                                 LOGGER.info("=== REGISTRANDO MOVIMIENTO DE STOCK (VENTA) ===");
                                                 LOGGER.info("Product ID: " + l.getProductID());
                                                 LOGGER.info("Product Name: " + l.getProductName());
@@ -2016,7 +2100,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                                                 double stockAntesVenta = findProductStock(location, l.getProductID(),
                                                                 l.getProductAttSetInstId());
                                                 LOGGER.info("Stock actual ANTES de venta: " + stockAntesVenta);
-                                                LOGGER.info("═══════════════════════════════════════════════════════════");
+                                                LOGGER.info("â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•");
 
                                                 getStockDiaryInsert().exec(new Object[] {
                                                                 UUID.randomUUID().toString(),
@@ -2031,27 +2115,27 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                                                                 ticket.getUser().getName()
                                                 });
 
-                                                // Log después de registrar movimiento
+                                                // Log despuÃ©s de registrar movimiento
                                                 double stockDespuesVenta = findProductStock(location, l.getProductID(),
                                                                 l.getProductAttSetInstId());
-                                                LOGGER.info("═══════════════════════════════════════════════════════════");
-                                                LOGGER.info("Stock actual DESPUÉS de venta: " + stockDespuesVenta);
+                                                LOGGER.info("â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•");
+                                                LOGGER.info("Stock actual DESPUÃ‰S de venta: " + stockDespuesVenta);
                                                 LOGGER.info("Diferencia esperada: " + (-l.getMultiply())
                                                                 + ", Diferencia real: "
                                                                 + (stockDespuesVenta - stockAntesVenta));
                                                 if (Math.abs((stockDespuesVenta - stockAntesVenta)
                                                                 - (-l.getMultiply())) > 0.01) {
-                                                        LOGGER.severe("⚠️⚠️⚠️ PROBLEMA DETECTADO: El stock NO se actualizó correctamente ⚠️⚠️⚠️");
+                                                        LOGGER.severe("âš ï¸âš ï¸âš ï¸ PROBLEMA DETECTADO: El stock NO se actualizÃ³ correctamente âš ï¸âš ï¸âš ï¸");
                                                         LOGGER.severe("   Stock antes: " + stockAntesVenta);
-                                                        LOGGER.severe("   Stock después: " + stockDespuesVenta);
+                                                        LOGGER.severe("   Stock despuÃ©s: " + stockDespuesVenta);
                                                         LOGGER.severe("   Delta esperado: " + (-l.getMultiply()));
                                                         LOGGER.severe("   Delta real: "
                                                                         + (stockDespuesVenta - stockAntesVenta));
                                                 } else {
-                                                        LOGGER.info("✓ Stock actualizado correctamente");
+                                                        LOGGER.info("âœ“ Stock actualizado correctamente");
                                                 }
                                                 LOGGER.info("=== FIN MOVIMIENTO DE STOCK ===");
-                                                LOGGER.info("═══════════════════════════════════════════════════════════");
+                                                LOGGER.info("â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•");
                                         } else {
                                                 // Either productID is null or the product is a service; log for
                                                 // diagnostics
@@ -2133,12 +2217,12 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                                                                                 setString(3, custExt.getId());
                                                                         }
                                                                 });
-                                                                LOGGER.info("    [DEBUG DEUDA] ✓ UPDATE customers ejecutado satisfactoriamente.");
+                                                                LOGGER.info("    [DEBUG DEUDA] âœ“ UPDATE customers ejecutado satisfactoriamente.");
                                                         } else {
-                                                                LOGGER.warning(">>> [DEBUG DEUDA] ⚠️ ALERTA: No hay cliente o no es de tipo CustomerInfoExt para registrar la deuda.");
+                                                                LOGGER.warning(">>> [DEBUG DEUDA] âš ï¸ ALERTA: No hay cliente o no es de tipo CustomerInfoExt para registrar la deuda.");
                                                         }
                                                 } else {
-                                                        LOGGER.warning(">>> [DEBUG DEUDA] ⚠️ ALERTA: No hay cliente en el ticket para registrar la deuda.");
+                                                        LOGGER.warning(">>> [DEBUG DEUDA] âš ï¸ ALERTA: No hay cliente en el ticket para registrar la deuda.");
                                                 }
                                         }
                                 }
@@ -2193,7 +2277,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                                                         }
                                                 });
 
-                                // 2. Revertir el stock de cada línea del ticket (devolver unidades)
+                                // 2. Revertir el stock de cada lÃ­nea del ticket (devolver unidades)
                                 Date d = new Date();
                                 for (int i = 0; i < ticket.getLinesCount(); i++) {
                                         TicketLineInfo line = ticket.getLine(i);
@@ -2316,12 +2400,12 @@ public class DataLogicSales extends BeanFactoryDataSingle {
 
                                 // Sebastian - Nota: El descuento de puntos se maneja en JPanelTicket antes de
                                 // llamar a deleteTicket
-                                // para poder mostrar el mensaje de confirmación. Si se llama deleteTicket desde
+                                // para poder mostrar el mensaje de confirmaciÃ³n. Si se llama deleteTicket desde
                                 // otro lugar,
                                 // se debe manejar el descuento de puntos manualmente antes de esta llamada.
 
                                 // Registrar todos los productos del ticket en lineremoved antes de eliminarlo
-                                // Esto permite que el reporte muestre qué productos se anularon
+                                // Esto permite que el reporte muestre quÃ© productos se anularon
                                 String ticketId = ticket.getId() != null ? ticket.getId() : "Void";
                                 String userName = ticket.getUser() != null ? ticket.getUser().getName() : "System";
 
@@ -2714,7 +2798,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                                 Object[] adjustParams = new Object[4];
                                 adjustParams[0] = paramsArray[4]; // product
                                 adjustParams[1] = paramsArray[3]; // location
-                                // Normalizar ATTRIBUTESETINSTANCE_ID: tratar cadena vacía como null
+                                // Normalizar ATTRIBUTESETINSTANCE_ID: tratar cadena vacÃ­a como null
                                 Object attSetInstId = paramsArray[5];
                                 if (attSetInstId != null && attSetInstId.toString().trim().isEmpty()) {
                                         attSetInstId = null;
@@ -2856,7 +2940,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                                 adjustStock(adjustParams);
                         }
                 } else {
-                        // Normalizar ATTRIBUTESETINSTANCE_ID: tratar cadena vacía como null
+                        // Normalizar ATTRIBUTESETINSTANCE_ID: tratar cadena vacÃ­a como null
                         Object attSetInstId = ((Object[]) params)[2];
                         if (attSetInstId != null && attSetInstId.toString().trim().isEmpty()) {
                                 attSetInstId = null;
@@ -2882,12 +2966,12 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                         // y luego actualizar ese registro consolidado
                         int updateresult = 0;
                         if (attSetInstId == null) {
-                                LOGGER.info("    [CONSOLIDACIÓN] AttSetInstId es NULL - Consolidando TODOS los registros de stock");
-                                LOGGER.info("    [CONSOLIDACIÓN] Product ID: " + productId);
-                                LOGGER.info("    [CONSOLIDACIÓN] Location ID: " + locationId);
-                                LOGGER.info("    [CONSOLIDACIÓN] Units (delta): " + units);
+                                LOGGER.info("    [CONSOLIDACIÃ“N] AttSetInstId es NULL - Consolidando TODOS los registros de stock");
+                                LOGGER.info("    [CONSOLIDACIÃ“N] Product ID: " + productId);
+                                LOGGER.info("    [CONSOLIDACIÃ“N] Location ID: " + locationId);
+                                LOGGER.info("    [CONSOLIDACIÃ“N] Units (delta): " + units);
 
-                                // Primero, verificar cuántos registros existen antes de consolidar
+                                // Primero, verificar cuÃ¡ntos registros existen antes de consolidar
                                 Integer countBefore = (Integer) new PreparedSentence(s,
                                                 "SELECT COUNT(*) FROM stockcurrent "
                                                                 + "WHERE LOCATION = ? AND PRODUCT = ?",
@@ -2895,7 +2979,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                                                 SerializerReadInteger.INSTANCE)
                                                 .find(locationId, productId);
                                 LOGGER.info(
-                                                "    [CONSOLIDACIÓN] Registros existentes ANTES: "
+                                                "    [CONSOLIDACIÃ“N] Registros existentes ANTES: "
                                                                 + (countBefore != null ? countBefore : 0));
 
                                 // Obtener la suma de TODOS los registros de stock para este producto (con y sin
@@ -2910,30 +2994,30 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                                 if (totalStockAll == null) {
                                         totalStockAll = 0.0;
                                 }
-                                LOGGER.info("    [CONSOLIDACIÓN] Stock total encontrado (todos los registros): "
+                                LOGGER.info("    [CONSOLIDACIÃ“N] Stock total encontrado (todos los registros): "
                                                 + totalStockAll);
 
                                 // Eliminar TODOS los registros existentes (con y sin atributos) para este
-                                // producto en esta ubicación
+                                // producto en esta ubicaciÃ³n
                                 int deletedRows = new PreparedSentence(s,
                                                 "DELETE FROM stockcurrent "
                                                                 + "WHERE LOCATION = ? AND PRODUCT = ?",
                                                 new SerializerWriteBasic(Datas.STRING, Datas.STRING))
                                                 .exec(new Object[] { locationId, productId });
-                                LOGGER.info("    [CONSOLIDACIÓN] Registros eliminados: " + deletedRows);
+                                LOGGER.info("    [CONSOLIDACIÃ“N] Registros eliminados: " + deletedRows);
 
                                 // Calcular el nuevo stock consolidado (stock previo + delta)
                                 double stockConsolidado = totalStockAll + units;
-                                LOGGER.info("    [CONSOLIDACIÓN] Cálculo: " + totalStockAll + " (stock previo) + "
+                                LOGGER.info("    [CONSOLIDACIÃ“N] CÃ¡lculo: " + totalStockAll + " (stock previo) + "
                                                 + units
                                                 + " (delta) = " + stockConsolidado + " (nuevo stock)");
 
                                 // SIEMPRE insertar el registro consolidado, incluso si el stock es 0 o negativo
-                                // (necesario para mantener consistencia y permitir stock negativo si está
+                                // (necesario para mantener consistencia y permitir stock negativo si estÃ¡
                                 // configurado)
                                 try {
-                                        LOGGER.info("    [CONSOLIDACIÓN] Intentando INSERTAR registro consolidado...");
-                                        LOGGER.info("    [CONSOLIDACIÓN] Parámetros: Location=" + locationId
+                                        LOGGER.info("    [CONSOLIDACIÃ“N] Intentando INSERTAR registro consolidado...");
+                                        LOGGER.info("    [CONSOLIDACIÃ“N] ParÃ¡metros: Location=" + locationId
                                                         + ", Product=" + productId
                                                         + ", Units=" + stockConsolidado);
 
@@ -2946,13 +3030,13 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                                                                         new int[] { 0, 1, 2 }))
                                                         .exec(new Object[] { locationId, productId, stockConsolidado });
 
-                                        LOGGER.info("    [CONSOLIDACIÓN] ✓ INSERT ejecutado - Filas afectadas: "
+                                        LOGGER.info("    [CONSOLIDACIÃ“N] âœ“ INSERT ejecutado - Filas afectadas: "
                                                         + insertResult);
-                                        LOGGER.info("    [CONSOLIDACIÓN] ✓ Registro consolidado INSERTADO con stock: "
+                                        LOGGER.info("    [CONSOLIDACIÃ“N] âœ“ Registro consolidado INSERTADO con stock: "
                                                         + stockConsolidado);
                                         updateresult = 1; // Marcar como exitoso
 
-                                        // Verificar que se insertó correctamente
+                                        // Verificar que se insertÃ³ correctamente
                                         Double verifyStock = (Double) new PreparedSentence(s,
                                                         "SELECT UNITS FROM stockcurrent "
                                                                         + "WHERE LOCATION = ? AND PRODUCT = ? "
@@ -2962,27 +3046,27 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                                                         .find(locationId, productId);
 
                                         if (verifyStock != null) {
-                                                LOGGER.info("    [CONSOLIDACIÓN] ✓ Verificación POST-INSERT: Stock en BD = "
+                                                LOGGER.info("    [CONSOLIDACIÃ“N] âœ“ VerificaciÃ³n POST-INSERT: Stock en BD = "
                                                                 + verifyStock);
                                                 if (Math.abs(verifyStock - stockConsolidado) > 0.01) {
-                                                        LOGGER.severe("    [CONSOLIDACIÓN] ⚠️ ADVERTENCIA: Stock en BD ("
+                                                        LOGGER.severe("    [CONSOLIDACIÃ“N] âš ï¸ ADVERTENCIA: Stock en BD ("
                                                                         + verifyStock
                                                                         + ") no coincide con stock esperado ("
                                                                         + stockConsolidado + ")");
                                                 }
                                         } else {
-                                                LOGGER.severe("    [CONSOLIDACIÓN] ✗ ERROR: No se encontró registro después del INSERT");
+                                                LOGGER.severe("    [CONSOLIDACIÃ“N] âœ— ERROR: No se encontrÃ³ registro despuÃ©s del INSERT");
                                         }
                                 } catch (Exception e) {
-                                        LOGGER.severe("    [CONSOLIDACIÓN] ✗ ERROR al insertar registro consolidado: "
+                                        LOGGER.severe("    [CONSOLIDACIÃ“N] âœ— ERROR al insertar registro consolidado: "
                                                         + e.getMessage());
-                                        LOGGER.severe("    [CONSOLIDACIÓN] Stack trace:");
+                                        LOGGER.severe("    [CONSOLIDACIÃ“N] Stack trace:");
                                         e.printStackTrace();
                                         throw new BasicException("Error al consolidar stock: " + e.getMessage(), e);
                                 }
                         } else {
-                                LOGGER.info("    AttSetInstId NO es NULL - Ejecutando UPDATE con AttSetInstId específico");
-                                // Para productos con atributos específicos
+                                LOGGER.info("    AttSetInstId NO es NULL - Ejecutando UPDATE con AttSetInstId especÃ­fico");
+                                // Para productos con atributos especÃ­ficos
                                 updateresult = new PreparedSentence(s,
                                                 "UPDATE stockcurrent SET UNITS = (UNITS + ?) "
                                                                 + "WHERE LOCATION = ? AND PRODUCT = ? "
@@ -3014,10 +3098,10 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                                 }
                         }
 
-                        // Obtener stock después del ajuste
+                        // Obtener stock despuÃ©s del ajuste
                         double stockDespues = findProductStock(locationId, productId,
                                         attSetInstId != null ? attSetInstId.toString() : null);
-                        LOGGER.info("    Stock DESPUÉS del ajuste: " + stockDespues);
+                        LOGGER.info("    Stock DESPUÃ‰S del ajuste: " + stockDespues);
                         LOGGER.info("    Diferencia esperada: " + units + ", Diferencia real: "
                                         + (stockDespues - stockAntes));
                         LOGGER.info("<<< adjustStock - Ajuste completado");
@@ -3499,3 +3583,4 @@ public class DataLogicSales extends BeanFactoryDataSingle {
         }
 
 }
+

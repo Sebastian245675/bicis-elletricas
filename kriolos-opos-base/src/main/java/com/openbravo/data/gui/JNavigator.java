@@ -24,6 +24,8 @@ import com.openbravo.data.loader.Vectorer;
 import com.openbravo.data.user.BrowseListener;
 import com.openbravo.data.user.BrowsableEditableData;
 import com.openbravo.data.user.StateListener;
+import com.openbravo.pos.util.ModernActionIcon;
+import java.awt.Color;
 
 /**
  *
@@ -57,9 +59,13 @@ public class JNavigator extends javax.swing.JPanel implements BrowseListener, St
 
         if (bd.canLoadData()) {
             jbtnReload = new javax.swing.JButton();
-            jbtnReload.setPreferredSize(new java.awt.Dimension(32,32));            
-            jbtnReload.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/reload.png")));
-            jbtnReload.setMargin(new java.awt.Insets(2, 2, 2, 2));
+            jbtnReload.setPreferredSize(new java.awt.Dimension(38, 38));
+            jbtnReload.setIcon(new ModernActionIcon(ModernActionIcon.Type.REFRESH, 21, Color.WHITE));
+            jbtnReload.setToolTipText("Actualizar");
+            jbtnReload.setBackground(new Color(7, 55, 43));
+            jbtnReload.setForeground(Color.WHITE);
+            jbtnReload.putClientProperty("JButton.buttonType", "roundRect");
+            jbtnReload.setMargin(new java.awt.Insets(7, 7, 7, 7));
             jbtnReload.setFocusPainted(false);
             jbtnReload.setFocusable(false);
             jbtnReload.setRequestFocusEnabled(false);

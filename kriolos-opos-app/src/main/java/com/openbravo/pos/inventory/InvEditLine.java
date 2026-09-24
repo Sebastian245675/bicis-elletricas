@@ -16,6 +16,8 @@
 
 package com.openbravo.pos.inventory;
 
+import com.openbravo.pos.util.ModernActionIcon;
+
 import com.openbravo.pos.forms.AppLocal;
 
 
@@ -64,7 +66,7 @@ public class InvEditLine extends javax.swing.JDialog {
         webTxtPriceBuy.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         webTxtPriceBuy.setPreferredSize(new java.awt.Dimension(200, 30));
 
-        webButtonOK.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ok.png"))); // NOI18N
+        webButtonOK.setIcon(new ModernActionIcon(ModernActionIcon.Type.SAVE, 20));
         webButtonOK.setPreferredSize(new java.awt.Dimension(80, 45));
         webButtonOK.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -72,7 +74,7 @@ public class InvEditLine extends javax.swing.JDialog {
             }
         });
 
-        webButtonCancel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/cancel.png"))); // NOI18N
+        webButtonCancel.setIcon(new ModernActionIcon(ModernActionIcon.Type.DELETE, 20));
         webButtonCancel.setPreferredSize(new java.awt.Dimension(80, 45));
         webButtonCancel.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {

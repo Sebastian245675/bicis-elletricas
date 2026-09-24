@@ -15,6 +15,7 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package com.openbravo.pos.customers;
 
+import com.openbravo.pos.util.ModernLookAndFeel;
 import com.openbravo.basic.BasicException;
 import com.openbravo.data.gui.ComboBoxValModel;
 import com.openbravo.data.loader.SentenceList;
@@ -113,6 +114,11 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
             m_jSearchkey.getDocument().addDocumentListener(dirty);
             m_jName.getDocument().addDocumentListener(dirty);
             m_jCategory.addActionListener(dirty);
+            
+            // Sebastian - Ocultar Categoría de Impuestos a petición del usuario
+            jLabel9.setVisible(false);
+            m_jCategory.setVisible(false);
+            
             m_jNotes.getDocument().addDocumentListener(dirty);
             txtMaxdebt.getDocument().addDocumentListener(dirty);
             txtCurdebt.getDocument().addDocumentListener(dirty);
@@ -158,204 +164,47 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
     private void aplicarMejorasVisuales() {
         // Aplicar mejoras después de que todos los componentes estén inicializados
         javax.swing.SwingUtilities.invokeLater(() -> {
-            mejorarFuentesYColores();
-            mejorarBotones();
-            mejorarCamposDeTexto();
-            mejorarTablaYPestanas();
+            // Establecer colores de fondo principales
+            Color creamBg = new Color(250, 247, 242);
+            Color whiteBg = Color.WHITE;
+            
+            setBackground(creamBg);
+            if (jTabbedPane1 != null) {
+                jTabbedPane1.setBackground(whiteBg);
+                jTabbedPane1.setFont(ModernLookAndFeel.getPreferredFont("Baradig", Font.BOLD, 12));
+            }
+            
+            // Asignar fondo blanco a los paneles de pestañas para que contrasten
+            if (jPanelGeneral != null) jPanelGeneral.setBackground(whiteBg);
+            if (jPanel1 != null) jPanel1.setBackground(whiteBg);
+            if (jPanel2 != null) jPanel2.setBackground(whiteBg);
+            if (jPanel3 != null) jPanel3.setBackground(whiteBg);
+            if (jPanel4 != null) jPanel4.setBackground(whiteBg);
+            if (jPanel5 != null) jPanel5.setBackground(whiteBg);
+            if (jPanelPuntaje != null) jPanelPuntaje.setBackground(whiteBg);
+            
+            // Aplicar estilos modernos institucionales
+            ModernLookAndFeel.estilizarComponentes(this);
+            
+            // Sebastian - Ocultar botones solicitados por el usuario
+            if (jBtnCreateCard != null) jBtnCreateCard.setVisible(false);
+            if (jBtnClearCard != null) jBtnClearCard.setVisible(false);
+            
+            // Estilizar campos específicos de deudas/puntos
+            if (txtPuntosActuales != null) {
+                txtPuntosActuales.setFont(ModernLookAndFeel.getPreferredFont("Baradig", Font.BOLD, 13));
+                txtPuntosActuales.setForeground(new Color(21, 128, 61)); // Verde oscuro visible
+            }
+            if (txtCurdebt != null) {
+                txtCurdebt.setForeground(new Color(185, 28, 28)); // Rojo oscuro visible
+            }
+            if (txtMaxdebt != null) {
+                txtMaxdebt.setForeground(new Color(29, 78, 216)); // Azul oscuro visible
+            }
+            if (txtCurdate != null) {
+                txtCurdate.setForeground(new Color(217, 119, 6)); // Naranja oscuro
+            }
         });
-    }
-    
-    /**
-     * Sebastian - Mejorar fuentes y colores generales
-     */
-    private void mejorarFuentesYColores() {
-        Font fuenteModerna = new Font("Segoe UI", Font.PLAIN, 12);
-        Color colorPrimario = new Color(0, 123, 255);
-        
-        // Mejorar pestañas
-        if (jTabbedPane1 != null) {
-            jTabbedPane1.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            jTabbedPane1.setBackground(Color.WHITE);
-            jTabbedPane1.setForeground(new Color(52, 58, 64));
-        }
-        
-        // Aplicar fuente moderna a etiquetas
-        aplicarFuenteAEtiquetas(fuenteModerna);
-    }
-    
-    /**
-     * Sebastian - Aplicar fuente moderna a etiquetas principales
-     */
-    private void aplicarFuenteAEtiquetas(Font fuente) {
-        if (jLabel1 != null) jLabel1.setFont(fuente);
-        if (jLabel2 != null) jLabel2.setFont(fuente);
-        if (jLabel3 != null) jLabel3.setFont(fuente);
-        if (jLabel4 != null) jLabel4.setFont(fuente);
-        if (jLabel5 != null) jLabel5.setFont(fuente);
-        if (jLabel6 != null) jLabel6.setFont(fuente);
-        if (jLabel7 != null) jLabel7.setFont(fuente);
-        if (jLabel8 != null) jLabel8.setFont(fuente);
-        if (jLabel9 != null) jLabel9.setFont(fuente);
-        if (jLabel10 != null) jLabel10.setFont(fuente);
-        
-        // Etiquetas de contacto
-        if (jLabel13 != null) jLabel13.setFont(fuente);
-        if (jLabel14 != null) jLabel14.setFont(fuente);
-        if (jLabel15 != null) jLabel15.setFont(fuente);
-        if (jLabel16 != null) jLabel16.setFont(fuente);
-        if (jLabel17 != null) jLabel17.setFont(fuente);
-        if (jLabel18 != null) jLabel18.setFont(fuente);
-        if (jLabel19 != null) jLabel19.setFont(fuente);
-        
-        // Etiquetas de dirección
-        if (jLabel20 != null) jLabel20.setFont(fuente);
-        if (jLabel21 != null) jLabel21.setFont(fuente);
-        if (jLabel22 != null) jLabel22.setFont(fuente);
-        if (jLabel23 != null) jLabel23.setFont(fuente);
-        if (jLabel24 != null) jLabel24.setFont(fuente);
-        
-        // Etiquetas de puntos
-        if (jLabelPuntosActuales != null) jLabelPuntosActuales.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        if (jLabelAjustarPuntos != null) jLabelAjustarPuntos.setFont(new Font("Segoe UI", Font.BOLD, 12));
-    }
-    
-    /**
-     * Sebastian - Mejorar botones con colores modernos
-     */
-    private void mejorarBotones() {
-        Color colorExito = new Color(40, 167, 69);
-        Color colorPeligro = new Color(220, 53, 69);
-        Color colorPrimario = new Color(0, 123, 255);
-        Color colorSecundario = new Color(108, 117, 125);
-        Color colorAdvertencia = new Color(255, 193, 7);
-        
-        // Botones principales
-        mejorarBoton(jBtnCreateCard, colorExito, Color.WHITE);
-        mejorarBoton(jBtnClearCard, colorPeligro, Color.WHITE);
-        mejorarBoton(jBtnShowTrans, colorPrimario, Color.WHITE);
-        mejorarBoton(webBtnMail, colorSecundario, Color.WHITE);
-        mejorarBoton(m_jbtndate, new Color(23, 162, 184), Color.WHITE);
-        
-        // Botones de puntos
-        mejorarBoton(btnAgregarPuntos, colorExito, Color.WHITE);
-        mejorarBoton(btnQuitarPuntos, colorPeligro, Color.WHITE);
-        mejorarBoton(btnActualizarPuntos, colorAdvertencia, new Color(52, 58, 64));
-        
-        // Sebastian - Ocultar botones solicitados por el usuario
-        if (jBtnCreateCard != null) jBtnCreateCard.setVisible(false);
-        if (jBtnClearCard != null) jBtnClearCard.setVisible(false);
-
-        if (btnImprimirCopiaPuntos != null) {
-            mejorarBoton(btnImprimirCopiaPuntos, new Color(0, 123, 255), Color.WHITE); // Sebastian - Botón azul para imprimir copia
-        }
-    }
-    
-    /**
-     * Sebastian - Mejorar un botón individual
-     */
-    private void mejorarBoton(javax.swing.JButton boton, Color colorFondo, Color colorTexto) {
-        if (boton != null) {
-            boton.setBackground(colorFondo);
-            boton.setForeground(colorTexto);
-            boton.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            boton.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(colorFondo.darker(), 1),
-                BorderFactory.createEmptyBorder(6, 12, 6, 12)
-            ));
-            boton.setFocusPainted(false);
-        }
-    }
-    
-    /**
-     * Sebastian - Mejorar campos de texto
-     */
-    private void mejorarCamposDeTexto() {
-        Color bordeCampo = new Color(206, 212, 218);
-        Font fuenteCampo = new Font("Segoe UI", Font.PLAIN, 11);
-        
-        // Aplicar mejoras a campos principales
-        mejorarCampoTexto(m_jTaxID, fuenteCampo, bordeCampo);
-        mejorarCampoTexto(m_jSearchkey, fuenteCampo, bordeCampo);
-        mejorarCampoTexto(m_jName, fuenteCampo, bordeCampo);
-        mejorarCampoTexto(jcard, fuenteCampo, bordeCampo);
-        mejorarCampoTexto(txtMaxdebt, fuenteCampo, bordeCampo);
-        mejorarCampoTexto(txtCurdebt, fuenteCampo, bordeCampo);
-        mejorarCampoTexto(txtCurdate, fuenteCampo, bordeCampo);
-        mejorarCampoTexto(txtDiscount, fuenteCampo, bordeCampo);
-        mejorarCampoTexto(m_jdate, fuenteCampo, bordeCampo);
-        
-        // Campos de contacto
-        mejorarCampoTexto(txtFirstName, fuenteCampo, bordeCampo);
-        mejorarCampoTexto(txtLastName, fuenteCampo, bordeCampo);
-        mejorarCampoTexto(txtEmail, fuenteCampo, bordeCampo);
-        mejorarCampoTexto(txtPhone, fuenteCampo, bordeCampo);
-        mejorarCampoTexto(txtPhone2, fuenteCampo, bordeCampo);
-        mejorarCampoTexto(txtFax, fuenteCampo, bordeCampo);
-        
-        // Campos de dirección
-        mejorarCampoTexto(txtAddress, fuenteCampo, bordeCampo);
-        mejorarCampoTexto(txtAddress2, fuenteCampo, bordeCampo);
-        mejorarCampoTexto(txtPostal, fuenteCampo, bordeCampo);
-        mejorarCampoTexto(txtCity, fuenteCampo, bordeCampo);
-        mejorarCampoTexto(txtRegion, fuenteCampo, bordeCampo);
-        mejorarCampoTexto(txtCountry, fuenteCampo, bordeCampo);
-        
-        // Campos de puntos
-        mejorarCampoTexto(txtPuntosActuales, new Font("Segoe UI", Font.BOLD, 12), new Color(40, 167, 69));
-        mejorarCampoTexto(txtAjustarPuntos, fuenteCampo, bordeCampo);
-        
-        // Área de notas
-        if (m_jNotes != null) {
-            m_jNotes.setFont(fuenteCampo);
-            m_jNotes.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(bordeCampo, 1),
-                BorderFactory.createEmptyBorder(6, 8, 6, 8)
-            ));
-        }
-    }
-    
-    /**
-     * Sebastian - Mejorar un campo de texto individual
-     */
-    private void mejorarCampoTexto(javax.swing.JTextField campo, Font fuente, Color borde) {
-        if (campo != null) {
-            campo.setFont(fuente);
-            campo.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(borde, 1),
-                BorderFactory.createEmptyBorder(5, 8, 5, 8)
-            ));
-        }
-    }
-    
-    /**
-     * Sebastian - Mejorar tabla y pestañas
-     */
-    private void mejorarTablaYPestanas() {
-        // Mejorar tabla si existe
-        if (jTableCustomerTransactions != null) {
-            jTableCustomerTransactions.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-            jTableCustomerTransactions.setRowHeight(28);
-            jTableCustomerTransactions.setGridColor(new Color(233, 236, 239));
-            jTableCustomerTransactions.setSelectionBackground(new Color(0, 123, 255, 30));
-        }
-        
-        // Mejorar paneles de pestañas con espaciado
-        mejorarPanelPestana(jPanelGeneral);
-        mejorarPanelPestana(jPanel1);
-        mejorarPanelPestana(jPanel2);
-        mejorarPanelPestana(jPanel3);
-        mejorarPanelPestana(jPanel4);
-        mejorarPanelPestana(jPanel5);
-        mejorarPanelPestana(jPanelPuntaje);
-    }
-    
-    /**
-     * Sebastian - Mejorar un panel de pestaña individual
-     */
-    private void mejorarPanelPestana(javax.swing.JPanel panel) {
-        if (panel != null) {
-            panel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
-        }
     }
 
     private void init() {
@@ -374,6 +223,81 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
         m_CategoryModel = new ComboBoxValModel(a);
         m_jCategory.setModel(m_CategoryModel);
         String cId = null;
+
+        // Navigate or highlight if search target field is set
+        if (com.openbravo.pos.forms.JPanelSystemOverview.searchTargetField != null) {
+            final String target = com.openbravo.pos.forms.JPanelSystemOverview.searchTargetField;
+            com.openbravo.pos.forms.JPanelSystemOverview.searchTargetField = null; // Clear it
+
+            javax.swing.SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    // Map field names to actual text fields and set correct tab index
+                    javax.swing.JTextField fieldToHighlight = null;
+                    int tabIndex = 0;
+                    if ("customer_name".equalsIgnoreCase(target) || "cliente_nombre".equalsIgnoreCase(target) || "cliente_name".equalsIgnoreCase(target)) {
+                        fieldToHighlight = m_jName;
+                        tabIndex = 0;
+                    } else if ("customer_taxid".equalsIgnoreCase(target) || "cliente_rfc".equalsIgnoreCase(target) || "cliente_taxid".equalsIgnoreCase(target)) {
+                        fieldToHighlight = m_jTaxID;
+                        tabIndex = 0;
+                    } else if ("customer_card".equalsIgnoreCase(target) || "cliente_tarjeta".equalsIgnoreCase(target)) {
+                        fieldToHighlight = jcard;
+                        tabIndex = 0;
+                    } else if ("customer_firstname".equalsIgnoreCase(target) || "cliente_primer_nombre".equalsIgnoreCase(target)) {
+                        fieldToHighlight = txtFirstName;
+                        tabIndex = 1;
+                    } else if ("customer_lastname".equalsIgnoreCase(target) || "cliente_apellido".equalsIgnoreCase(target)) {
+                        fieldToHighlight = txtLastName;
+                        tabIndex = 1;
+                    } else if ("customer_phone".equalsIgnoreCase(target) || "cliente_telefono".equalsIgnoreCase(target)) {
+                        fieldToHighlight = txtPhone;
+                        tabIndex = 1;
+                    } else if ("customer_email".equalsIgnoreCase(target) || "cliente_email".equalsIgnoreCase(target)) {
+                        fieldToHighlight = txtEmail;
+                        tabIndex = 1;
+                    } else if ("customer_address".equalsIgnoreCase(target) || "cliente_direccion".equalsIgnoreCase(target) || "cliente_calle".equalsIgnoreCase(target)) {
+                        fieldToHighlight = txtAddress;
+                        tabIndex = 2;
+                    } else if ("customer_postal".equalsIgnoreCase(target) || "cliente_cp".equalsIgnoreCase(target) || "cliente_codigo_postal".equalsIgnoreCase(target)) {
+                        fieldToHighlight = txtPostal;
+                        tabIndex = 2;
+                    } else if ("customer_city".equalsIgnoreCase(target) || "cliente_ciudad".equalsIgnoreCase(target)) {
+                        fieldToHighlight = txtCity;
+                        tabIndex = 2;
+                    } else if ("customer_points".equalsIgnoreCase(target) || "cliente_puntos".equalsIgnoreCase(target)) {
+                        fieldToHighlight = txtPuntosActuales;
+                        tabIndex = 6;
+                    }
+
+                    if (jTabbedPane1 != null && tabIndex >= 0 && tabIndex < jTabbedPane1.getTabCount()) {
+                        jTabbedPane1.setSelectedIndex(tabIndex);
+                    }
+
+                    if (fieldToHighlight != null) {
+                        highlightField(fieldToHighlight);
+                    }
+                }
+            });
+        }
+    }
+
+    private void highlightField(final javax.swing.JTextField field) {
+        if (field == null) return;
+        field.requestFocusInWindow();
+        field.selectAll();
+        
+        final java.awt.Color originalBg = field.getBackground();
+        field.setBackground(new java.awt.Color(254, 243, 199)); // Amber 100
+        
+        javax.swing.Timer timer = new javax.swing.Timer(2000, new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                field.setBackground(originalBg);
+            }
+        });
+        timer.setRepeats(false);
+        timer.start();
     }
 
     /**

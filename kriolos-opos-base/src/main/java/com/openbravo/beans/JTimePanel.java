@@ -17,6 +17,10 @@
 package com.openbravo.beans;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Cursor;
+import javax.swing.BorderFactory;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.DateFormat;
@@ -85,6 +89,12 @@ public class JTimePanel extends javax.swing.JPanel {
         
         initComponents();
         
+        // Add 12px inner padding to the clock container panel
+        jPanel2.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(226, 232, 240)),
+            BorderFactory.createEmptyBorder(12, 12, 12, 12)
+        ));
+        
         m_jclock = new JClockPanel(false);
         jPanel2.add(m_jclock, BorderLayout.CENTER);
         
@@ -96,40 +106,37 @@ public class JTimePanel extends javax.swing.JPanel {
         
         if ((iButtons & BUTTONS_HOUR) > 0) {
             c = new GregorianCalendar(1900, 0, 0, 1, 0);
-            m_jbtnplushour = new JButtonDate(f.format(c.getTime()), new ImageIcon(getClass().getResource("/com/openbravo/images/2rightarrow.png")), dateclick);
+            m_jbtnplushour = new JButtonDate("» " + f.format(c.getTime()), dateclick);
             m_jactions.add(m_jbtnplushour);
         }
         
         if ((iButtons & BUTTONS_MINUTE) > 0) {
             c = new GregorianCalendar(1900, 0, 0, 0, 15);
-            m_jbtnplusfifteen = new JButtonDate(f.format(c.getTime()), new ImageIcon(getClass().getResource("/com/openbravo/images/1rightarrow.png")), dateclick);
+            m_jbtnplusfifteen = new JButtonDate("› " + f.format(c.getTime()), dateclick);
             m_jactions.add(m_jbtnplusfifteen);
         }
         
         if ((iButtons & BUTTONS_MINUTE) > 0) {
             c = new GregorianCalendar(1900, 0, 0, 0, 1);
-            m_jbtnplusminute = new JButtonDate(f.format(c.getTime()), new ImageIcon(getClass().getResource("/com/openbravo/images/1rightarrow.png")), dateclick);
+            m_jbtnplusminute = new JButtonDate("› " + f.format(c.getTime()), dateclick);
             m_jactions.add(m_jbtnplusminute);
         }
-//        c = new GregorianCalendar(1900, 0, 0, 0, 0);
-//        m_jbtnmidnight = new JButtonDate(f.format(c.getTime()), dateclick);
-//        m_jactions.add(m_jbtnmidnight);
 
         if ((iButtons & BUTTONS_MINUTE) > 0) {
             c = new GregorianCalendar(1900, 0, 0, 0, 1);
-            m_jbtnminusminute = new JButtonDate(f.format(c.getTime()), new ImageIcon(getClass().getResource("/com/openbravo/images/1leftarrow.png")), dateclick);
+            m_jbtnminusminute = new JButtonDate("‹ " + f.format(c.getTime()), dateclick);
             m_jactions.add(m_jbtnminusminute);
         }
         
         if ((iButtons & BUTTONS_MINUTE) > 0) {
             c = new GregorianCalendar(1900, 0, 0, 0, 15);
-            m_jbtnminusfifteen = new JButtonDate(f.format(c.getTime()), new ImageIcon(getClass().getResource("/com/openbravo/images/1leftarrow.png")), dateclick);
+            m_jbtnminusfifteen = new JButtonDate("‹ " + f.format(c.getTime()), dateclick);
             m_jactions.add(m_jbtnminusfifteen);
         }
         
         if ((iButtons & BUTTONS_HOUR) > 0) {
             c = new GregorianCalendar(1900, 0, 0, 1, 0);
-            m_jbtnminushour = new JButtonDate(f.format(c.getTime()), new ImageIcon(getClass().getResource("/com/openbravo/images/2leftarrow.png")), dateclick);
+            m_jbtnminushour = new JButtonDate("« " + f.format(c.getTime()), dateclick);
             m_jactions.add(m_jbtnminushour);
         }
         
@@ -326,6 +333,16 @@ public class JTimePanel extends javax.swing.JPanel {
             setRequestFocusEnabled(false);
             setFocusPainted(false);
             setFocusable(false);
+            
+            // Modern flat look
+            setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
+            setBorderPainted(false);
+            setContentAreaFilled(true); // MUST BE TRUE to show backgrounds!
+            setOpaque(true);
+            setBackground(new java.awt.Color(241, 245, 249)); // slate-100
+            setForeground(new java.awt.Color(71, 85, 105)); // slate-600
+            setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+            setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
         }
     }
     
@@ -346,23 +363,35 @@ public class JTimePanel extends javax.swing.JPanel {
         m_jlblTime2 = new javax.swing.JLabel();
 
         setLayout(new java.awt.BorderLayout());
+        setBackground(Color.WHITE);
 
         jPanel1.setLayout(new java.awt.BorderLayout());
+        jPanel1.setBackground(Color.WHITE);
 
         m_jactions.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 5, 0, 5));
         m_jactions.setLayout(new java.awt.GridLayout(0, 1, 0, 5));
+        m_jactions.setBackground(Color.WHITE);
         jPanel1.add(m_jactions, java.awt.BorderLayout.NORTH);
 
         add(jPanel1, java.awt.BorderLayout.LINE_END);
 
-        jPanel2.setBorder(javax.swing.BorderFactory.createEtchedBorder());
-        jPanel2.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        jPanel2.setBorder(javax.swing.BorderFactory.createLineBorder(new Color(226, 232, 240)));
         jPanel2.setLayout(new java.awt.BorderLayout());
+        jPanel2.setBackground(Color.WHITE);
 
+        m_jtime.setBackground(Color.WHITE);
+        
+        m_jlblTime.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18)); // NOI18N
+        m_jlblTime.setForeground(new java.awt.Color(15, 23, 42));
         m_jtime.add(m_jlblTime);
 
         m_jlblSeparator.setText(" - ");
+        m_jlblSeparator.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18)); // NOI18N
+        m_jlblSeparator.setForeground(new java.awt.Color(148, 163, 184));
         m_jtime.add(m_jlblSeparator);
+
+        m_jlblTime2.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18)); // NOI18N
+        m_jlblTime2.setForeground(new java.awt.Color(71, 85, 105));
         m_jtime.add(m_jlblTime2);
 
         jPanel2.add(m_jtime, java.awt.BorderLayout.NORTH);

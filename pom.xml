@@ -276,6 +276,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 <artifactId>liquibase-core</artifactId>
                 <version>4.32.0</version>
             </dependency>
+            <!-- Java Mail -->
+            <dependency>
+                <groupId>com.sun.mail</groupId>
+                <artifactId>javax.mail</artifactId>
+                <version>1.6.2</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

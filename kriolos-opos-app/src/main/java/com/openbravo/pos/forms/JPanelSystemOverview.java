@@ -41,8 +41,75 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.JPopupMenu;
+import javax.swing.JMenuItem;
+import javax.swing.MenuElement;
+import javax.swing.MenuSelectionManager;
 
 public class JPanelSystemOverview extends JPanel implements JPanelView {
+
+    public static String searchTargetField = null;
+
+    private static final class InternalSearchEntry {
+        private final String label;
+        private final String path;
+        private final String task;
+        private final String targetField;
+
+        private InternalSearchEntry(String label, String path, String task, String targetField) {
+            this.label = label;
+            this.path = path;
+            this.task = task;
+            this.targetField = targetField;
+        }
+    }
+
+    private static final List<InternalSearchEntry> INTERNAL_SEARCHES = List.of(
+            // Product Editor internal fields
+            new InternalSearchEntry("Modelo (de Producto)", "Stock > Productos",
+                    "com.openbravo.pos.inventory.ProductsPanel", "modelo"),
+            new InternalSearchEntry("Lote (de Producto)", "Stock > Productos",
+                    "com.openbravo.pos.inventory.ProductsPanel", "lote"),
+            new InternalSearchEntry("Color (de Producto)", "Stock > Productos",
+                    "com.openbravo.pos.inventory.ProductsPanel", "color"),
+            new InternalSearchEntry("Voltaje (de Producto)", "Stock > Productos",
+                    "com.openbravo.pos.inventory.ProductsPanel", "voltaje"),
+            new InternalSearchEntry("No. Serie / Serie (de Producto)", "Stock > Productos",
+                    "com.openbravo.pos.inventory.ProductsPanel", "noserie"),
+            new InternalSearchEntry("Código de barras / Código (de Producto)", "Stock > Productos",
+                    "com.openbravo.pos.inventory.ProductsPanel", "code"),
+            new InternalSearchEntry("Nombre / Descripción (de Producto)", "Stock > Productos",
+                    "com.openbravo.pos.inventory.ProductsPanel", "name"),
+            new InternalSearchEntry("Referencia (de Producto)", "Stock > Productos",
+                    "com.openbravo.pos.inventory.ProductsPanel", "ref"),
+            new InternalSearchEntry("Precio Costo / Compra (de Producto)", "Stock > Productos",
+                    "com.openbravo.pos.inventory.ProductsPanel", "pricebuy"),
+            new InternalSearchEntry("Precio Venta (de Producto)", "Stock > Productos",
+                    "com.openbravo.pos.inventory.ProductsPanel", "pricesell"),
+            new InternalSearchEntry("Cantidad Mínima / Stock Mínimo (de Producto)", "Stock > Productos",
+                    "com.openbravo.pos.inventory.ProductsPanel", "stockminimum"),
+            new InternalSearchEntry("Cantidad Actual / Stock Actual (de Producto)", "Stock > Productos",
+                    "com.openbravo.pos.inventory.ProductsPanel", "stockcurrent"),
+
+            // Customer Editor internal fields
+            new InternalSearchEntry("Nombre / Nombre Comercial (de Cliente)", "Clientes > Administrar",
+                    "com.openbravo.pos.customers.CustomersPanel", "customer_name"),
+            new InternalSearchEntry("RFC / TaxID (de Cliente)", "Clientes > Administrar",
+                    "com.openbravo.pos.customers.CustomersPanel", "customer_taxid"),
+            new InternalSearchEntry("Tarjeta / Card (de Cliente)", "Clientes > Administrar",
+                    "com.openbravo.pos.customers.CustomersPanel", "customer_card"),
+            new InternalSearchEntry("Teléfono (de Cliente)", "Clientes > Administrar",
+                    "com.openbravo.pos.customers.CustomersPanel", "customer_phone"),
+            new InternalSearchEntry("Email / Correo (de Cliente)", "Clientes > Administrar",
+                    "com.openbravo.pos.customers.CustomersPanel", "customer_email"),
+            new InternalSearchEntry("Dirección / Calle (de Cliente)", "Clientes > Administrar",
+                    "com.openbravo.pos.customers.CustomersPanel", "customer_address"),
+            new InternalSearchEntry("Código Postal / CP (de Cliente)", "Clientes > Administrar",
+                    "com.openbravo.pos.customers.CustomersPanel", "customer_postal"),
+            new InternalSearchEntry("Ciudad / Municipio (de Cliente)", "Clientes > Administrar",
+                    "com.openbravo.pos.customers.CustomersPanel", "customer_city"),
+            new InternalSearchEntry("Puntos / Puntaje (de Cliente)", "Clientes > Administrar",
+                    "com.openbravo.pos.customers.CustomersPanel", "customer_points"));
 
     private static final Logger LOGGER = Logger.getLogger(JPanelSystemOverview.class.getName());
 
@@ -65,28 +132,28 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
     private static final String TASK_CONFIGURATION = "com.openbravo.pos.config.JPanelConfiguration";
     private static final String TASK_PRINTER = "com.openbravo.pos.panels.JPanelPrinter";
     private static final String TASK_REPORTS_DASHBOARD = "com.openbravo.pos.reports.JPanelGraphics";
-    private static final String TASK_DOCUMENTS = "com.openbravo.pos.panels.JPanelDocuments";
     private static final String TASK_BRANCHES = "com.openbravo.pos.branches.JPanelBranchesManagement";
     private static final String TASK_PAYMENTS = "com.openbravo.pos.panels.JPanelPayments";
     private static final String TASK_BREAKS = "com.openbravo.pos.epm.BreaksPanel";
     private static final String TASK_LOCATIONS = "com.openbravo.pos.inventory.LocationsPanel";
     private static final String TASK_HR = "com.openbravo.pos.admin.JPanelHR";
 
-    private static final Color COLOR_BACKGROUND = new Color(39, 39, 39);
-    private static final Color COLOR_PANEL = new Color(49, 49, 49);
-    private static final Color COLOR_PANEL_SOFT = new Color(58, 58, 58);
-    private static final Color COLOR_TEXT = new Color(245, 245, 245);
-    private static final Color COLOR_TEXT_SOFT = new Color(210, 210, 210);
-    private static final Color COLOR_TEXT_MUTED = new Color(155, 155, 155);
-    private static final Color COLOR_ACCENT = new Color(238, 150, 28);
-    private static final Color COLOR_ACCENT_SOFT = new Color(255, 193, 94);
-    private static final Color COLOR_SEARCH = new Color(68, 68, 68);
+    private static final Color COLOR_BACKGROUND = new Color(246, 247, 243);
+    private static final Color COLOR_PANEL = Color.WHITE;
+    private static final Color COLOR_PANEL_SOFT = new Color(231, 236, 232);
+    private static final Color COLOR_TEXT = new Color(31, 41, 38);
+    private static final Color COLOR_TEXT_SOFT = new Color(73, 87, 81);
+    private static final Color COLOR_TEXT_MUTED = new Color(112, 124, 118);
+    private static final Color COLOR_ACCENT = new Color(214, 169, 61);
+    private static final Color COLOR_ACCENT_SOFT = new Color(7, 55, 43);
+    private static final Color COLOR_GREEN_SOFT = new Color(235, 243, 238);
+    private static final Color COLOR_SEARCH = Color.WHITE;
 
     private static final String[] COLUMN_TITLES = {
-        "Paneles Generales",
-        "Soluciones Basicas",
-        "Soluciones Avanzadas",
-        "Soluciones Especiales"
+            "Paneles Generales",
+            "Soluciones Basicas",
+            "Soluciones Avanzadas",
+            "Soluciones Especiales"
     };
 
     private final AppUserView appUserView;
@@ -95,6 +162,7 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
     private final JTextField searchField;
     private final JLabel infoLabel;
     private final JPanel columnsPanel;
+    private final JPopupMenu suggestionPopup;
 
     private final List<OverviewRootGroup> rootGroups = new ArrayList<>();
     private boolean loaded;
@@ -108,10 +176,14 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
         setBackground(COLOR_BACKGROUND);
         setBorder(BorderFactory.createEmptyBorder());
 
-        JPanel shell = new JPanel(new BorderLayout(0, 18));
+        suggestionPopup = new JPopupMenu();
+        suggestionPopup.setBackground(COLOR_PANEL);
+        suggestionPopup.setBorder(BorderFactory.createLineBorder(COLOR_ACCENT, 1));
+
+        JPanel shell = new JPanel(new BorderLayout(0, 20));
         shell.setOpaque(true);
         shell.setBackground(COLOR_BACKGROUND);
-        shell.setBorder(BorderFactory.createEmptyBorder(22, 22, 18, 22));
+        shell.setBorder(BorderFactory.createEmptyBorder(24, 26, 22, 26));
         add(shell, BorderLayout.CENTER);
 
         JPanel headerPanel = new JPanel(new BorderLayout(28, 0));
@@ -132,7 +204,7 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
         searchRow.setMaximumSize(new Dimension(980, 46));
 
         searchField = new JTextField();
-        searchField.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         searchField.setPreferredSize(new Dimension(720, 46));
         searchField.setMinimumSize(new Dimension(320, 46));
         searchField.setMaximumSize(new Dimension(720, 46));
@@ -140,9 +212,39 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
         searchField.setForeground(COLOR_TEXT);
         searchField.setCaretColor(COLOR_ACCENT);
         searchField.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(COLOR_ACCENT, 2),
+                BorderFactory.createLineBorder(new Color(196, 207, 201), 1),
                 BorderFactory.createEmptyBorder(10, 14, 10, 14)));
+        searchField.putClientProperty("JTextField.roundRect", Boolean.TRUE);
+        searchField.putClientProperty("JComponent.outline", COLOR_ACCENT);
         searchField.setToolTipText("Buscar modulo, reporte o proceso");
+
+        searchField.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                int keyCode = e.getKeyCode();
+                if (suggestionPopup.isVisible()) {
+                    if (keyCode == java.awt.event.KeyEvent.VK_DOWN) {
+                        navigatePopup(1);
+                        e.consume();
+                    } else if (keyCode == java.awt.event.KeyEvent.VK_UP) {
+                        navigatePopup(-1);
+                        e.consume();
+                    } else if (keyCode == java.awt.event.KeyEvent.VK_ENTER) {
+                        triggerSelectedPopupItem();
+                        e.consume();
+                    } else if (keyCode == java.awt.event.KeyEvent.VK_ESCAPE) {
+                        suggestionPopup.setVisible(false);
+                        e.consume();
+                    }
+                } else {
+                    if (keyCode == java.awt.event.KeyEvent.VK_DOWN || keyCode == java.awt.event.KeyEvent.VK_ENTER) {
+                        searchField.transferFocus();
+                        e.consume();
+                    }
+                }
+            }
+        });
+
         searchField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
@@ -163,12 +265,14 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
 
         JPanel iconsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         iconsPanel.setOpaque(false);
-        iconsPanel.add(createIconButton("🎛", "Configuración / Parámetros", () -> appUserView.showTask(TASK_CONFIGURATION)));
-        iconsPanel.add(createIconButton("?", "Ayuda y Atajos de Teclado", () -> showHelpDialog()));
-        iconsPanel.add(createIconButton("▦", "Menú de Mantenimiento", () -> appUserView.showTask(TASK_MENU_MAINTENANCE)));
-        iconsPanel.add(createIconButton("⟳", "Mis Documentos / Historial", () -> appUserView.showTask(TASK_DOCUMENTS)));
+        iconsPanel.add(
+                createIconButton("🎛", "Configuración / Parámetros", () -> appUserView.showTask(TASK_CONFIGURATION)));
+        iconsPanel.add(createIconButton("?", "Ayuda y Atajos de Teclado", () -> appUserView.showTask("com.openbravo.pos.forms.JPanelInstructions")));
+        iconsPanel
+                .add(createIconButton("▦", "Menú de Mantenimiento", () -> appUserView.showTask(TASK_MENU_MAINTENANCE)));
         iconsPanel.add(createIconButton("♥", "Ir a Ventas (F1)", () -> appUserView.showTask(TASK_TICKET_SALES)));
-        iconsPanel.add(createIconButton("▶", "Gráficos de Reportes", () -> appUserView.showTask(TASK_REPORTS_DASHBOARD)));
+        iconsPanel
+                .add(createIconButton("▶", "Gráficos de Reportes", () -> appUserView.showTask(TASK_REPORTS_DASHBOARD)));
         searchRow.add(iconsPanel, BorderLayout.EAST);
 
         searchBlock.add(searchRow);
@@ -195,6 +299,9 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
         scrollPane.getViewport().setOpaque(true);
         scrollPane.getViewport().setBackground(COLOR_BACKGROUND);
         scrollPane.getVerticalScrollBar().setUnitIncrement(20);
+        scrollPane.getVerticalScrollBar().setOpaque(false);
+        scrollPane.getVerticalScrollBar().setBackground(COLOR_BACKGROUND);
+        scrollPane.getVerticalScrollBar().setUI(new ArrowOnlyScrollBarUI());
         shell.add(scrollPane, BorderLayout.CENTER);
     }
 
@@ -215,6 +322,9 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
 
     @Override
     public boolean deactivate() {
+        if (suggestionPopup != null) {
+            suggestionPopup.setVisible(false);
+        }
         return true;
     }
 
@@ -235,15 +345,16 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
         brandPanel.setBorder(BorderFactory.createEmptyBorder(4, 4, 8, 0));
 
         // Premium Title with HTML for mixed colors
-        JLabel brandLabel = new JLabel("<html><span style='color:#EE961C'>WEBSY</span> <span style='color:#F5F5F5'>GROUP</span></html>");
-        brandLabel.setFont(new Font("Segoe UI", Font.BOLD, 32));
+        JLabel brandLabel = new JLabel(
+                "<html><span style='color:#07372B'>CENTRO DE</span> <span style='color:#B58925'>GESTIÓN</span></html>");
+        brandLabel.setFont(com.openbravo.pos.util.ModernLookAndFeel.getPreferredFont("Segoe UI", Font.BOLD, 27));
         brandPanel.add(brandLabel);
 
         brandPanel.add(Box.createVerticalStrut(2));
 
-        JLabel subtitleLabel = new JLabel("Indice general del sistema");
-        subtitleLabel.setForeground(new Color(200, 200, 200));
-        subtitleLabel.setFont(new Font("Segoe UI Semilight", Font.PLAIN, 14));
+        JLabel subtitleLabel = new JLabel("Ventas, inventario y procesos en un solo lugar");
+        subtitleLabel.setForeground(COLOR_TEXT_SOFT);
+        subtitleLabel.setFont(com.openbravo.pos.util.ModernLookAndFeel.getPreferredFont("Baradig", Font.PLAIN, 14));
         brandPanel.add(subtitleLabel);
 
         brandPanel.add(Box.createVerticalStrut(8));
@@ -254,7 +365,8 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                GradientPaint gp = new GradientPaint(0, 0, COLOR_ACCENT, getWidth(), 0, new Color(COLOR_ACCENT.getRed(), COLOR_ACCENT.getGreen(), COLOR_ACCENT.getBlue(), 0));
+                GradientPaint gp = new GradientPaint(0, 0, COLOR_ACCENT, getWidth(), 0,
+                        new Color(COLOR_ACCENT.getRed(), COLOR_ACCENT.getGreen(), COLOR_ACCENT.getBlue(), 0));
                 g2.setPaint(gp);
                 g2.fillRect(0, 0, getWidth(), getHeight());
                 g2.dispose();
@@ -267,7 +379,7 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
 
         brandPanel.add(Box.createVerticalStrut(4));
 
-        JLabel helpLabel = new JLabel("Accesos agrupados por vista principal");
+        JLabel helpLabel = new JLabel("Selecciona un módulo o escribe para encontrarlo");
         helpLabel.setForeground(COLOR_TEXT_MUTED);
         helpLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         brandPanel.add(helpLabel);
@@ -300,14 +412,8 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
     }
 
     private boolean shouldUseBundledRootMenu(String databaseMenu, String bundledMenu) {
-        if (bundledMenu == null || bundledMenu.isBlank()) {
-            return false;
-        }
-        if (databaseMenu == null || databaseMenu.isBlank()) {
-            return true;
-        }
-        return (!databaseMenu.contains(TASK_HR) && bundledMenu.contains(TASK_HR))
-                || databaseMenu.contains("*") && (databaseMenu.contains("Recursos Humanos") || databaseMenu.contains("humanos"));
+        // Sebastian - Forzar menú actualizado
+        return true;
     }
 
     private void injectAdditionalEntries(List<OverviewRootGroup> groups) {
@@ -316,12 +422,8 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
                 "Entradas y salidas", TASK_PAYMENTS, EntryKind.SHOW_TASK);
         addIfMissing(groups, ROOT_KEY_BACKOFFICE, "Mantenimiento", "Administracion interna",
                 "Administrar sucursales", TASK_BRANCHES, EntryKind.SHOW_TASK);
-        addIfMissing(groups, ROOT_KEY_BACKOFFICE, "Gestion de Presencia", "Gestion interna",
-                "Descansos", TASK_BREAKS, EntryKind.SHOW_TASK);
         addIfMissing(groups, ROOT_KEY_BACKOFFICE, "Gestion de Stock", "Gestion interna",
                 "Ubicaciones", TASK_LOCATIONS, EntryKind.SHOW_TASK);
-        addIfMissing(groups, ROOT_KEY_SYSTEM, "Sistema", "Soporte y salida",
-                "Mis documentos", TASK_DOCUMENTS, EntryKind.SHOW_TASK);
         addIfMissing(groups, ROOT_KEY_SYSTEM, "Sistema", "Soporte y salida",
                 "Cerrar sesion", "system.exit", EntryKind.EXIT_TO_LOGIN);
     }
@@ -332,19 +434,18 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
         OverviewSection quickAccessSection = new OverviewSection("Accesos principales");
 
         addQuickAccessEntry(quickAccessSection, "Inicio", TASK_SYSTEM_OVERVIEW);
-        addQuickAccessEntry(quickAccessSection, "F1 Ventas", TASK_TICKET_SALES);
+        addQuickAccessEntry(quickAccessSection, "Ventas", TASK_TICKET_SALES);
         addQuickAccessEntry(quickAccessSection, "Pago de Clientes", TASK_CUSTOMER_PAYMENT);
-        addQuickAccessEntry(quickAccessSection, "F2 Cerrar Caja", TASK_CLOSE_MONEY);
+        addQuickAccessEntry(quickAccessSection, "Cerrar Caja", TASK_CLOSE_MONEY);
         addQuickAccessEntry(quickAccessSection, "Clientes", TASK_MENU_CUSTOMERS);
         addQuickAccessEntry(quickAccessSection, "Proveedores", TASK_MENU_SUPPLIERS);
-        addQuickAccessEntry(quickAccessSection, "F3 Stock", TASK_MENU_STOCK);
+        addQuickAccessEntry(quickAccessSection, "Stock", TASK_MENU_STOCK);
         addQuickAccessEntry(quickAccessSection, "Gestion Ventas", TASK_MENU_SALES);
         addQuickAccessEntry(quickAccessSection, "Mantenimiento", TASK_MENU_MAINTENANCE);
         addQuickAccessEntry(quickAccessSection, "RRHH", TASK_HR);
-        addQuickAccessEntry(quickAccessSection, "Drive", TASK_DOCUMENTS);
         addQuickAccessEntry(quickAccessSection, "Configuracion", TASK_CONFIGURATION);
         addQuickAccessEntry(quickAccessSection, "Impresoras", TASK_PRINTER);
-        addQuickAccessEntry(quickAccessSection, "F4 Reportes", TASK_REPORTS_DASHBOARD);
+        addQuickAccessEntry(quickAccessSection, "Reportes", TASK_REPORTS_DASHBOARD);
 
         if (quickAccessSection.entries.isEmpty()) {
             return;
@@ -470,6 +571,7 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
         infoLabel.setText(buildInfoText(totalGroups, totalEntries, query));
         columnsPanel.revalidate();
         columnsPanel.repaint();
+        updateSuggestions(query);
     }
 
     private String buildInfoText(int totalGroups, int totalEntries, String query) {
@@ -538,25 +640,22 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
     }
 
     private JPanel createColumnPanel(OverviewColumnData column) {
-        JPanel panel = new JPanel();
-        panel.setOpaque(true);
-        panel.setBackground(COLOR_BACKGROUND);
+        JPanel panel = new SurfacePanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setPreferredSize(new Dimension(260, 560));
-        panel.setMinimumSize(new Dimension(220, 560));
+        panel.setBorder(BorderFactory.createEmptyBorder(18, 18, 18, 18));
 
         JLabel titleLabel = new JLabel(column.title);
         titleLabel.setForeground(COLOR_TEXT);
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        titleLabel.setFont(com.openbravo.pos.util.ModernLookAndFeel.getPreferredFont("Segoe UI", Font.BOLD, 20));
         titleLabel.setAlignmentX(LEFT_ALIGNMENT);
         panel.add(titleLabel);
 
         panel.add(Box.createVerticalStrut(6));
 
         JPanel underline = new JPanel();
-        underline.setMaximumSize(new Dimension(Integer.MAX_VALUE, 2));
-        underline.setPreferredSize(new Dimension(240, 2));
-        underline.setMinimumSize(new Dimension(120, 2));
+        underline.setMaximumSize(new Dimension(54, 3));
+        underline.setPreferredSize(new Dimension(54, 3));
+        underline.setMinimumSize(new Dimension(54, 3));
         underline.setBackground(COLOR_ACCENT);
         underline.setAlignmentX(LEFT_ALIGNMENT);
         panel.add(underline);
@@ -576,13 +675,17 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
         }
 
         panel.add(Box.createVerticalGlue());
+
+        // Dynamically compute preferred and minimum sizes to allow scrolling
+        panel.setPreferredSize(new Dimension(280, panel.getPreferredSize().height));
+        panel.setMinimumSize(new Dimension(230, panel.getMinimumSize().height));
+
         return panel;
     }
 
     private JPanel createGroupPanel(VisibleCategory group) {
         JPanel panel = new JPanel();
-        panel.setOpaque(true);
-        panel.setBackground(COLOR_BACKGROUND);
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setAlignmentX(LEFT_ALIGNMENT);
 
@@ -592,7 +695,7 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
 
         JLabel titleLabel = new JLabel(group.title);
         titleLabel.setForeground(COLOR_ACCENT_SOFT);
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 19));
         titleRow.add(titleLabel, BorderLayout.WEST);
 
         if (group.summaryTask != null) {
@@ -608,7 +711,7 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
             if (section.showTitle) {
                 JLabel sectionLabel = new JLabel(section.title);
                 sectionLabel.setForeground(COLOR_TEXT_MUTED);
-                sectionLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                sectionLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
                 sectionLabel.setAlignmentX(LEFT_ALIGNMENT);
                 panel.add(sectionLabel);
                 panel.add(Box.createVerticalStrut(4));
@@ -629,39 +732,77 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
 
     private JButton createMiniOpenButton() {
         JButton button = new JButton("Abrir");
-        button.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        button.setForeground(COLOR_TEXT);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        button.setForeground(COLOR_ACCENT_SOFT);
         button.setOpaque(true);
         button.setBackground(COLOR_PANEL);
         button.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(COLOR_PANEL_SOFT, 1),
                 BorderFactory.createEmptyBorder(4, 8, 4, 8)));
         button.setFocusPainted(false);
+        button.setFocusable(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.putClientProperty("JButton.buttonType", "roundRect");
         return button;
     }
 
     private JButton createEntryButton(OverviewEntry entry) {
         JButton button = new JButton(entry.label);
         button.setHorizontalAlignment(SwingConstants.LEFT);
-        button.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        button.setForeground(COLOR_TEXT_SOFT);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        button.setForeground(COLOR_TEXT);
         button.setOpaque(true);
-        button.setBackground(COLOR_BACKGROUND);
-        button.setBorder(BorderFactory.createEmptyBorder(3, 0, 3, 0));
+        button.setBackground(new Color(249, 250, 248));
+        button.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
         button.setFocusPainted(false);
-        button.setContentAreaFilled(false);
+        button.setContentAreaFilled(true);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.putClientProperty("JButton.buttonType", "roundRect");
+        button.putClientProperty("JButton.arc", 12);
         button.addActionListener(event -> executeEntry(entry));
         button.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                button.setForeground(COLOR_ACCENT);
+                button.setForeground(COLOR_ACCENT_SOFT);
+                button.setBackground(COLOR_GREEN_SOFT);
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
-                button.setForeground(COLOR_TEXT_SOFT);
+                if (!button.isFocusOwner()) {
+                    button.setForeground(COLOR_TEXT);
+                    button.setBackground(new Color(249, 250, 248));
+                }
+            }
+        });
+        button.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusGained(java.awt.event.FocusEvent e) {
+                button.setForeground(COLOR_ACCENT_SOFT);
+                button.setBackground(COLOR_GREEN_SOFT);
+                button.scrollRectToVisible(new java.awt.Rectangle(0, 0, button.getWidth(), button.getHeight()));
+            }
+
+            @Override
+            public void focusLost(java.awt.event.FocusEvent e) {
+                button.setForeground(COLOR_TEXT);
+                button.setBackground(new Color(249, 250, 248));
+            }
+        });
+        button.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                int keyCode = e.getKeyCode();
+                if (keyCode == java.awt.event.KeyEvent.VK_DOWN) {
+                    button.transferFocus();
+                    e.consume();
+                } else if (keyCode == java.awt.event.KeyEvent.VK_UP) {
+                    button.transferFocusBackward();
+                    e.consume();
+                } else if (keyCode == java.awt.event.KeyEvent.VK_ENTER) {
+                    button.doClick();
+                    e.consume();
+                }
             }
         });
         return button;
@@ -884,7 +1025,8 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
 
         private OverviewSection ensureDirectSection(String title) {
             if (directCategory == null) {
-                directCategory = new OverviewCategory(resolveDirectCategoryTitle(rootGroup.rawKey, rootGroup.displayTitle), null);
+                directCategory = new OverviewCategory(
+                        resolveDirectCategoryTitle(rootGroup.rawKey, rootGroup.displayTitle), null);
                 rootGroup.categories.add(directCategory);
             }
             for (OverviewSection section : directCategory.sections) {
@@ -926,7 +1068,8 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
             if (!appUserView.getUser().hasPermission(classname)) {
                 return;
             }
-            ensureSection().entries.add(new OverviewEntry(stripHtml(resolveText(key)), classname, EntryKind.EXECUTE_TASK));
+            ensureSection().entries
+                    .add(new OverviewEntry(stripHtml(resolveText(key)), classname, EntryKind.EXECUTE_TASK));
         }
 
         @Override
@@ -1062,49 +1205,438 @@ public class JPanelSystemOverview extends JPanel implements JPanelView {
     private JButton createIconButton(String iconText, String tooltip, Runnable action) {
         JButton btn = new JButton(iconText);
         btn.setFont(new Font("Segoe UI Symbol", Font.BOLD, 22));
-        btn.setForeground(new Color(200, 200, 200));
+        btn.setForeground(COLOR_TEXT_SOFT);
         btn.setBackground(COLOR_BACKGROUND);
         btn.setOpaque(false);
         btn.setContentAreaFilled(false);
         btn.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
         btn.setFocusPainted(false);
+        btn.setFocusable(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.setToolTipText(tooltip);
-        
+
         btn.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
                 btn.setForeground(COLOR_ACCENT);
             }
+
             @Override
             public void mouseExited(MouseEvent e) {
-                btn.setForeground(new Color(200, 200, 200));
+                btn.setForeground(COLOR_TEXT_SOFT);
             }
         });
-        
+
         if (action != null) {
             btn.addActionListener(e -> action.run());
         }
-        
+
         return btn;
     }
 
     private void showHelpDialog() {
-        javax.swing.JOptionPane.showMessageDialog(this, 
-            "<html><body style='font-family: Segoe UI; font-size: 13px; color: #333333;'>" +
-            "<h2 style='color: #EE961C; margin-top:0;'>Información y Atajos de Teclado</h2>" +
-            "<table border='0' cellpadding='4'>" +
-            "<tr><td><b>F1</b></td><td>Ventas / Facturación</td></tr>" +
-            "<tr><td><b>F2</b></td><td>Cerrar Caja / Turno</td></tr>" +
-            "<tr><td><b>F3</b></td><td>Control de Stock</td></tr>" +
-            "<tr><td><b>F4</b></td><td>Reportes y Gráficos</td></tr>" +
-            "<tr><td><b>Esc</b></td><td>Volver al Inicio / Cancelar</td></tr>" +
-            "</table><br>" +
-            "<hr size='1' color='#cccccc'>" +
-            "<p style='color: #666666;'>websy arg - Soporte Websy Group</p>" +
-            "</body></html>", 
-            "Ayuda del Sistema", 
-            javax.swing.JOptionPane.INFORMATION_MESSAGE
-        );
+        java.awt.Window parentWindow = javax.swing.SwingUtilities.getWindowAncestor(this);
+        javax.swing.JDialog dialog = new javax.swing.JDialog(parentWindow, "Instructivo y Atajos del Sistema", java.awt.Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setSize(850, 680);
+        dialog.setLocationRelativeTo(this);
+        dialog.setLayout(new java.awt.BorderLayout());
+        
+        java.awt.Color corporateGold = new java.awt.Color(202, 159, 65);
+        java.awt.Color creamBg = new java.awt.Color(250, 247, 242);
+        
+        javax.swing.JEditorPane editor = new javax.swing.JEditorPane();
+        editor.setEditable(false);
+        editor.setContentType("text/html");
+        
+        // HTML con estilos básicos para compatibilidad con Swing HTML3.2
+        StringBuilder html = new StringBuilder();
+        html.append("<html><body style='font-family: Segoe UI, sans-serif; background-color: #FAF7F2; margin: 20px; color: #334155;'>");
+        
+        // Encabezado
+        html.append("<table width='100%' border='0' cellpadding='15' cellspacing='0' style='background-color: #CA9F41; margin-bottom: 20px;'>");
+        html.append("<tr><td>");
+        html.append("<h1 style='margin: 0; font-size: 24px; color: #ffffff;'>Voltium Sanrey</h1>");
+        html.append("<p style='margin: 5px 0 0 0; font-size: 13px; color: #ffffff; opacity: 0.9;'>Manual de Usuario e Instructivo General del Sistema POS</p>");
+        html.append("</td></tr>");
+        html.append("</table>");
+        
+        // Atajos de teclado
+        html.append("<h2 style='color: #CA9F41; border-bottom: 2px solid #CA9F41; padding-bottom: 5px;'>⌨️ Atajos de Teclado Rápidos</h2>");
+        html.append("<table width='100%' border='0' cellpadding='8' cellspacing='0' style='margin-bottom: 20px;'>");
+        html.append("<tr style='background-color: #E2E8F0;'>");
+        html.append("<th align='left' style='padding: 8px;'>Atajo</th>");
+        html.append("<th align='left' style='padding: 8px;'>Acción / Pantalla</th>");
+        html.append("</tr>");
+        
+        html.append("<tr style='background-color: #ffffff;'>");
+        html.append("<td style='padding: 8px; border-bottom: 1px solid #CBD5E1;'><b>F1</b></td>");
+        html.append("<td style='padding: 8px; border-bottom: 1px solid #CBD5E1;'>Ir al panel de <b>Ventas / Facturación</b> (para cobrar o registrar tickets)</td>");
+        html.append("</tr>");
+        
+        html.append("<tr style='background-color: #f8fafc;'>");
+        html.append("<td style='padding: 8px; border-bottom: 1px solid #CBD5E1;'><b>F2</b></td>");
+        html.append("<td style='padding: 8px; border-bottom: 1px solid #CBD5E1;'>Ir a <b>Cerrar Caja / Turnos</b> (para cortes de caja diarios y mensuales)</td>");
+        html.append("</tr>");
+        
+        html.append("<tr style='background-color: #ffffff;'>");
+        html.append("<td style='padding: 8px; border-bottom: 1px solid #CBD5E1;'><b>F3</b></td>");
+        html.append("<td style='padding: 8px; border-bottom: 1px solid #CBD5E1;'>Ir a <b>Stock / Gestión de Inventario</b> (para productos y almacén)</td>");
+        html.append("</tr>");
+        
+        html.append("<tr style='background-color: #f8fafc;'>");
+        html.append("<td style='padding: 8px; border-bottom: 1px solid #CBD5E1;'><b>F4</b></td>");
+        html.append("<td style='padding: 8px; border-bottom: 1px solid #CBD5E1;'>Ir a <b>Reportes y Gráficos</b> (para analizar ventas e ingresos)</td>");
+        html.append("</tr>");
+        
+        html.append("<tr style='background-color: #ffffff;'>");
+        html.append("<td style='padding: 8px; border-bottom: 1px solid #CBD5E1;'><b>Esc</b></td>");
+        html.append("<td style='padding: 8px; border-bottom: 1px solid #CBD5E1;'>Regresar a la pantalla de <b>Inicio / Portada</b> (Índice General) desde cualquier módulo</td>");
+        html.append("</tr>");
+        html.append("</table>");
+        
+        // Explicación de vistas
+        html.append("<h2 style='color: #CA9F41; border-bottom: 2px solid #CA9F41; padding-bottom: 5px;'>🖥️ Instructivo de las Vistas Clave</h2>");
+        
+        // Inicio
+        html.append("<table width='100%' border='0' cellpadding='12' cellspacing='0' style='background-color: #ffffff; border: 1px solid #E2E8F0; margin-bottom: 15px;'>");
+        html.append("<tr><td>");
+        html.append("<h3 style='margin: 0 0 6px 0; color: #1E293B;'>🏠 Portada (Índice General)</h3>");
+        html.append("<p style='margin: 0; font-size: 13px; line-height: 1.4; color: #475569;'>");
+        html.append("Es el menú central de la aplicación. Permite ver todos los módulos agrupados. ");
+        html.append("En la parte superior, dispones de una <b>barra de búsqueda inteligente</b>: al escribir el nombre de un campo (como <i>'Teléfono'</i>, <i>'RFC'</i>, o <i>'Lote'</i>), el buscador te listará los módulos que contienen ese campo para ayudarte a ubicarlos rápidamente.");
+        html.append("</p></td></tr></table>");
+        
+        // Ventas
+        html.append("<table width='100%' border='0' cellpadding='12' cellspacing='0' style='background-color: #ffffff; border: 1px solid #E2E8F0; margin-bottom: 15px;'>");
+        html.append("<tr><td>");
+        html.append("<h3 style='margin: 0 0 6px 0; color: #1E293B;'>🛒 Ventas y Facturación</h3>");
+        html.append("<p style='margin: 0; font-size: 13px; line-height: 1.4; color: #475569;'>");
+        html.append("Aquí registras las ventas del negocio. Agrega productos con un lector de código de barras o usa el buscador manual de productos. ");
+        html.append("Al pagar, se despliega el menú de cobro que soporta <b>Efectivo, Tarjeta, Cheques, Vales de Despensa y Créditos</b>.");
+        html.append("</p></td></tr></table>");
+        
+        // Puntos
+        html.append("<table width='100%' border='0' cellpadding='12' cellspacing='0' style='background-color: #ffffff; border: 1px solid #E2E8F0; margin-bottom: 15px;'>");
+        html.append("<tr><td>");
+        html.append("<h3 style='margin: 0 0 6px 0; color: #1E293B;'>🎁 Sistema de Fidelización (Puntos)</h3>");
+        html.append("<p style='margin: 0; font-size: 13px; line-height: 1.4; color: #475569;'>");
+        html.append("Por cada <b>$400.00 MX de compra, el cliente acumula 10 puntos</b>. ");
+        html.append("Cuando seleccionas un cliente en el panel de ventas, el saldo acumulado se muestra en la barra superior. ");
+        html.append("Los clientes pueden redimir estos puntos para obtener descuentos directos al momento de pagar.");
+        html.append("</p></td></tr></table>");
+        
+        // Cierre de caja
+        html.append("<table width='100%' border='0' cellpadding='12' cellspacing='0' style='background-color: #ffffff; border: 1px solid #E2E8F0; margin-bottom: 15px;'>");
+        html.append("<tr><td>");
+        html.append("<h3 style='margin: 0 0 6px 0; color: #1E293B;'>📊 Cierres de Caja (Cortes y Conciliaciones)</h3>");
+        html.append("<p style='margin: 0; font-size: 13px; line-height: 1.4; color: #475569;'>");
+        html.append("• <b>Corte de Cajero:</b> Muestra el arqueo detallado del cajero activo en el turno actual.<br>");
+        html.append("• <b>Corte del Día:</b> Consolida la suma de todos los turnos abiertos/cerrados durante el día.<br>");
+        html.append("• <b>Cerrar Mes:</b> Consolida de forma masiva todos los turnos iniciados durante el mes calendario actual (devoluciones, ganancias, ventas por departamento, egresos e ingresos).<br>");
+        html.append("• <b>Conciliación Física:</b> Al presionar el botón de cerrar caja, el sistema te pedirá ingresar el efectivo físico real contado en caja, calculando y reportando automáticamente si hay algún <b>sobrante o faltante</b>.");
+        html.append("</p></td></tr></table>");
+        
+        // Reportes
+        html.append("<table width='100%' border='0' cellpadding='12' cellspacing='0' style='background-color: #ffffff; border: 1px solid #E2E8F0; margin-bottom: 15px;'>");
+        html.append("<tr><td>");
+        html.append("<h3 style='margin: 0 0 6px 0; color: #1E293B;'>📄 Hojas Membretadas en Reportes</h3>");
+        html.append("<p style='margin: 0; font-size: 13px; line-height: 1.4; color: #475569;'>");
+        html.append("Los reportes del listado de clientes y listado de proveedores se generan automáticamente con un formato premium de **Hoja Membretada** que contiene el logotipo centrado, la dirección fiscal al pie de página con fondo dorado y toda la información en español.");
+        html.append("</p></td></tr></table>");
+        
+        // Soporte
+        html.append("<div style='margin-top: 25px; font-size: 11px; text-align: center; color: #94A3B8;'>");
+        html.append("Soporte Técnico Websy Group &copy; 2026. Todos los derechos reservados.");
+        html.append("</div>");
+        
+        html.append("</body></html>");
+        
+        editor.setText(html.toString());
+        
+        javax.swing.JScrollPane scroll = new javax.swing.JScrollPane(editor);
+        scroll.setBorder(javax.swing.BorderFactory.createEmptyBorder());
+        scroll.getViewport().setBackground(creamBg);
+        
+        dialog.add(scroll, java.awt.BorderLayout.CENTER);
+        
+        javax.swing.JPanel bottomPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 15, 12));
+        bottomPanel.setBackground(creamBg);
+        bottomPanel.setBorder(javax.swing.BorderFactory.createMatteBorder(1, 0, 0, 0, new java.awt.Color(226, 232, 240)));
+        
+        javax.swing.JButton closeBtn = new javax.swing.JButton("Entendido / Cerrar");
+        closeBtn.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
+        closeBtn.setForeground(java.awt.Color.WHITE);
+        closeBtn.setBackground(corporateGold);
+        closeBtn.setFocusPainted(false);
+        closeBtn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        
+        closeBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                closeBtn.setBackground(new java.awt.Color(220, 175, 75));
+            }
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                closeBtn.setBackground(corporateGold);
+            }
+        });
+        
+        closeBtn.addActionListener(event -> dialog.dispose());
+        bottomPanel.add(closeBtn);
+        dialog.add(bottomPanel, java.awt.BorderLayout.SOUTH);
+        
+        javax.swing.SwingUtilities.invokeLater(() -> scroll.getViewport().setViewPosition(new java.awt.Point(0, 0)));
+        dialog.setVisible(true);
+    }
+
+    private void updateSuggestions(String query) {
+        suggestionPopup.setVisible(false);
+        if (query.isBlank()) {
+            return;
+        }
+
+        String normalizedQuery = normalizeForSearch(query);
+
+        class SuggestionMatch {
+            final String label;
+            final String path;
+            final Runnable action;
+
+            SuggestionMatch(String label, String path, Runnable action) {
+                this.label = label;
+                this.path = path;
+                this.action = action;
+            }
+        }
+
+        List<SuggestionMatch> matches = new ArrayList<>();
+
+        // 1. Check standard menu entries
+        for (OverviewRootGroup rootGroup : rootGroups) {
+            for (OverviewCategory category : rootGroup.categories) {
+                for (OverviewSection section : category.sections) {
+                    for (OverviewEntry entry : section.entries) {
+                        if (normalizeForSearch(entry.label).contains(normalizedQuery)) {
+                            matches.add(new SuggestionMatch(
+                                    entry.label,
+                                    category.displayTitle,
+                                    () -> executeEntry(entry)));
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Check internal search entries
+        for (InternalSearchEntry internal : INTERNAL_SEARCHES) {
+            if (normalizeForSearch(internal.label).contains(normalizedQuery)) {
+                matches.add(new SuggestionMatch(
+                        internal.label,
+                        internal.path,
+                        () -> {
+                            searchTargetField = internal.targetField;
+                            appUserView.showTask(internal.task);
+                        }));
+            }
+        }
+
+        if (!matches.isEmpty()) {
+            suggestionPopup.removeAll();
+            int limit = 10;
+            int count = 0;
+            for (SuggestionMatch match : matches) {
+                if (count >= limit)
+                    break;
+
+                JMenuItem item = new JMenuItem();
+                item.setPreferredSize(new Dimension(720, 36));
+                item.setBackground(COLOR_PANEL);
+                item.setForeground(COLOR_TEXT);
+                item.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
+
+                String text = match.label;
+                String category = match.path;
+                String htmlText = "<html><body style='width: 680px; font-family: Segoe UI; margin: 0; padding: 0;'>"
+                        + "<table width='100%' cellpadding='0' cellspacing='0'>"
+                        + "<tr>"
+                        + "  <td align='left' style='font-size: 13px; font-weight: bold; color: #F5F5F5;'>" + text
+                        + "</td>"
+                        + "  <td align='right' style='font-size: 11px; color: #AAAAAA; font-style: italic;'>" + category
+                        + "</td>"
+                        + "</tr>"
+                        + "</table>"
+                        + "</body></html>";
+                item.setText(htmlText);
+
+                item.addActionListener(event -> {
+                    match.action.run();
+                    suggestionPopup.setVisible(false);
+                    searchField.setText("");
+                });
+
+                suggestionPopup.add(item);
+                count++;
+            }
+
+            suggestionPopup.show(searchField, 0, searchField.getHeight());
+            searchField.requestFocusInWindow();
+        }
+    }
+
+    private void navigatePopup(int direction) {
+        MenuElement[] path = MenuSelectionManager.defaultManager().getSelectedPath();
+        int count = suggestionPopup.getComponentCount();
+        if (count == 0)
+            return;
+
+        int nextIndex = 0;
+        if (path.length > 0 && path[path.length - 1] instanceof JMenuItem) {
+            JMenuItem current = (JMenuItem) path[path.length - 1];
+            int currentIndex = -1;
+            for (int i = 0; i < count; i++) {
+                if (suggestionPopup.getComponent(i) == current) {
+                    currentIndex = i;
+                    break;
+                }
+            }
+            nextIndex = currentIndex + direction;
+            if (nextIndex < 0)
+                nextIndex = count - 1;
+            if (nextIndex >= count)
+                nextIndex = 0;
+        } else {
+            nextIndex = direction > 0 ? 0 : count - 1;
+        }
+
+        JMenuItem nextItem = (JMenuItem) suggestionPopup.getComponent(nextIndex);
+        MenuElement[] newPath = new MenuElement[] { suggestionPopup, nextItem };
+        MenuSelectionManager.defaultManager().setSelectedPath(newPath);
+    }
+
+    private void triggerSelectedPopupItem() {
+        MenuElement[] path = MenuSelectionManager.defaultManager().getSelectedPath();
+        if (path.length > 0 && path[path.length - 1] instanceof JMenuItem) {
+            JMenuItem selected = (JMenuItem) path[path.length - 1];
+            selected.doClick();
+        }
+    }
+
+    private static class OverviewEntryWithPath {
+        final OverviewEntry entry;
+        final String category;
+
+        OverviewEntryWithPath(OverviewEntry entry, String category) {
+            this.entry = entry;
+            this.category = category;
+        }
+    }
+
+    /** Tarjeta de superficie con borde suave para separar cada área del tablero. */
+    private static class SurfacePanel extends JPanel {
+        SurfacePanel() {
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(new Color(7, 55, 43, 10));
+            g2.fillRoundRect(2, 4, Math.max(0, getWidth() - 4), Math.max(0, getHeight() - 5), 20, 20);
+            g2.setColor(COLOR_PANEL);
+            g2.fillRoundRect(1, 1, Math.max(0, getWidth() - 3), Math.max(0, getHeight() - 4), 20, 20);
+            g2.setColor(COLOR_PANEL_SOFT);
+            g2.drawRoundRect(1, 1, Math.max(0, getWidth() - 3), Math.max(0, getHeight() - 4), 20, 20);
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    }
+
+    private static class ArrowOnlyScrollBarUI extends javax.swing.plaf.basic.BasicScrollBarUI {
+        @Override
+        protected void paintTrack(java.awt.Graphics g, javax.swing.JComponent c, java.awt.Rectangle trackBounds) {
+            // Do not paint the track
+        }
+
+        @Override
+        protected void paintThumb(java.awt.Graphics g, javax.swing.JComponent c, java.awt.Rectangle thumbBounds) {
+            // Do not paint the thumb
+        }
+
+        @Override
+        protected JButton createDecreaseButton(int orientation) {
+            return new ScrollArrowButton(orientation);
+        }
+
+        @Override
+        protected JButton createIncreaseButton(int orientation) {
+            return new ScrollArrowButton(orientation);
+        }
+
+        @Override
+        public Dimension getPreferredSize(javax.swing.JComponent c) {
+            return new Dimension(24, 24);
+        }
+    }
+
+    private static class ScrollArrowButton extends JButton {
+        private final int orientation;
+        private boolean isHovered = false;
+
+        public ScrollArrowButton(int orientation) {
+            this.orientation = orientation;
+            setOpaque(false);
+            setContentAreaFilled(false);
+            setBorderPainted(false);
+            setFocusable(false);
+            addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    isHovered = true;
+                    repaint();
+                }
+
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    isHovered = false;
+                    repaint();
+                }
+            });
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            // Clear background
+            g2.setColor(COLOR_BACKGROUND);
+            g2.fillRect(0, 0, getWidth(), getHeight());
+
+            // Draw arrow
+            g2.setColor(isHovered ? COLOR_ACCENT : COLOR_TEXT_MUTED);
+            int w = getWidth();
+            int h = getHeight();
+            int cx = w / 2;
+            int cy = h / 2;
+
+            if (orientation == SwingConstants.NORTH) {
+                int size = 6;
+                int[] xPoints = { cx - size, cx, cx + size };
+                int[] yPoints = { cy + size / 2, cy - size / 2, cy + size / 2 };
+                g2.fillPolygon(xPoints, yPoints, 3);
+            } else if (orientation == SwingConstants.SOUTH) {
+                int size = 6;
+                int[] xPoints = { cx - size, cx, cx + size };
+                int[] yPoints = { cy - size / 2, cy + size / 2, cy - size / 2 };
+                g2.fillPolygon(xPoints, yPoints, 3);
+            }
+            g2.dispose();
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            return new Dimension(24, 24);
+        }
     }
 }

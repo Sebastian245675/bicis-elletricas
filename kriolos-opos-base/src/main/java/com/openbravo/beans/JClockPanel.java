@@ -132,14 +132,11 @@ public class JClockPanel extends javax.swing.JPanel {
         
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
         
         // guardo los valores iniciales
         Paint oldPainter = g2.getPaint();
         AffineTransform oldt = g2.getTransform();
-
-        // pinto el fondo
-//        g2.setPaint(new GradientPaint(0, 0, Color.WHITE, width, 0, Color.LIGHT_GRAY));
-//        g2.fill(g2.getClip());
         
         // Calculo el centro y el tamano del reloj
         int icenterx = width / 2;
@@ -151,85 +148,76 @@ public class JClockPanel extends javax.swing.JPanel {
         g2.transform(AffineTransform.getScaleInstance(iradius / 1100.0 , iradius / 1100.0));       
         AffineTransform mytrans = g2.getTransform();
         
-        // Pinto la esfera del reloj;
-        g2.setPaint(this.isEnabled() 
-            ? new GradientPaint(-1200, -1200, Color.BLUE, 1200, 1200, Color.CYAN)
-            : new GradientPaint(-1200, -1200, Color.GRAY, 1200, 1200, Color.LIGHT_GRAY));
+        // Modern clock face (flat minimalist circle)
+        Color faceBg = this.isEnabled() ? new Color(248, 250, 252) : new Color(241, 245, 249); // slate 50 / slate 100
+        Color borderCol = this.isEnabled() ? new Color(203, 213, 225) : new Color(226, 232, 240); // slate 300 / slate 200
+        Color markCol = this.isEnabled() ? new Color(71, 85, 105) : new Color(148, 163, 184); // slate 600 / slate 400
+        Color hourHandCol = this.isEnabled() ? new Color(15, 23, 42) : new Color(100, 116, 139); // slate 900 / slate 500
+        Color minHandCol = this.isEnabled() ? new Color(71, 85, 105) : new Color(148, 163, 184); // slate 600 / slate 400
+        Color secHandCol = new Color(239, 68, 68); // Red 500
+        
+        g2.setColor(borderCol);
         g2.fillOval(-1000, -1000, 2000, 2000);
-        g2.setPaint(this.isEnabled()
-            ? new GradientPaint(-1200, -1200, Color.CYAN, 1200, 1200, Color.BLUE)
-            : new GradientPaint(-1200, -1200, Color.LIGHT_GRAY, 1200, 1200, Color.GRAY));
-        g2.fillOval(-900, -900, 1800, 1800);
-        g2.setColor(Color.BLACK);
-        g2.drawOval(-1000, -1000, 2000, 2000);       
+        g2.setColor(faceBg);
+        g2.fillOval(-950, -950, 1900, 1900);
         
         // Pinto las marcas pequenas, los minutos
+        g2.setColor(markCol);
         for (int i = 0; i < 60; i++) {
-            g2.setColor(Color.WHITE);
-            g2.fillRect(900, -5 , 50, 10);
+            if (i % 5 != 0) {
+                g2.fillRect(880, -2, 40, 4);
+            }
             g2.transform(AffineTransform.getRotateInstance(Math.PI / 30.0));
         }
         
         // Pinto las marcas grandes, las horas.
         g2.setTransform(mytrans);
         for (int i = 0; i < 12; i++) {
-            g2.setColor(Color.WHITE);
-            g2.fillRect(800, -15 , 150, 30);
-            // g2.setColor(Color.BLACK);
-            // g2.drawRect(800, -15 , 150, 30);
+            g2.fillRect(830, -8, 90, 16);
             g2.transform(AffineTransform.getRotateInstance(Math.PI / 6.0));
         }
         
         if (m_date != null) {
-            // Aguja de las horas
-            g2.setTransform(mytrans);       
-            g2.transform(AffineTransform.getRotateInstance((dhour + dminute / 60.0) * Math.PI / 6.0)); // Poner hora
-            
             if (m_lPeriod > 0L) { // pintamos la marca del periodo...
-                // dibujo un arco con el periodo seleccionado...
                 int iArc = (int) (m_lPeriod / 120000L);
-                g2.setColor(new Color(255, 255, 255, 100));
-                g2.fillArc(-1000, -1000, 2000, 2000, 90 - iArc, iArc);
-                g2.setColor(Color.DARK_GRAY);
-                g2.drawArc(-1000, -1000, 2000, 2000, 90 - iArc, iArc);
+                g2.setTransform(mytrans);
+                g2.setColor(new Color(37, 99, 235, 40)); // Blue 600 with alpha
+                g2.fillArc(-950, -950, 1900, 1900, 90 - iArc, iArc);
+                g2.setColor(new Color(37, 99, 235, 100));
+                g2.drawArc(-950, -950, 1900, 1900, 90 - iArc, iArc);
             } else {
-                // la aguja de las horas
-                g2.setColor(Color.WHITE);
-                g2.fillPolygon(new int[]{0, -35, 0, 35}, new int[]{100, 0, -600, 0}, 4);   
-                g2.setColor(Color.DARK_GRAY);
-                g2.drawPolygon(new int[]{0, -35, 0, 35}, new int[]{100, 0, -600, 0}, 4);
-
-                // Aguja de los minutos
+                // Aguja de las horas (sleek flat rounded line)
                 g2.setTransform(mytrans);       
-                g2.transform(AffineTransform.getRotateInstance((dminute) * Math.PI / 30.0)); // Poner minutos
-                g2.setColor(Color.WHITE);
-                g2.fillPolygon(new int[]{0, -35, 0, 35}, new int[]{100, 0, -900, 0}, 4);   
-                g2.setColor(Color.DARK_GRAY);
-                g2.drawPolygon(new int[]{0, -35, 0, 35}, new int[]{100, 0, -900, 0}, 4);      
+                g2.transform(AffineTransform.getRotateInstance((dhour + dminute / 60.0) * Math.PI / 6.0));
+                g2.setColor(hourHandCol);
+                g2.fillRoundRect(-25, -600, 50, 700, 25, 25);
+
+                // Aguja de los minutos (sleek flat rounded line)
+                g2.setTransform(mytrans);       
+                g2.transform(AffineTransform.getRotateInstance((dminute) * Math.PI / 30.0));
+                g2.setColor(minHandCol);
+                g2.fillRoundRect(-18, -850, 36, 950, 18, 18);
         
                 // Aguja de los segundos
                 if (m_bSeconds) {
                     g2.setTransform(mytrans);       
-                    g2.transform(AffineTransform.getRotateInstance(dsecond * Math.PI / 30.0)); // Poner segundos
-                    g2.setColor(Color.YELLOW);
-                    g2.fillPolygon(new int[]{-15, 0, 15}, new int[]{200, -900, 200},  3);   
-                    g2.setColor(Color.DARK_GRAY);
-                    g2.drawPolygon(new int[]{-15, 0, 15}, new int[]{200, -900, 200},  3);   
-
-                    g2.setTransform(mytrans);       
-                    g2.setColor(Color.YELLOW);
-                    g2.fillOval(-25, -25, 50, 50);
-                    g2.setColor(Color.DARK_GRAY);
-                    g2.drawOval(-25, -25, 50, 50);
+                    g2.transform(AffineTransform.getRotateInstance(dsecond * Math.PI / 30.0));
+                    g2.setColor(secHandCol);
+                    g2.fillRoundRect(-8, -900, 16, 1100, 8, 8);
+                    
+                    // center dot
+                    g2.setColor(secHandCol);
+                    g2.fillOval(-35, -35, 70, 70);
                 }
             }
         }
         
-        // Pinto el tornillo central
-        g2.setColor(Color.WHITE);
-        g2.fillOval(-10, -10, 20, 20);
-        g2.setColor(Color.BLACK);
-        g2.drawOval(-10, -10, 20, 20);
+        // Center cap
+        g2.setTransform(mytrans);
+        g2.setColor(hourHandCol);
+        g2.fillOval(-45, -45, 90, 90);
+        g2.setColor(faceBg);
+        g2.fillOval(-15, -15, 30, 30);
         
         // restauro los valores iniciales
         g2.setTransform(oldt);

@@ -41,24 +41,33 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 
-
 /**
  *
  * @author JG uniCenta
  */
 
 public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConfig {
-    
+
     private static final Logger LOGGER = Logger.getLogger(JPanelConfigGeneral.class.getName());
 
     private final DirtyManager dirty = new DirtyManager();
     private com.openbravo.pos.forms.AppView m_App; // Para acceder a AppView y cambiar contraseña
 
+    private final static String LOCALE_DEFAULT_VALUE = "(Default)";
+    private javax.swing.JComboBox jcboLocale;
+    private javax.swing.JComboBox jcboInteger;
+    private javax.swing.JComboBox jcboDouble;
+    private javax.swing.JComboBox jcboCurrency;
+    private javax.swing.JComboBox jcboPercent;
+    private javax.swing.JComboBox jcboDate;
+    private javax.swing.JComboBox jcboTime;
+    private javax.swing.JComboBox jcboDatetime;
+
     /** Creates new form JPanelConfigGeneral */
     public JPanelConfigGeneral() {
         this(null);
     }
-    
+
     /** Creates new form JPanelConfigGeneral with AppView */
     public JPanelConfigGeneral(com.openbravo.pos.forms.AppView app) {
         m_App = app;
@@ -76,36 +85,34 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         jtxtMachineDepartment.getDocument().addDocumentListener(dirty);
         jtxtMachineAddress = new javax.swing.JTextField();
         jtxtMachineAddress.getDocument().addDocumentListener(dirty);
-        lblIP_Address.setText(IP.toString());        
+        lblIP_Address.setText(IP.toString());
         jcboLAF.addActionListener(dirty);
         jcboMachineScreenmode.addActionListener(dirty);
         jcboTicketsBag.addActionListener(dirty);
-        jchkHideInfo.addActionListener(dirty);  
+        jchkHideInfo.addActionListener(dirty);
         jtxtStartupText.getDocument().addDocumentListener(dirty);
-        jbtnText.addActionListener(new FileChooserEvent(jtxtStartupText));                
+        jbtnText.addActionListener(new FileChooserEvent(jtxtStartupText));
         jtxtStartupLogo.getDocument().addDocumentListener(dirty);
         jbtnLogo.addActionListener(new FileChooserEvent(jtxtStartupLogo));
         jtxtStartupHTML.getDocument().addDocumentListener(dirty);
         jbtnHTML.addActionListener(new FileChooserEvent(jtxtStartupHTML));
 
-//        jtxtStartupMedia.getDocument().addDocumentListener(dirty);             // Coming later!
-//        jbtnMedia.addActionListener(new FileChooserEvent(jtxtStartupHTML));    // Coming later!          
-        
+        // jtxtStartupMedia.getDocument().addDocumentListener(dirty); // Coming later!
+        // jbtnMedia.addActionListener(new FileChooserEvent(jtxtStartupHTML)); // Coming
+        // later!
+
         // Installed skins
         new DefaultLafProvider()
                 .getLafInfoList()
                 .forEach(i -> jcboLAF.addItem(i));
-        
-        
-        // FlatLaf - Flat Look and Feel 
+
+        // FlatLaf - Flat Look and Feel
         new FlatlafProvider()
                 .getLafInfoList()
                 .forEach(i -> jcboLAF.addItem(i));
-        
-         
 
         jcboLAF.addActionListener((java.awt.event.ActionEvent evt) -> {
-            LOGGER.info("Current LaF: "+UIManager.getLookAndFeel().getClass().getName());
+            LOGGER.info("Current LaF: " + UIManager.getLookAndFeel().getClass().getName());
         });
 
         jcboMachineScreenmode.addItem(new ComboItem("window", "Ventana"));
@@ -113,22 +120,25 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
 
         jcboTicketsBag.addItem(new ComboItem("simple", "Simple"));
         jcboTicketsBag.addItem(new ComboItem("standard", "Estándar"));
-        jcboTicketsBag.addItem(new ComboItem("restaurant", "Restaurante"));
-        
+
         jtxtStartupLogo.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             @Override
             public void insertUpdate(javax.swing.event.DocumentEvent e) {
                 updateLogoPreview();
             }
+
             @Override
             public void removeUpdate(javax.swing.event.DocumentEvent e) {
                 updateLogoPreview();
             }
+
             @Override
             public void changedUpdate(javax.swing.event.DocumentEvent e) {
                 updateLogoPreview();
             }
         });
+
+        initLocaleComponents();
 
         buildModernLayout();
     }
@@ -161,7 +171,7 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         jtxtMachineHostname.setText(config.getProperty("machine.hostname"));
         jtxtMachineDepartment.setText(config.getProperty("machine.department"));
         jtxtMachineAddress.setText(config.getProperty("machine.address"));
-        
+
         String lafclass = config.getProperty("swing.defaultlaf");
         jcboLAF.setSelectedItem(null);
         for (int i = 0; i < jcboLAF.getItemCount(); i++) {
@@ -174,12 +184,41 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
 
         setSelectedComboValue(jcboMachineScreenmode, config.getProperty("machine.screenmode"));
         setSelectedComboValue(jcboTicketsBag, config.getProperty("machine.ticketsbag"));
-        jchkHideInfo.setSelected(Boolean.parseBoolean(config.getProperty("till.hideinfo")));        
+        jchkHideInfo.setSelected(Boolean.parseBoolean(config.getProperty("till.hideinfo")));
         jtxtStartupLogo.setText(config.getProperty("start.logo"));
-        jtxtStartupText.setText(config.getProperty("start.text")); 
+        jtxtStartupText.setText(config.getProperty("start.text"));
         jtxtStartupLogo.setText(config.getProperty("start.logo"));
         jtxtStartupHTML.setText(config.getProperty("start.html"));
         updateLogoPreview();
+
+        // Cargar propiedades de Localización
+        String slang = config.getProperty("user.language");
+        String scountry = config.getProperty("user.country");
+        String svariant = config.getProperty("user.variant");
+
+        if (slang != null && !slang.equals("") && scountry != null && svariant != null) {
+            java.util.Locale currentlocale = new java.util.Locale(slang, scountry, svariant);
+            for (int i = 0; i < jcboLocale.getItemCount(); i++) {
+                LocaleInfo l = (LocaleInfo) jcboLocale.getItemAt(i);
+                if (currentlocale.equals(l.getLocale())) {
+                    jcboLocale.setSelectedIndex(i);
+                    break;
+                }
+            }
+        } else {
+            jcboLocale.setSelectedIndex(0);
+        }
+
+        jcboInteger.setSelectedItem(writeWithDefault(config.getProperty("format.integer")));
+        jcboDouble.setSelectedItem(writeWithDefault(config.getProperty("format.double")));
+        jcboCurrency.setSelectedItem(writeWithDefault(config.getProperty("format.currency")));
+        jcboPercent.setSelectedItem(writeWithDefault(config.getProperty("format.percent")));
+        jcboDate.setSelectedItem(writeWithDefault(config.getProperty("format.date")));
+        jcboTime.setSelectedItem(writeWithDefault(config.getProperty("format.time")));
+        jcboDatetime.setSelectedItem(writeWithDefault(config.getProperty("format.datetime")));
+
+        showLocaleHelp();
+
         dirty.setDirty(false);
     }
 
@@ -191,9 +230,9 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
     public void saveProperties(AppConfig config) {
 
         config.setProperty("machine.hostname", jtxtMachineHostname.getText());
-        config.setProperty("machine.department", jtxtMachineDepartment.getText());      
-        config.setProperty("machine.address", jtxtMachineAddress.getText());      
-        
+        config.setProperty("machine.department", jtxtMachineDepartment.getText());
+        config.setProperty("machine.address", jtxtMachineAddress.getText());
+
         LafInfo laf = (LafInfo) jcboLAF.getSelectedItem();
         config.setProperty("swing.defaultlaf", laf == null
                 ? System.getProperty("swing.defaultlaf", "javax.swing.plaf.metal.MetalLookAndFeel")
@@ -201,13 +240,31 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
 
         config.setProperty("machine.screenmode", getSelectedComboValue(jcboMachineScreenmode));
         config.setProperty("machine.ticketsbag", getSelectedComboValue(jcboTicketsBag));
-        config.setProperty("till.hideinfo", Boolean.toString(jchkHideInfo.isSelected()));         
+        config.setProperty("till.hideinfo", Boolean.toString(jchkHideInfo.isSelected()));
         config.setProperty("start.logo", jtxtStartupLogo.getText());
         config.setProperty("start.text", jtxtStartupText.getText());
         config.setProperty("start.html", jtxtStartupHTML.getText());
 
-//        config.setProperty("start.media", jtxtStartupMedia.getText());          // Coming later!     
-        
+        // Guardar propiedades de Localización
+        java.util.Locale l = ((LocaleInfo) jcboLocale.getSelectedItem()).getLocale();
+        if (l == null) {
+            config.setProperty("user.language", "");
+            config.setProperty("user.country", "");
+            config.setProperty("user.variant", "");
+        } else {
+            config.setProperty("user.language", l.getLanguage());
+            config.setProperty("user.country", l.getCountry());
+            config.setProperty("user.variant", l.getVariant());
+        }
+
+        config.setProperty("format.integer", readWithDefault(jcboInteger.getSelectedItem()));
+        config.setProperty("format.double", readWithDefault(jcboDouble.getSelectedItem()));
+        config.setProperty("format.currency", readWithDefault(jcboCurrency.getSelectedItem()));
+        config.setProperty("format.percent", readWithDefault(jcboPercent.getSelectedItem()));
+        config.setProperty("format.date", readWithDefault(jcboDate.getSelectedItem()));
+        config.setProperty("format.time", readWithDefault(jcboTime.getSelectedItem()));
+        config.setProperty("format.datetime", readWithDefault(jcboDatetime.getSelectedItem()));
+
         dirty.setDirty(false);
     }
 
@@ -216,7 +273,7 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
     }
 
     private void changeLAF() {
-        LOGGER.info("Current LaF: "+UIManager.getLookAndFeel().getClass().getName());
+        LOGGER.info("Current LaF: " + UIManager.getLookAndFeel().getClass().getName());
         final LafInfo laf = (LafInfo) jcboLAF.getSelectedItem();
         if (laf != null && !laf.getClassName().equals(UIManager.getLookAndFeel().getClass().getName())) {
             // The selected look and feel is different from the current look and feel.
@@ -229,23 +286,26 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
                     }
                     // Re-apply style customizations after look and feel is dynamically changed
                     com.openbravo.pos.util.ModernLookAndFeel.aplicarEstiloModerno();
-                    
+
                     SwingUtilities.updateComponentTreeUI(JPanelConfigGeneral.this.getTopLevelAncestor());
-                }catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException | NoSuchMethodException | SecurityException | IllegalArgumentException | InvocationTargetException ex) {
+                } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+                        | UnsupportedLookAndFeelException | NoSuchMethodException | SecurityException
+                        | IllegalArgumentException | InvocationTargetException ex) {
                     LOGGER.log(Level.WARNING, "Cannot set Look and Feel", ex);
                 }
             });
         }
-        LOGGER.info("Change LaF: "+UIManager.getLookAndFeel().getClass().getName());
+        LOGGER.info("Change LaF: " + UIManager.getLookAndFeel().getClass().getName());
     }
 
-    
-    /** This method is called from within the constructor to
+    /**
+     * This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
      * always regenerated by the Form Editor.
      */
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated
+    // Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
         jPanel11 = new javax.swing.JPanel();
@@ -488,7 +548,8 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         jLabelPassword.setPreferredSize(new java.awt.Dimension(150, 30));
 
         jbtnChangePassword.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jbtnChangePassword.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/password.png"))); // NOI18N
+        jbtnChangePassword
+                .setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/password.png"))); // NOI18N
         jbtnChangePassword.setText(AppLocal.getIntString("Menu.ChangePassword")); // NOI18N
         jbtnChangePassword.setPreferredSize(new java.awt.Dimension(200, 35));
         jbtnChangePassword.addActionListener(new java.awt.event.ActionListener() {
@@ -496,9 +557,10 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
                 jbtnChangePasswordActionPerformed(evt);
             }
         });
-        
+
         jbtnCheckUpdates.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jbtnCheckUpdates.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/utilities.png"))); // NOI18N
+        jbtnCheckUpdates
+                .setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/utilities.png"))); // NOI18N
         jbtnCheckUpdates.setText("Verificar Actualizaciones"); // NOI18N
         jbtnCheckUpdates.setPreferredSize(new java.awt.Dimension(200, 35));
         jbtnCheckUpdates.addActionListener(new java.awt.event.ActionListener() {
@@ -510,196 +572,326 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         javax.swing.GroupLayout jPanel11Layout = new javax.swing.GroupLayout(jPanel11);
         jPanel11.setLayout(jPanel11Layout);
         jPanel11Layout.setHorizontalGroup(
-            jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel11Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel11Layout.createSequentialGroup()
-                        .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel11Layout.createSequentialGroup()
-                                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addComponent(jtxtMachineHostname, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addGroup(jPanel11Layout.createSequentialGroup()
-                                .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addComponent(jtxtMachineDepartment, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(webLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 132, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(lblIP_Address, javax.swing.GroupLayout.PREFERRED_SIZE, 271, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jPanel11Layout.createSequentialGroup()
-                        .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(jcboLAF, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(previewButton, javax.swing.GroupLayout.PREFERRED_SIZE, 26, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jPanel11Layout.createSequentialGroup()
-                        .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(jcboMachineScreenmode, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jPanel11Layout.createSequentialGroup()
-                        .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel11Layout.createSequentialGroup()
-                                .addComponent(jLabel18, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addComponent(jtxtStartupLogo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel11Layout.createSequentialGroup()
+                jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel11Layout.createSequentialGroup()
+                                .addContainerGap()
                                 .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(jLabel19, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(jLblURL, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(jchkHideInfo, javax.swing.GroupLayout.PREFERRED_SIZE, 287, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(jtxtStartupText, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(jtxtStartupHTML, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(jbtnHTML, javax.swing.GroupLayout.PREFERRED_SIZE, 1, Short.MAX_VALUE)
-                            .addComponent(jbtnText, javax.swing.GroupLayout.PREFERRED_SIZE, 1, Short.MAX_VALUE)
-                            .addComponent(jbtnLogo, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(jbtnTextClear, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jbtnClearHTML, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-                    .addGroup(jPanel11Layout.createSequentialGroup()
-                        .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(jcboTicketsBag, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jPanel11Layout.createSequentialGroup()
-                        .addComponent(jLabelPassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(jbtnChangePassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jPanel11Layout.createSequentialGroup()
-                        .addGap(160, 160, 160)
-                        .addComponent(jbtnCheckUpdates, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
+                                        .addGroup(jPanel11Layout.createSequentialGroup()
+                                                .addGroup(jPanel11Layout
+                                                        .createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING,
+                                                                false)
+                                                        .addGroup(javax.swing.GroupLayout.Alignment.LEADING,
+                                                                jPanel11Layout.createSequentialGroup()
+                                                                        .addComponent(jLabel1,
+                                                                                javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                                        .addPreferredGap(
+                                                                                javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                                                        .addComponent(jtxtMachineHostname,
+                                                                                javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                                        .addGroup(jPanel11Layout.createSequentialGroup()
+                                                                .addComponent(jLabel6,
+                                                                        javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                                .addPreferredGap(
+                                                                        javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                                                .addComponent(jtxtMachineDepartment,
+                                                                        javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                        javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                                .addComponent(webLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 132,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                                .addComponent(lblIP_Address, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        271, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addGroup(jPanel11Layout.createSequentialGroup()
+                                                .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                                .addComponent(jcboLAF, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                                .addComponent(previewButton, javax.swing.GroupLayout.PREFERRED_SIZE, 26,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addGroup(jPanel11Layout.createSequentialGroup()
+                                                .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                                .addComponent(jcboMachineScreenmode,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addGroup(jPanel11Layout.createSequentialGroup()
+                                                .addGroup(jPanel11Layout
+                                                        .createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING,
+                                                                false)
+                                                        .addGroup(javax.swing.GroupLayout.Alignment.LEADING,
+                                                                jPanel11Layout.createSequentialGroup()
+                                                                        .addComponent(jLabel18,
+                                                                                javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                                        .addPreferredGap(
+                                                                                javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                                                        .addComponent(jtxtStartupLogo,
+                                                                                javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                                        .addGroup(javax.swing.GroupLayout.Alignment.LEADING,
+                                                                jPanel11Layout.createSequentialGroup()
+                                                                        .addGroup(jPanel11Layout.createParallelGroup(
+                                                                                javax.swing.GroupLayout.Alignment.LEADING)
+                                                                                .addComponent(jLabel19,
+                                                                                        javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                                                .addComponent(jLblURL,
+                                                                                        javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                                        javax.swing.GroupLayout.PREFERRED_SIZE))
+                                                                        .addPreferredGap(
+                                                                                javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                                                        .addGroup(jPanel11Layout.createParallelGroup(
+                                                                                javax.swing.GroupLayout.Alignment.LEADING)
+                                                                                .addComponent(jchkHideInfo,
+                                                                                        javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                                        287,
+                                                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                                                .addComponent(jtxtStartupText,
+                                                                                        javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                                                .addComponent(jtxtStartupHTML,
+                                                                                        javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                                        javax.swing.GroupLayout.PREFERRED_SIZE))))
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                                .addGroup(jPanel11Layout
+                                                        .createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING,
+                                                                false)
+                                                        .addComponent(jbtnHTML, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                1, Short.MAX_VALUE)
+                                                        .addComponent(jbtnText, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                1, Short.MAX_VALUE)
+                                                        .addComponent(jbtnLogo, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                50, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                                .addGroup(jPanel11Layout
+                                                        .createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING,
+                                                                false)
+                                                        .addComponent(jbtnTextClear,
+                                                                javax.swing.GroupLayout.PREFERRED_SIZE, 40,
+                                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                        .addComponent(jbtnClearHTML,
+                                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                                        .addGroup(jPanel11Layout.createSequentialGroup()
+                                                .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                                .addComponent(jcboTicketsBag, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addGroup(jPanel11Layout.createSequentialGroup()
+                                                .addComponent(jLabelPassword, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                                .addComponent(jbtnChangePassword,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addGroup(jPanel11Layout.createSequentialGroup()
+                                                .addGap(160, 160, 160)
+                                                .addComponent(jbtnCheckUpdates, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
         jPanel11Layout.setVerticalGroup(
-            jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel11Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                        .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(jtxtMachineHostname, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(webLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(lblIP_Address, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jtxtMachineDepartment, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jcboLAF, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(previewButton, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jcboMachineScreenmode, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jcboTicketsBag, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel18, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jtxtStartupLogo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jbtnLogo, javax.swing.GroupLayout.PREFERRED_SIZE, 34, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel19, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jtxtStartupText, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jbtnText, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jbtnTextClear, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jbtnClearHTML, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 33, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                        .addComponent(jLblURL, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(jtxtStartupHTML, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(jbtnHTML, javax.swing.GroupLayout.PREFERRED_SIZE, 33, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addGap(18, 18, 18)
-                .addComponent(jchkHideInfo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabelPassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jbtnChangePassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jbtnCheckUpdates, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
-        );
+                jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel11Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                        .addGroup(jPanel11Layout
+                                                .createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addComponent(jtxtMachineHostname,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addComponent(webLabel1, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addComponent(lblIP_Address, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jtxtMachineDepartment, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jcboLAF, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(previewButton, javax.swing.GroupLayout.PREFERRED_SIZE, 30,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jcboMachineScreenmode, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jcboTicketsBag, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel18, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jtxtStartupLogo, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jbtnLogo, javax.swing.GroupLayout.PREFERRED_SIZE, 34,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel19, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jtxtStartupText, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jbtnText, javax.swing.GroupLayout.PREFERRED_SIZE, 32,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jbtnTextClear, javax.swing.GroupLayout.PREFERRED_SIZE, 32,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(jbtnClearHTML, javax.swing.GroupLayout.Alignment.TRAILING,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE, 33,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addGroup(jPanel11Layout
+                                                .createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                                .addComponent(jLblURL, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addComponent(jtxtStartupHTML, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addComponent(jbtnHTML, javax.swing.GroupLayout.PREFERRED_SIZE, 33,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                .addGap(18, 18, 18)
+                                .addComponent(jchkHideInfo, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabelPassword, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jbtnChangePassword, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jbtnCheckUpdates, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap()));
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addComponent(jPanel11, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 50, Short.MAX_VALUE))
-        );
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(layout.createSequentialGroup()
+                                .addComponent(jPanel11, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(0, 50, Short.MAX_VALUE)));
         layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel11, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-        );
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(jPanel11, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE));
 
         getAccessibleContext().setAccessibleName("");
     }// </editor-fold>//GEN-END:initComponents
 
-    private void jbtnClearHTMLActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbtnClearHTMLActionPerformed
+    private void jbtnClearHTMLActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jbtnClearHTMLActionPerformed
         jtxtStartupHTML.setText("");
-    }//GEN-LAST:event_jbtnClearHTMLActionPerformed
+    }// GEN-LAST:event_jbtnClearHTMLActionPerformed
 
-    private void jbtnHTMLActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbtnHTMLActionPerformed
+    private void jbtnHTMLActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jbtnHTMLActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_jbtnHTMLActionPerformed
+    }// GEN-LAST:event_jbtnHTMLActionPerformed
 
-    private void jtxtStartupHTMLActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jtxtStartupHTMLActionPerformed
+    private void jtxtStartupHTMLActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jtxtStartupHTMLActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_jtxtStartupHTMLActionPerformed
+    }// GEN-LAST:event_jtxtStartupHTMLActionPerformed
 
-    private void jtxtStartupHTMLFocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jtxtStartupHTMLFocusGained
+    private void jtxtStartupHTMLFocusGained(java.awt.event.FocusEvent evt) {// GEN-FIRST:event_jtxtStartupHTMLFocusGained
         // TODO add your handling code here:
-    }//GEN-LAST:event_jtxtStartupHTMLFocusGained
+    }// GEN-LAST:event_jtxtStartupHTMLFocusGained
 
-    private void jLblURLMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLblURLMouseClicked
+    private void jLblURLMouseClicked(java.awt.event.MouseEvent evt) {// GEN-FIRST:event_jLblURLMouseClicked
         JOptionPane.showMessageDialog(this,
-            AppLocal.getIntString("message.URL"),
-            "URL",
-            JOptionPane.INFORMATION_MESSAGE);
-    }//GEN-LAST:event_jLblURLMouseClicked
+                AppLocal.getIntString("message.URL"),
+                "URL",
+                JOptionPane.INFORMATION_MESSAGE);
+    }// GEN-LAST:event_jLblURLMouseClicked
 
-    private void jbtnTextClearActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbtnTextClearActionPerformed
+    private void jbtnTextClearActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jbtnTextClearActionPerformed
         jtxtStartupText.setText("");
-    }//GEN-LAST:event_jbtnTextClearActionPerformed
+    }// GEN-LAST:event_jbtnTextClearActionPerformed
 
-    private void jbtnTextActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbtnTextActionPerformed
+    private void jbtnTextActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jbtnTextActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_jbtnTextActionPerformed
+    }// GEN-LAST:event_jbtnTextActionPerformed
 
-    private void jbtnLogoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbtnLogoActionPerformed
+    private void jbtnLogoActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jbtnLogoActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_jbtnLogoActionPerformed
+    }// GEN-LAST:event_jbtnLogoActionPerformed
 
-    private void jtxtStartupTextActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jtxtStartupTextActionPerformed
+    private void jtxtStartupTextActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jtxtStartupTextActionPerformed
 
-    }//GEN-LAST:event_jtxtStartupTextActionPerformed
+    }// GEN-LAST:event_jtxtStartupTextActionPerformed
 
-    private void jtxtStartupTextFocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jtxtStartupTextFocusGained
+    private void jtxtStartupTextFocusGained(java.awt.event.FocusEvent evt) {// GEN-FIRST:event_jtxtStartupTextFocusGained
 
-    }//GEN-LAST:event_jtxtStartupTextFocusGained
+    }// GEN-LAST:event_jtxtStartupTextFocusGained
 
-    private void jcboLAFActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jcboLAFActionPerformed
+    private void jcboLAFActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jcboLAFActionPerformed
 
-    }//GEN-LAST:event_jcboLAFActionPerformed
+    }// GEN-LAST:event_jcboLAFActionPerformed
 
-    private void previewButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_previewButtonActionPerformed
+    private void previewButtonActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_previewButtonActionPerformed
 
         changeLAF();
-    }//GEN-LAST:event_previewButtonActionPerformed
+    }// GEN-LAST:event_previewButtonActionPerformed
 
-    private void jbtnChangePasswordActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbtnChangePasswordActionPerformed
+    private void jbtnChangePasswordActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jbtnChangePasswordActionPerformed
         if (m_App == null) {
             JOptionPane.showMessageDialog(this,
                     AppLocal.getIntString("message.cannotchangepassword"),
@@ -707,15 +899,14 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
                     JOptionPane.WARNING_MESSAGE);
             return;
         }
-        
+
         try {
             AppUser m_appuser = m_App.getAppUserView().getUser();
-            DataLogicSystem m_dlSystem = 
-                (DataLogicSystem) m_App.getBean("com.openbravo.pos.forms.DataLogicSystem");
-            
+            DataLogicSystem m_dlSystem = (DataLogicSystem) m_App.getBean("com.openbravo.pos.forms.DataLogicSystem");
+
             String sNewPassword = JPasswordDialog.changePassword(this, m_appuser.getPassword());
             if (sNewPassword != null) {
-                m_dlSystem.execChangePassword(new Object[]{sNewPassword, m_appuser.getId()});
+                m_dlSystem.execChangePassword(new Object[] { sNewPassword, m_appuser.getId() });
                 m_appuser.setPassword(sNewPassword);
                 JOptionPane.showMessageDialog(this,
                         "Contraseña cambiada exitosamente",
@@ -729,21 +920,22 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
                     AppLocal.getIntString("message.title"),
                     JOptionPane.ERROR_MESSAGE);
         }
-    }//GEN-LAST:event_jbtnChangePasswordActionPerformed
+    }// GEN-LAST:event_jbtnChangePasswordActionPerformed
 
-    private void jbtnCheckUpdatesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbtnCheckUpdatesActionPerformed
+    private void jbtnCheckUpdatesActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jbtnCheckUpdatesActionPerformed
         if (m_App != null && m_App instanceof com.openbravo.pos.forms.JRootApp) {
             ((com.openbravo.pos.forms.JRootApp) m_App).checkForUpdatesManually();
         } else {
             JOptionPane.showMessageDialog(this,
-                "No se puede verificar actualizaciones en este momento.",
-                "Error",
-                JOptionPane.ERROR_MESSAGE);
+                    "No se puede verificar actualizaciones en este momento.",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
         }
-    }//GEN-LAST:event_jbtnCheckUpdatesActionPerformed
+    }// GEN-LAST:event_jbtnCheckUpdatesActionPerformed
 
     private void updateLogoPreview() {
-        if (lblLogoPreview == null) return;
+        if (lblLogoPreview == null)
+            return;
         String logoPath = jtxtStartupLogo.getText();
         if (logoPath == null || logoPath.trim().isEmpty()) {
             lblLogoPreview.setIcon(null);
@@ -793,9 +985,8 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         field.setForeground(new Color(55, 65, 81));
         field.setBackground(Color.WHITE);
         field.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
-            BorderFactory.createEmptyBorder(8, 12, 8, 12)
-        ));
+                BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
+                BorderFactory.createEmptyBorder(8, 12, 8, 12)));
     }
 
     private void setSelectedComboValue(JComboBox combo, String value) {
@@ -864,7 +1055,7 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         lblMainTitle = new JLabel("Configuración del Perfil de la Empresa");
         lblMainTitle.setFont(new Font("Segoe UI", Font.BOLD, 24));
         lblMainTitle.setForeground(new Color(17, 24, 39));
-        
+
         lblSubtitle = new JLabel("Gestione la información y configuración de su negocio");
         lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         lblSubtitle.setForeground(new Color(107, 114, 128));
@@ -894,7 +1085,7 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         JPanel leftCard = createCardPanel();
         cardsContainer.add(leftCard, gbcCards);
 
-        // Right Card
+        // Right Card (Idioma, Formato y Acciones)
         gbcCards.gridx = 1;
         gbcCards.insets = new Insets(0, 10, 20, 20);
         JPanel rightCard = createCardPanel();
@@ -992,9 +1183,8 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         jbtnLogo.setBackground(Color.WHITE);
         jbtnLogo.setForeground(new Color(59, 130, 246));
         jbtnLogo.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
-            BorderFactory.createEmptyBorder(6, 12, 6, 12)
-        ));
+                BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
+                BorderFactory.createEmptyBorder(6, 12, 6, 12)));
         jbtnLogo.setFocusPainted(false);
         jbtnLogo.setCursor(new Cursor(Cursor.HAND_CURSOR));
         logoButtons.add(jbtnLogo);
@@ -1004,9 +1194,8 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         jbtnRemoveLogo.setBackground(Color.WHITE);
         jbtnRemoveLogo.setForeground(new Color(107, 114, 128));
         jbtnRemoveLogo.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
-            BorderFactory.createEmptyBorder(6, 12, 6, 12)
-        ));
+                BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
+                BorderFactory.createEmptyBorder(6, 12, 6, 12)));
         jbtnRemoveLogo.setFocusPainted(false);
         jbtnRemoveLogo.setCursor(new Cursor(Cursor.HAND_CURSOR));
         jbtnRemoveLogo.addActionListener(e -> {
@@ -1038,9 +1227,8 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         jtxtStartupLogo.setForeground(new Color(107, 114, 128));
         jtxtStartupLogo.setBackground(new Color(243, 244, 246));
         jtxtStartupLogo.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(229, 231, 235), 1),
-            BorderFactory.createEmptyBorder(4, 8, 4, 8)
-        ));
+                BorderFactory.createLineBorder(new Color(229, 231, 235), 1),
+                BorderFactory.createEmptyBorder(4, 8, 4, 8)));
         gbcL.gridy = rowL++;
         gbcL.gridwidth = 2;
         gbcL.insets = new Insets(0, 0, 15, 0);
@@ -1082,6 +1270,83 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         gbcL.insets = new Insets(0, 0, 12, 0);
         leftCard.add(jtxtMachineAddress, gbcL);
 
+        // Push everything up
+        gbcL.gridy = rowL++;
+        gbcL.gridwidth = 2;
+        gbcL.weighty = 1.0;
+        gbcL.fill = GridBagConstraints.BOTH;
+        leftCard.add(Box.createGlue(), gbcL);
+
+        // --- POPULATE RIGHT CARD (Idioma, Formato y Acciones) ---
+        rightCard.setLayout(new GridBagLayout());
+        GridBagConstraints gbcR = new GridBagConstraints();
+        gbcR.fill = GridBagConstraints.HORIZONTAL;
+        gbcR.weightx = 1.0;
+        gbcR.gridx = 0;
+        int rowR = 0;
+
+        JLabel lblCardRTitle = new JLabel("Idioma y Formato");
+        lblCardRTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lblCardRTitle.setForeground(new Color(17, 24, 39));
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(0, 0, 15, 0);
+        rightCard.add(lblCardRTitle, gbcR);
+
+        // 1. Idioma / Región (Locale)
+        styleComboBox(jcboLocale);
+        JLabel lblLocale = new JLabel("Localización (Idioma / Región)");
+        lblLocale.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblLocale.setForeground(new Color(75, 85, 99));
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(5, 0, 4, 0);
+        rightCard.add(lblLocale, gbcR);
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(0, 0, 12, 0);
+        rightCard.add(jcboLocale, gbcR);
+
+        // 2. Currency
+        styleComboBox(jcboCurrency);
+        JLabel lblCurrency = new JLabel("Formato de Moneda");
+        lblCurrency.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblCurrency.setForeground(new Color(75, 85, 99));
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(5, 0, 4, 0);
+        rightCard.add(lblCurrency, gbcR);
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(0, 0, 12, 0);
+        rightCard.add(jcboCurrency, gbcR);
+
+        // 3. Date
+        styleComboBox(jcboDate);
+        JLabel lblDate = new JLabel("Formato de Fecha");
+        lblDate.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblDate.setForeground(new Color(75, 85, 99));
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(5, 0, 4, 0);
+        rightCard.add(lblDate, gbcR);
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(0, 0, 12, 0);
+        rightCard.add(jcboDate, gbcR);
+
+        // 4. DateTime
+        styleComboBox(jcboDatetime);
+        JLabel lblDateTime = new JLabel("Formato de Fecha y Hora");
+        lblDateTime.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblDateTime.setForeground(new Color(75, 85, 99));
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(5, 0, 4, 0);
+        rightCard.add(lblDateTime, gbcR);
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(0, 0, 15, 0);
+        rightCard.add(jcboDatetime, gbcR);
+
+        // Divider
+        JSeparator separator = new JSeparator();
+        separator.setForeground(new Color(226, 232, 240));
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(10, 0, 15, 0);
+        rightCard.add(separator, gbcR);
+
         // Look and feel selector
         styleComboBox(jcboLAF);
         previewButton.setText("Vista Previa");
@@ -1089,9 +1354,8 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         previewButton.setBackground(Color.WHITE);
         previewButton.setForeground(new Color(75, 85, 99));
         previewButton.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
-            BorderFactory.createEmptyBorder(8, 12, 8, 12)
-        ));
+                BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
+                BorderFactory.createEmptyBorder(8, 12, 8, 12)));
         previewButton.setFocusPainted(false);
         previewButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
@@ -1103,12 +1367,12 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         JLabel lblLAF = new JLabel("Tema Visual (Apariencia)");
         lblLAF.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lblLAF.setForeground(new Color(75, 85, 99));
-        gbcL.gridy = rowL++;
-        gbcL.insets = new Insets(5, 0, 4, 0);
-        leftCard.add(lblLAF, gbcL);
-        gbcL.gridy = rowL++;
-        gbcL.insets = new Insets(0, 0, 12, 0);
-        leftCard.add(lafPanel, gbcL);
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(5, 0, 4, 0);
+        rightCard.add(lblLAF, gbcR);
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(0, 0, 12, 0);
+        rightCard.add(lafPanel, gbcR);
 
         // Screen mode & Tickets bag
         styleComboBox(jcboMachineScreenmode);
@@ -1122,160 +1386,60 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         lblBag.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lblBag.setForeground(new Color(75, 85, 99));
 
-        gbcL.gridwidth = 1;
-        gbcL.weightx = 0.5;
+        JPanel modeBagPanel = new JPanel(new GridBagLayout());
+        modeBagPanel.setOpaque(false);
+        GridBagConstraints gbcMB = new GridBagConstraints();
+        gbcMB.fill = GridBagConstraints.HORIZONTAL;
+        gbcMB.weighty = 1.0;
+        gbcMB.weightx = 0.5;
+        gbcMB.gridy = 0;
 
-        gbcL.gridy = rowL;
-        gbcL.gridx = 0;
-        gbcL.insets = new Insets(5, 0, 4, 5);
-        leftCard.add(lblScreen, gbcL);
+        gbcMB.gridx = 0;
+        gbcMB.insets = new Insets(0, 0, 0, 6);
+        modeBagPanel.add(jcboMachineScreenmode, gbcMB);
 
-        gbcL.gridx = 1;
-        gbcL.insets = new Insets(5, 5, 4, 0);
-        leftCard.add(lblBag, gbcL);
+        gbcMB.gridx = 1;
+        gbcMB.insets = new Insets(0, 6, 0, 0);
+        modeBagPanel.add(jcboTicketsBag, gbcMB);
 
-        rowL++;
+        JPanel modeBagLabels = new JPanel(new GridBagLayout());
+        modeBagLabels.setOpaque(false);
+        GridBagConstraints gbcMBL = new GridBagConstraints();
+        gbcMBL.fill = GridBagConstraints.HORIZONTAL;
+        gbcMBL.weighty = 1.0;
+        gbcMBL.weightx = 0.5;
+        gbcMBL.gridy = 0;
 
-        gbcL.gridy = rowL;
-        gbcL.gridx = 0;
-        gbcL.insets = new Insets(0, 0, 12, 5);
-        leftCard.add(jcboMachineScreenmode, gbcL);
+        gbcMBL.gridx = 0;
+        gbcMBL.insets = new Insets(0, 0, 0, 6);
+        modeBagLabels.add(lblScreen, gbcMBL);
 
-        gbcL.gridx = 1;
-        gbcL.insets = new Insets(0, 5, 12, 0);
-        leftCard.add(jcboTicketsBag, gbcL);
+        gbcMBL.gridx = 1;
+        gbcMBL.insets = new Insets(0, 6, 0, 0);
+        modeBagLabels.add(lblBag, gbcMBL);
 
-        rowL++;
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(5, 0, 4, 0);
+        rightCard.add(modeBagLabels, gbcR);
+        gbcR.gridy = rowR++;
+        gbcR.insets = new Insets(0, 0, 12, 0);
+        rightCard.add(modeBagPanel, gbcR);
 
         // Hide Info checkbox
         jchkHideInfo.setText("Mostrar Panel de Información Inferior");
         jchkHideInfo.setFont(new Font("Segoe UI", Font.BOLD, 13));
         jchkHideInfo.setForeground(new Color(75, 85, 99));
         jchkHideInfo.setOpaque(false);
-        gbcL.gridx = 0;
-        gbcL.gridy = rowL++;
-        gbcL.gridwidth = 2;
-        gbcL.weightx = 1.0;
-        gbcL.insets = new Insets(5, 0, 12, 0);
-        leftCard.add(jchkHideInfo, gbcL);
-
-        // Push everything up
-        gbcL.gridy = rowL++;
-        gbcL.gridwidth = 2;
-        gbcL.weighty = 1.0;
-        gbcL.fill = GridBagConstraints.BOTH;
-        leftCard.add(Box.createGlue(), gbcL);
-
-
-        // --- POPULATE RIGHT CARD ---
-        rightCard.setLayout(new GridBagLayout());
-        GridBagConstraints gbcR = new GridBagConstraints();
-        gbcR.fill = GridBagConstraints.HORIZONTAL;
-        gbcR.weightx = 1.0;
-        gbcR.gridx = 0;
-        int rowR = 0;
-
-        lblCard2Title = new JLabel("Configuración de Inicio y Acciones");
-        lblCard2Title.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        lblCard2Title.setForeground(new Color(17, 24, 39));
         gbcR.gridy = rowR++;
-        gbcR.insets = new Insets(0, 0, 15, 0);
-        rightCard.add(lblCard2Title, gbcR);
+        gbcR.insets = new Insets(5, 0, 15, 0);
+        rightCard.add(jchkHideInfo, gbcR);
 
-        // Startup Text
-        styleInputField(jtxtStartupText);
-        jbtnText.setText("...");
-        jbtnText.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        jbtnText.setBackground(Color.WHITE);
-        jbtnText.setForeground(new Color(75, 85, 99));
-        jbtnText.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
-            BorderFactory.createEmptyBorder(8, 12, 8, 12)
-        ));
-        jbtnText.setFocusPainted(false);
-        jbtnText.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        jbtnTextClear.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        jbtnTextClear.setBackground(Color.WHITE);
-        jbtnTextClear.setForeground(new Color(239, 68, 68));
-        jbtnTextClear.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
-            BorderFactory.createEmptyBorder(8, 12, 8, 12)
-        ));
-        jbtnTextClear.setFocusPainted(false);
-        jbtnTextClear.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        JPanel textButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
-        textButtonPanel.setOpaque(false);
-        textButtonPanel.add(jbtnText);
-        textButtonPanel.add(jbtnTextClear);
-
-        JPanel textPanel = new JPanel(new BorderLayout(8, 0));
-        textPanel.setOpaque(false);
-        textPanel.add(jtxtStartupText, BorderLayout.CENTER);
-        textPanel.add(textButtonPanel, BorderLayout.EAST);
-
-        JLabel lblText = new JLabel("Archivo de Texto de Inicio");
-        lblText.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        lblText.setForeground(new Color(75, 85, 99));
-        gbcR.gridy = rowR++;
-        gbcR.insets = new Insets(5, 0, 4, 0);
-        rightCard.add(lblText, gbcR);
-        gbcR.gridy = rowR++;
-        gbcR.insets = new Insets(0, 0, 12, 0);
-        rightCard.add(textPanel, gbcR);
-
-        // Startup HTML
-        styleInputField(jtxtStartupHTML);
-        jbtnHTML.setText("...");
-        jbtnHTML.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        jbtnHTML.setBackground(Color.WHITE);
-        jbtnHTML.setForeground(new Color(75, 85, 99));
-        jbtnHTML.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
-            BorderFactory.createEmptyBorder(8, 12, 8, 12)
-        ));
-        jbtnHTML.setFocusPainted(false);
-        jbtnHTML.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        jbtnClearHTML.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        jbtnClearHTML.setBackground(Color.WHITE);
-        jbtnClearHTML.setForeground(new Color(239, 68, 68));
-        jbtnClearHTML.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
-            BorderFactory.createEmptyBorder(8, 12, 8, 12)
-        ));
-        jbtnClearHTML.setFocusPainted(false);
-        jbtnClearHTML.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        JPanel htmlButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
-        htmlButtonPanel.setOpaque(false);
-        htmlButtonPanel.add(jbtnHTML);
-        htmlButtonPanel.add(jbtnClearHTML);
-
-        JPanel htmlPanel = new JPanel(new BorderLayout(8, 0));
-        htmlPanel.setOpaque(false);
-        htmlPanel.add(jtxtStartupHTML, BorderLayout.CENTER);
-        htmlPanel.add(htmlButtonPanel, BorderLayout.EAST);
-
-        jLblURL.setText("Archivo HTML de Inicio");
-        jLblURL.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        jLblURL.setForeground(new Color(75, 85, 99));
-        jLblURL.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        gbcR.gridy = rowR++;
-        gbcR.insets = new Insets(5, 0, 4, 0);
-        rightCard.add(jLblURL, gbcR);
-        gbcR.gridy = rowR++;
-        gbcR.insets = new Insets(0, 0, 15, 0);
-        rightCard.add(htmlPanel, gbcR);
-
-        // Divider
-        JSeparator separator = new JSeparator();
-        separator.setForeground(new Color(226, 232, 240));
+        // Divider 2
+        JSeparator separator2 = new JSeparator();
+        separator2.setForeground(new Color(226, 232, 240));
         gbcR.gridy = rowR++;
         gbcR.insets = new Insets(10, 0, 15, 0);
-        rightCard.add(separator, gbcR);
+        rightCard.add(separator2, gbcR);
 
         // Security Title
         JLabel lblSecTitle = new JLabel("Acciones del Sistema");
@@ -1291,9 +1455,8 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         jbtnChangePassword.setBackground(new Color(51, 98, 140));
         jbtnChangePassword.setForeground(Color.WHITE);
         jbtnChangePassword.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(51, 98, 140).darker(), 1),
-            BorderFactory.createEmptyBorder(10, 16, 10, 16)
-        ));
+                BorderFactory.createLineBorder(new Color(51, 98, 140).darker(), 1),
+                BorderFactory.createEmptyBorder(10, 16, 10, 16)));
         jbtnChangePassword.setFocusPainted(false);
         jbtnChangePassword.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
@@ -1302,9 +1465,8 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         jbtnCheckUpdates.setBackground(new Color(75, 85, 99));
         jbtnCheckUpdates.setForeground(Color.WHITE);
         jbtnCheckUpdates.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(75, 85, 99).darker(), 1),
-            BorderFactory.createEmptyBorder(10, 16, 10, 16)
-        ));
+                BorderFactory.createLineBorder(new Color(75, 85, 99).darker(), 1),
+                BorderFactory.createEmptyBorder(10, 16, 10, 16)));
         jbtnCheckUpdates.setFocusPainted(false);
         jbtnCheckUpdates.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
@@ -1331,8 +1493,146 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         scrollPane.getViewport().setOpaque(false);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         this.add(scrollPane, BorderLayout.CENTER);
-        
+
         updateLogoPreview();
+    }
+
+    private void initLocaleComponents() {
+        jcboLocale = new javax.swing.JComboBox();
+        jcboInteger = new javax.swing.JComboBox();
+        jcboDouble = new javax.swing.JComboBox();
+        jcboCurrency = new javax.swing.JComboBox();
+        jcboPercent = new javax.swing.JComboBox();
+        jcboDate = new javax.swing.JComboBox();
+        jcboTime = new javax.swing.JComboBox();
+        jcboDatetime = new javax.swing.JComboBox();
+
+        jcboLocale.addActionListener(dirty);
+        jcboInteger.addActionListener(dirty);
+        jcboDouble.addActionListener(dirty);
+        jcboCurrency.addActionListener(dirty);
+        jcboPercent.addActionListener(dirty);
+        jcboDate.addActionListener(dirty);
+        jcboTime.addActionListener(dirty);
+        jcboDatetime.addActionListener(dirty);
+
+        java.util.List<java.util.Locale> availablelocales = new java.util.ArrayList<>();
+        availablelocales.addAll(java.util.Arrays.asList(java.util.Locale.getAvailableLocales()));
+
+        java.util.Collections.sort(availablelocales, new java.util.Comparator<java.util.Locale>() {
+            @Override
+            public int compare(java.util.Locale o1, java.util.Locale o2) {
+                return o1.getDisplayName().compareTo(o2.getDisplayName());
+            }
+        });
+
+        for (java.util.Locale l : availablelocales) {
+            jcboLocale.addItem(new LocaleInfo(l));
+        }
+
+        jcboInteger.addItem(LOCALE_DEFAULT_VALUE);
+        jcboInteger.addItem("#0");
+        jcboInteger.addItem("#,##0");
+
+        jcboDouble.addItem(LOCALE_DEFAULT_VALUE);
+        jcboDouble.addItem("#0.0");
+        jcboDouble.addItem("#,##0.#");
+
+        jcboCurrency.addItem(LOCALE_DEFAULT_VALUE);
+        jcboCurrency.addItem("\u00A4 #0.00");
+        jcboCurrency.addItem("'$' #,##0.00");
+        jcboCurrency.addItem("#00 '$'");
+        jcboCurrency.addItem("#,##0'$'");
+
+        jcboPercent.addItem(LOCALE_DEFAULT_VALUE);
+        jcboPercent.addItem("#,##0.##%");
+
+        jcboDate.addItem(LOCALE_DEFAULT_VALUE);
+
+        jcboTime.addItem(LOCALE_DEFAULT_VALUE);
+
+        jcboDatetime.addItem(LOCALE_DEFAULT_VALUE);
+
+        // Action Listener setup for tooltips
+        java.awt.event.ActionListener tooltipListener = new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                showLocaleHelp();
+            }
+        };
+        jcboLocale.addActionListener(tooltipListener);
+        jcboInteger.addActionListener(tooltipListener);
+        jcboDouble.addActionListener(tooltipListener);
+        jcboCurrency.addActionListener(tooltipListener);
+        jcboPercent.addActionListener(tooltipListener);
+        jcboDate.addActionListener(tooltipListener);
+        jcboTime.addActionListener(tooltipListener);
+        jcboDatetime.addActionListener(tooltipListener);
+    }
+
+    private void showLocaleHelp() {
+        if (jcboLocale == null || jcboLocale.getSelectedItem() == null) {
+            return;
+        }
+        // Set Current Locale to What is selected;
+        java.util.Locale.setDefault(((LocaleInfo) jcboLocale.getSelectedItem()).getLocale());
+
+        // Set Format/Pattern for: Number, Date, Currency
+        com.openbravo.format.Formats.setIntegerPattern(readWithDefault(jcboInteger.getSelectedItem()));
+        com.openbravo.format.Formats.setDoublePattern(readWithDefault(jcboDouble.getSelectedItem()));
+        com.openbravo.format.Formats.setCurrencyPattern(readWithDefault(jcboCurrency.getSelectedItem()));
+        com.openbravo.format.Formats.setPercentPattern(readWithDefault(jcboPercent.getSelectedItem()));
+        com.openbravo.format.Formats.setDatePattern(readWithDefault(jcboDate.getSelectedItem()));
+        com.openbravo.format.Formats.setTimePattern(readWithDefault(jcboTime.getSelectedItem()));
+        com.openbravo.format.Formats.setDateTimePattern(readWithDefault(jcboDatetime.getSelectedItem()));
+
+        jcboLocale.setToolTipText("<html>IETF BCP 47 Tag: " + java.util.Locale.getDefault().toLanguageTag());
+        jcboInteger.setToolTipText("<html>123 formated: " + com.openbravo.format.Formats.INT.formatValue(123));
+        jcboDouble.setToolTipText("<html>123.45 formated: " + com.openbravo.format.Formats.DOUBLE.formatValue(123.45));
+        jcboCurrency
+                .setToolTipText("<html>123.45 formated: " + com.openbravo.format.Formats.CURRENCY.formatValue(123.45));
+        jcboPercent.setToolTipText("<html>0.23 formated: " + com.openbravo.format.Formats.PERCENT.formatValue(0.23));
+        jcboDate.setToolTipText(
+                "<html>Date formated: " + com.openbravo.format.Formats.DATE.formatValue(new java.util.Date()));
+        jcboTime.setToolTipText(
+                "<html>Time formated: " + com.openbravo.format.Formats.TIME.formatValue(new java.util.Date()));
+        jcboDatetime.setToolTipText(
+                "<html>DateTime formated: " + com.openbravo.format.Formats.TIMESTAMP.formatValue(new java.util.Date()));
+    }
+
+    private String readWithDefault(Object value) {
+        if (LOCALE_DEFAULT_VALUE.equals(value)) {
+            return "";
+        } else {
+            return value == null ? "" : value.toString();
+        }
+    }
+
+    private Object writeWithDefault(String value) {
+        if (value == null || value.equals("") || value.equals(LOCALE_DEFAULT_VALUE)) {
+            return LOCALE_DEFAULT_VALUE;
+        } else {
+            return value;
+        }
+    }
+
+    private static class LocaleInfo {
+        private final java.util.Locale locale;
+
+        public LocaleInfo(java.util.Locale locale) {
+            this.locale = locale;
+        }
+
+        public java.util.Locale getLocale() {
+            return (locale == null) ? java.util.Locale.ROOT : locale;
+        }
+
+        @Override
+        public String toString() {
+            return (locale == null || locale == java.util.Locale.ROOT)
+                    ? "(System default)"
+                    : locale.getDisplayName();
+        }
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

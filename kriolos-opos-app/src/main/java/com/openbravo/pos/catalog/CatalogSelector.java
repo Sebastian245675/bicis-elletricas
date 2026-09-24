@@ -17,6 +17,7 @@
 package com.openbravo.pos.catalog;
 
 import com.openbravo.basic.BasicException;
+import com.openbravo.pos.ticket.ProductInfoExt;
 import java.awt.Component;
 import java.awt.event.ActionListener;
 
@@ -77,4 +78,19 @@ public interface CatalogSelector {
      * Muestra la vista de categorías en la barra lateral.
      */
     public void showCategoriesView();
+
+    /**
+     * Filtra los productos mostrados en el catálogo en tiempo real.
+     * @param query Texto a buscar o null/vacío para restaurar vista normal.
+     */
+    default public void filterProducts(String query) {}
+
+    /**
+     * Retorna el primer producto que coincida con la búsqueda o null si no hay coincidencias.
+     * @param query
+     * @return
+     */
+    default public ProductInfoExt getFirstMatchingProduct(String query) {
+        return null;
+    }
 }

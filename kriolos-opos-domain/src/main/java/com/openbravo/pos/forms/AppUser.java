@@ -34,16 +34,18 @@ public class AppUser {
     private String password;
     private final String role;
     private final Icon icon;
+    private String totpSecret;
 
     private final Set<String> permissions = new HashSet<>();
 
-    public AppUser(String id, String name, String password, String card, String role, Icon icon) {
+    public AppUser(String id, String name, String password, String card, String role, Icon icon, String totpSecret) {
         this.id = id;
         this.username = name;
         this.password = password;
         this.card = card;
         this.role = role;
         this.icon = icon;
+        this.totpSecret = totpSecret;
 
         // DEFAULT Permissions for all users
         permissions.add("com.openbravo.pos.forms.JPanelMenu");
@@ -76,6 +78,14 @@ public class AppUser {
 
     public String getCard() {
         return card;
+    }
+
+    public String getTotpSecret() {
+        return totpSecret;
+    }
+
+    public void setTotpSecret(String totpSecret) {
+        this.totpSecret = totpSecret;
     }
 
     public boolean authenticate() {

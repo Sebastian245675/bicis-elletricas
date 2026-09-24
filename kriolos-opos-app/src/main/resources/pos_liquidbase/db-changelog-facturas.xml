@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
+    
+    <changeSet author="kriolos" id="facturas-electronicas-1">
+        <createTable tableName="facturas_electronicas">
+            <column name="id" type="VARCHAR(255)">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="ticket_id" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="uuid" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="fecha" type="DATETIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="estatus" type="VARCHAR(50)"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseColumnNames="ticket_id" 
+                                 baseTableName="facturas_electronicas" 
+                                 constraintName="fk_facturas_ticket" 
+                                 referencedColumnNames="id" 
+                                 referencedTableName="tickets" 
+                                 onDelete="CASCADE"/>
+    </changeSet>
+
+    <changeSet author="kriolos" id="facturas-electronicas-2">
+        <addColumn tableName="facturas_electronicas">
+            <column name="provider_id" type="VARCHAR(255)"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

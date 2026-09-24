@@ -26,6 +26,7 @@ import java.awt.event.FocusEvent;
 import javax.swing.BorderFactory;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
@@ -37,7 +38,7 @@ import javax.swing.border.Border;
 public class JPanelConfigProfile extends JPanel implements PanelConfig {
 
     private final DirtyManager dirty = new DirtyManager();
-    private final String[] genderKeys = {"unspecified", "male", "female", "other"};
+    private final String[] genderKeys = { "unspecified", "male", "female", "other" };
 
     private JTextField jtxtName;
     private JTextField jtxtEmail;
@@ -45,6 +46,8 @@ public class JPanelConfigProfile extends JPanel implements PanelConfig {
     private JTextField jtxtBirthday;
     private JTextField jtxtAddress;
     private JComboBox<String> jcomboGender;
+    private String selectedImagePath = "";
+    private java.awt.image.BufferedImage customAvatarImage = null;
 
     public JPanelConfigProfile() {
         initComponents();
@@ -63,15 +66,13 @@ public class JPanelConfigProfile extends JPanel implements PanelConfig {
         scrollPane.getViewport().setOpaque(false);
 
         // Centering Wrapper Panel
-        JPanel centerWrapper = new JPanel(new GridBagLayout());
+        JPanel centerWrapper = new JPanel(new java.awt.BorderLayout());
         centerWrapper.setOpaque(false);
+        centerWrapper.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         // Main Rounded Card
         RoundedCard card = new RoundedCard();
         card.setLayout(new GridBagLayout());
-        card.setPreferredSize(new Dimension(640, 520));
-        card.setMinimumSize(new Dimension(600, 520));
-        card.setMaximumSize(new Dimension(640, 520));
 
         GridBagConstraints cardGbc = new GridBagConstraints();
         cardGbc.gridx = 0;
@@ -132,7 +133,7 @@ public class JPanelConfigProfile extends JPanel implements PanelConfig {
         jtxtPhone = createStyledTextField();
         jtxtBirthday = createStyledTextField();
         jtxtAddress = createStyledTextField();
-        
+
         jcomboGender = new JComboBox<>();
         jcomboGender.addItem(AppLocal.getIntString("label.profile.gender.unspecified"));
         jcomboGender.addItem(AppLocal.getIntString("label.profile.gender.male"));
@@ -172,7 +173,11 @@ public class JPanelConfigProfile extends JPanel implements PanelConfig {
 
         fgbc.gridx = 1;
         fgbc.insets = new Insets(0, 12, 16, 0);
-        formFieldsPanel.add(new JPanel() {{ setOpaque(false); }}, fgbc); // Spacer
+        formFieldsPanel.add(new JPanel() {
+            {
+                setOpaque(false);
+            }
+        }, fgbc); // Spacer
 
         // Row 3: Dirección Completa (Spans 2 columns)
         fgbc.gridy = 3;
@@ -188,12 +193,8 @@ public class JPanelConfigProfile extends JPanel implements PanelConfig {
         cardGbc.insets = new Insets(0, 0, 0, 0);
         card.add(formFieldsPanel, cardGbc);
 
-        // Add Card to wrapper
-        GridBagConstraints wgbc = new GridBagConstraints();
-        wgbc.gridx = 0;
-        wgbc.gridy = 0;
-        wgbc.insets = new Insets(30, 30, 30, 30);
-        centerWrapper.add(card, wgbc);
+        // Add Card to wrapper - full width
+        centerWrapper.add(card, java.awt.BorderLayout.CENTER);
 
         scrollPane.setViewportView(centerWrapper);
         add(scrollPane, java.awt.BorderLayout.CENTER);
@@ -206,29 +207,26 @@ public class JPanelConfigProfile extends JPanel implements PanelConfig {
         tf.setBackground(Color.WHITE);
         tf.setForeground(new Color(30, 41, 59)); // Slate 800
         tf.setCaretColor(new Color(59, 130, 246)); // Focus Blue
-        
+
         // Base Rounded Border
         tf.setBorder(BorderFactory.createCompoundBorder(
-            new RoundedBorder(new Color(226, 232, 240), 8, 1),
-            BorderFactory.createEmptyBorder(6, 12, 6, 12)
-        ));
+                new RoundedBorder(new Color(226, 232, 240), 8, 1),
+                BorderFactory.createEmptyBorder(6, 12, 6, 12)));
 
         // Interaction Listener
         tf.addFocusListener(new FocusAdapter() {
             @Override
             public void focusGained(FocusEvent e) {
                 tf.setBorder(BorderFactory.createCompoundBorder(
-                    new RoundedBorder(new Color(59, 130, 246), 8, 1),
-                    BorderFactory.createEmptyBorder(6, 12, 6, 12)
-                ));
+                        new RoundedBorder(new Color(59, 130, 246), 8, 1),
+                        BorderFactory.createEmptyBorder(6, 12, 6, 12)));
             }
 
             @Override
             public void focusLost(FocusEvent e) {
                 tf.setBorder(BorderFactory.createCompoundBorder(
-                    new RoundedBorder(new Color(226, 232, 240), 8, 1),
-                    BorderFactory.createEmptyBorder(6, 12, 6, 12)
-                ));
+                        new RoundedBorder(new Color(226, 232, 240), 8, 1),
+                        BorderFactory.createEmptyBorder(6, 12, 6, 12)));
             }
         });
 
@@ -240,15 +238,15 @@ public class JPanelConfigProfile extends JPanel implements PanelConfig {
         cb.setPreferredSize(new Dimension(240, 36));
         cb.setBackground(Color.WHITE);
         cb.setForeground(new Color(30, 41, 59));
-        
+
         cb.setBorder(BorderFactory.createCompoundBorder(
-            new RoundedBorder(new Color(226, 232, 240), 8, 1),
-            BorderFactory.createEmptyBorder(4, 8, 4, 8)
-        ));
+                new RoundedBorder(new Color(226, 232, 240), 8, 1),
+                BorderFactory.createEmptyBorder(4, 8, 4, 8)));
 
         cb.setRenderer(new DefaultListCellRenderer() {
             @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
+                    boolean cellHasFocus) {
                 JLabel lbl = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                 lbl.setBorder(BorderFactory.createEmptyBorder(6, 10, 6, 10));
                 if (isSelected) {
@@ -322,6 +320,23 @@ public class JPanelConfigProfile extends JPanel implements PanelConfig {
         jcomboGender.setSelectedIndex(0);
     }
 
+    private void loadCustomAvatar(String path) {
+        if (path == null || path.isEmpty()) {
+            customAvatarImage = null;
+            return;
+        }
+        try {
+            java.io.File file = new java.io.File(path);
+            if (file.exists() && file.isFile()) {
+                customAvatarImage = javax.imageio.ImageIO.read(file);
+            } else {
+                customAvatarImage = null;
+            }
+        } catch (Exception ex) {
+            customAvatarImage = null;
+        }
+    }
+
     @Override
     public void loadProperties(AppConfig config) {
         jtxtName.setText(getProp(config, "profile.name"));
@@ -330,6 +345,9 @@ public class JPanelConfigProfile extends JPanel implements PanelConfig {
         jtxtBirthday.setText(getProp(config, "profile.birthday"));
         jtxtAddress.setText(getProp(config, "profile.address"));
         setSelectedGenderKey(config.getProperty("profile.gender"));
+
+        selectedImagePath = getProp(config, "profile.image");
+        loadCustomAvatar(selectedImagePath);
 
         dirty.setDirty(false);
     }
@@ -342,6 +360,7 @@ public class JPanelConfigProfile extends JPanel implements PanelConfig {
         config.setProperty("profile.birthday", jtxtBirthday.getText());
         config.setProperty("profile.address", jtxtAddress.getText());
         config.setProperty("profile.gender", getSelectedGenderKey());
+        config.setProperty("profile.image", selectedImagePath);
 
         dirty.setDirty(false);
     }
@@ -418,13 +437,54 @@ public class JPanelConfigProfile extends JPanel implements PanelConfig {
         }
     }
 
-    // Dynamic Vector Avatar
-    private static class AvatarPanel extends JPanel {
+    // Dynamic Vector / Image Avatar with Hover Action to Change Photo
+    private class AvatarPanel extends JPanel {
+        private boolean isHovered = false;
+
         public AvatarPanel() {
-            setPreferredSize(new Dimension(72, 72));
-            setMinimumSize(new Dimension(72, 72));
-            setMaximumSize(new Dimension(72, 72));
+            setPreferredSize(new Dimension(84, 84));
+            setMinimumSize(new Dimension(84, 84));
+            setMaximumSize(new Dimension(84, 84));
             setOpaque(false);
+            setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+
+            addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    isHovered = true;
+                    repaint();
+                }
+
+                @Override
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    isHovered = false;
+                    repaint();
+                }
+
+                @Override
+                public void mouseClicked(java.awt.event.MouseEvent e) {
+                    changeAvatarImage();
+                }
+            });
+        }
+
+        private void changeAvatarImage() {
+            JFileChooser chooser = new JFileChooser();
+            chooser.setDialogTitle("Selecciona tu Foto de Perfil");
+            chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
+                "Imágenes (PNG, JPG, JPEG)", "png", "jpg", "jpeg"));
+            
+            int returnVal = chooser.showOpenDialog(JPanelConfigProfile.this);
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                java.io.File file = chooser.getSelectedFile();
+                selectedImagePath = file.getAbsolutePath();
+                loadCustomAvatar(selectedImagePath);
+                dirty.setDirty(true);
+                repaint();
+                
+                // Repaint parent to ensure any other listeners update
+                JPanelConfigProfile.this.repaint();
+            }
         }
 
         @Override
@@ -432,36 +492,67 @@ public class JPanelConfigProfile extends JPanel implements PanelConfig {
             super.paintComponent(g);
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 
             int w = getWidth();
             int h = getHeight();
+            int sz = Math.min(w, h) - 4;
 
-            // Gradient Paint for background circle
-            java.awt.GradientPaint gradient = new java.awt.GradientPaint(
-                0, 0, new Color(224, 242, 254), // Sky 100
-                0, h, new Color(186, 230, 253)  // Sky 200
-            );
-            g2.setPaint(gradient);
-            g2.fillOval(2, 2, w - 5, h - 5);
+            // Clip circular
+            java.awt.geom.Ellipse2D.Double circle = new java.awt.geom.Ellipse2D.Double(2, 2, sz, sz);
 
-            // Draw Avatar Border
-            g2.setColor(new Color(14, 165, 233)); // Sky 500
+            if (customAvatarImage != null) {
+                g2.setClip(circle);
+                g2.drawImage(customAvatarImage, 2, 2, sz, sz, null);
+                g2.setClip(null);
+            } else {
+                // Fallback: Sky background
+                java.awt.GradientPaint gradient = new java.awt.GradientPaint(
+                    0, 0, new Color(224, 242, 254),
+                    0, h, new Color(186, 230, 253)
+                );
+                g2.setPaint(gradient);
+                g2.fillOval(2, 2, sz, sz);
+
+                // Fallback: Head
+                g2.setColor(new Color(2, 132, 199));
+                int headSize = sz / 3;
+                int headX = 2 + (sz - headSize) / 2;
+                int headY = 2 + (int) (sz * 0.22);
+                g2.fillOval(headX, headY, headSize, headSize);
+
+                // Fallback: Shoulders
+                int bodyW = (int) (sz * 0.58);
+                int bodyH = sz / 3;
+                int bodyX = 2 + (sz - bodyW) / 2;
+                int bodyY = 2 + (int) (sz * 0.54);
+                g2.setClip(circle);
+                g2.fillArc(bodyX, bodyY, bodyW, bodyH * 2, 0, 180);
+                g2.setClip(null);
+            }
+
+            // Borde del Avatar
+            g2.setColor(isHovered ? new Color(59, 130, 246) : new Color(226, 232, 240));
             g2.setStroke(new java.awt.BasicStroke(2f));
-            g2.drawOval(2, 2, w - 5, h - 5);
+            g2.draw(circle);
 
-            // Draw head
-            g2.setColor(new Color(2, 132, 199)); // Sky 600
-            int headSize = w / 3;
-            int headX = (w - headSize) / 2;
-            int headY = (int) (h * 0.22);
-            g2.fillOval(headX, headY, headSize, headSize);
+            // Overlay al hacer Hover
+            if (isHovered) {
+                g2.setClip(circle);
+                g2.setColor(new Color(15, 23, 42, 140)); // Slate 900 semitransparente
+                g2.fillOval(2, 2, sz, sz);
 
-            // Draw body/shoulders
-            int bodyW = (int) (w * 0.58);
-            int bodyH = h / 3;
-            int bodyX = (w - bodyW) / 2;
-            int bodyY = (int) (h * 0.54);
-            g2.fillArc(bodyX, bodyY, bodyW, bodyH * 2, 0, 180);
+                // Escribir "Cambiar"
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
+                java.awt.FontMetrics fm = g2.getFontMetrics();
+                String text = "CAMBIAR";
+                int tx = (w - fm.stringWidth(text)) / 2;
+                int ty = (h - fm.getHeight()) / 2 + fm.getAscent();
+                g2.drawString(text, tx, ty);
+                
+                g2.setClip(null);
+            }
 
             g2.dispose();
         }

@@ -59,7 +59,7 @@ public class JLogonDialog extends JDialog {
     private static final Color PANEL_BG = BRAND_SOFT_GREEN; 
     private static final Color TEXT_DARK = new Color(33, 33, 33);
     private static final Color BORDER_COLOR = BRAND_ACCENT_GREEN;
-    private static final Color BACKGROUND_DARK = new Color(0, 26, 0);
+    private static final Color BACKGROUND_DARK = new Color(250, 247, 242);
 
     private final DataLogicSystem m_dlSystem;
     private final Session m_session;
@@ -90,35 +90,33 @@ public class JLogonDialog extends JDialog {
         // Contenedor del login (El cuadro luminoso)
         JPanel contentPanel = new JPanel(new GridBagLayout());
         contentPanel.setBackground(PANEL_BG); 
-        contentPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BRAND_ACCENT_GREEN, 2),
-                BorderFactory.createEmptyBorder(40, 60, 40, 60)
-        ));
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(15, 60, 15, 60));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(0, 0, 0, 0);
 
-        // LOGO: Reemplazar el título con el logo real (Soporte SVG vía FlatLaf Extras)
+        // LOGO: Cargar el logo PNG y escalarlo proporcionalmente
         JLabel lblLogo = new JLabel();
         lblLogo.setHorizontalAlignment(SwingConstants.CENTER);
         try {
-            String logoPath = "C:\\Users\\USUARIO\\Downloads\\bicis_mx\\bici\\punto-mx\\assets\\LOGO_SVG.svg";
-            File svgFile = new File(logoPath);
-            
-            if (svgFile.exists()) {
-                // Usar FlatSVGIcon para renderizar el logo vectorial directamente
-                FlatSVGIcon svgIcon = new FlatSVGIcon(svgFile);
-                lblLogo.setIcon(svgIcon.derive(280, 120)); // Escalar a un tamaño legible
+            java.net.URL logoResource = getClass().getResource("/com/openbravo/images/logo-voltium.png");
+            if (logoResource != null) {
+                Image img = javax.imageio.ImageIO.read(logoResource);
+                int imgW = img.getWidth(null);
+                int imgH = img.getHeight(null);
+                int targetWidth = 350;
+                int targetHeight = (imgW > 0) ? (imgH * targetWidth / imgW) : 120;
+                lblLogo.setIcon(new ImageIcon(img.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH)));
             } else {
-                // Fallback a logo.png si el SVG no existe
+                // Fallback a la imagen de logo incluida en la aplicación
                 ImageIcon logoIcon = new ImageIcon(getClass().getResource("/com/openbravo/images/logo.png"));
                 if (logoIcon != null) {
                     lblLogo.setIcon(new ImageIcon(logoIcon.getImage().getScaledInstance(250, -1, Image.SCALE_SMOOTH)));
                 }
             }
         } catch (Exception e) {
-            LOGGER.warning("No se pudo cargar el logo SVG: " + e.getMessage());
+            LOGGER.warning("No se pudo cargar el logo PNG: " + e.getMessage());
         }
         
         gbc.gridx = 0;
@@ -126,7 +124,7 @@ public class JLogonDialog extends JDialog {
         gbc.gridheight = 1;
         gbc.weightx = 1.0;
         gbc.anchor = GridBagConstraints.CENTER;
-        gbc.insets = new Insets(0, 0, 20, 0);
+        gbc.insets = new Insets(0, 0, 10, 0);
         contentPanel.add(lblLogo, gbc);
 
         // SUBTITULO
@@ -135,7 +133,7 @@ public class JLogonDialog extends JDialog {
         lblSubTitle.setForeground(BG_DEEP_GREEN); // Texto oscuro
         gbc.gridx = 0;
         gbc.gridy = 1;
-        gbc.insets = new Insets(0, 0, 40, 0);
+        gbc.insets = new Insets(0, 0, 15, 0);
         contentPanel.add(lblSubTitle, gbc);
 
         // CAMPO: Usuario
@@ -210,7 +208,7 @@ public class JLogonDialog extends JDialog {
 
         gbc.gridx = 0;
         gbc.gridy = 5;
-        gbc.insets = new Insets(0, 0, 40, 0);
+        gbc.insets = new Insets(0, 0, 20, 0);
         contentPanel.add(passPanel, gbc);
 
         // PANEL DE BOTONES
@@ -253,22 +251,75 @@ public class JLogonDialog extends JDialog {
         gbc.gridy = 6;
         contentPanel.add(buttonPanel, gbc);
 
-        add(contentPanel, BorderLayout.CENTER);
+        // Wrapper to center contentPanel horizontally and vertically inside the full-width area
+        JPanel wrapperPanel = new JPanel(new GridBagLayout());
+        wrapperPanel.setBackground(Color.WHITE);
+        wrapperPanel.add(contentPanel, new GridBagConstraints());
+        add(wrapperPanel, BorderLayout.CENTER);
 
-        // Footer "Desarrollado por Websy"
-        javax.swing.JLabel lblWebsy = new javax.swing.JLabel("Desarrollado por Websy");
-        lblWebsy.setFont(new java.awt.Font("Segoe UI", java.awt.Font.ITALIC, 11));
-        lblWebsy.setForeground(BRAND_ACCENT_GREEN);
-        lblWebsy.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        lblWebsy.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 15, 0));
-        add(lblWebsy, java.awt.BorderLayout.SOUTH);
+        // Footer image containing collaboration brands
+        JPanel footerPanel = new JPanel(new BorderLayout()) {
+            private Image img = null;
+            {
+                try {
+                    String imagePath = "C:\\Users\\USUARIO\\Downloads\\bicis_mx\\bici\\punto-mx\\assets\\image.png";
+                    File imgFile = new File(imagePath);
+                    if (imgFile.exists()) {
+                        img = javax.imageio.ImageIO.read(imgFile);
+                    } else {
+                        LOGGER.warning("No se encontro la imagen de marcas en: " + imagePath);
+                    }
+                } catch (Exception e) {
+                    LOGGER.warning("Error al cargar la imagen de marcas: " + e.getMessage());
+                }
+                setPreferredSize(new Dimension(795, 185));
+            }
+
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                super.paintComponent(g);
+                if (img != null) {
+                    g.drawImage(img, 0, 0, getWidth(), getHeight(), this);
+                } else {
+                    g.setColor(new Color(245, 245, 240));
+                    g.fillRect(0, 0, getWidth(), getHeight());
+                }
+            }
+        };
+        add(footerPanel, BorderLayout.SOUTH);
     }
 
     private void setupDialog() {
+        setUndecorated(true);
+        
+        // Make the undecorated dialog draggable
+        final java.awt.Point[] dragPoint = new java.awt.Point[1];
+        addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                dragPoint[0] = e.getPoint();
+            }
+        });
+        addMouseMotionListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseDragged(java.awt.event.MouseEvent e) {
+                java.awt.Point current = e.getLocationOnScreen();
+                setLocation(current.x - dragPoint[0].x, current.y - dragPoint[0].y);
+            }
+        });
+
         pack();
         setResizable(false);
         setLocationRelativeTo(getParent());
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+
+        // Round window corners (25px arc) and support transparent window corners
+        try {
+            setBackground(new Color(0, 0, 0, 0));
+            setShape(new java.awt.geom.RoundRectangle2D.Double(0, 0, getWidth(), getHeight(), 25, 25));
+        } catch (Exception e) {
+            LOGGER.warning("No se pudieron redondear las esquinas de la ventana: " + e.getMessage());
+        }
     }
 
     private void loadRecentUsers() {
@@ -345,6 +396,9 @@ public class JLogonDialog extends JDialog {
             }
 
             if (user.authenticate(password)) {
+                if (!check2FA(user)) {
+                    return;
+                }
                 loggedUser = user;
                 saveUserToHistory(user.getName());
                 dispose();
@@ -366,6 +420,106 @@ public class JLogonDialog extends JDialog {
 
     public AppUser getLoggedUser() {
         return loggedUser;
+    }
+
+    private boolean check2FA(AppUser user) {
+        if (!com.openbravo.pos.forms.AppConfig.getInstance().getBoolean("system.enable2fa")) {
+            return true; // 2FA is globally disabled in system settings
+        }
+        String secret = user.getTotpSecret();
+        if (secret == null || secret.isEmpty()) {
+            // Primer inicio de sesión con 2FA activado: forzar configuración
+            try {
+                com.warrenstrange.googleauth.GoogleAuthenticator gAuth = new com.warrenstrange.googleauth.GoogleAuthenticator();
+                final com.warrenstrange.googleauth.GoogleAuthenticatorKey key = gAuth.createCredentials();
+                String newSecret = key.getKey();
+
+                String appName = "KriolOS";
+                String userName = user.getName() != null ? user.getName().replaceAll(" ", "") : "User";
+                String otpAuthUrl = String.format("otpauth://totp/%s:%s?secret=%s&issuer=%s", appName, userName, newSecret, appName);
+
+                com.google.zxing.qrcode.QRCodeWriter qrCodeWriter = new com.google.zxing.qrcode.QRCodeWriter();
+                com.google.zxing.common.BitMatrix bitMatrix = qrCodeWriter.encode(otpAuthUrl, com.google.zxing.BarcodeFormat.QR_CODE, 200, 200);
+                java.awt.image.BufferedImage qrImage = com.google.zxing.client.j2se.MatrixToImageWriter.toBufferedImage(bitMatrix);
+
+                javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.BorderLayout(10, 10));
+                javax.swing.JLabel lblQr = new javax.swing.JLabel(new javax.swing.ImageIcon(qrImage));
+                lblQr.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+                panel.add(lblQr, java.awt.BorderLayout.CENTER);
+
+                javax.swing.JPanel bottom = new javax.swing.JPanel(new java.awt.BorderLayout(5, 5));
+                bottom.add(new javax.swing.JLabel("<html>Para continuar, configure la autenticación de dos factores.<br>Escanee el código y escriba el PIN de 6 dígitos:</html>"), java.awt.BorderLayout.NORTH);
+                javax.swing.JTextField txtCode = new javax.swing.JTextField();
+                txtCode.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 18));
+                txtCode.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+                bottom.add(txtCode, java.awt.BorderLayout.CENTER);
+                panel.add(bottom, java.awt.BorderLayout.SOUTH);
+
+                int option = javax.swing.JOptionPane.showConfirmDialog(this, panel, "Configurar Autenticación 2FA", javax.swing.JOptionPane.OK_CANCEL_OPTION, javax.swing.JOptionPane.PLAIN_MESSAGE);
+                if (option == javax.swing.JOptionPane.OK_OPTION) {
+                    String codeStr = txtCode.getText().trim();
+                    try {
+                        int pin = Integer.parseInt(codeStr);
+                        if (gAuth.authorize(newSecret, pin)) {
+                            // Guardar en la base de datos con commit forzado
+                            try {
+                                java.sql.Connection conn = m_session.getConnection();
+                                boolean autoCommit = conn.getAutoCommit();
+                                if (autoCommit) {
+                                    conn.setAutoCommit(false);
+                                }
+                                new com.openbravo.data.loader.StaticSentence(m_session,
+                                        "UPDATE people SET TOTP_SECRET = ? WHERE ID = ?",
+                                        new com.openbravo.data.loader.SerializerWriteBasic(
+                                                new com.openbravo.data.loader.Datas[] {
+                                                        com.openbravo.data.loader.Datas.STRING,
+                                                        com.openbravo.data.loader.Datas.STRING }))
+                                        .exec(new Object[] { newSecret, user.getId() });
+                                conn.commit();
+                                if (autoCommit) {
+                                    conn.setAutoCommit(true);
+                                }
+                            } catch (Exception sqlEx) {
+                                LOGGER.log(java.util.logging.Level.SEVERE, "Error forzando commit de 2FA", sqlEx);
+                            }
+                            
+                            user.setTotpSecret(newSecret);
+                            javax.swing.JOptionPane.showMessageDialog(this, "2FA configurado exitosamente. Puede continuar.");
+                            return true;
+                        } else {
+                            new MessageInf(MessageInf.SGN_WARNING, "Código PIN incorrecto. No se configuró el 2FA.").show(this);
+                            return false;
+                        }
+                    } catch (NumberFormatException e) {
+                        new MessageInf(MessageInf.SGN_WARNING, "Formato de código inválido.").show(this);
+                        return false;
+                    }
+                } else {
+                    return false; // El usuario canceló
+                }
+            } catch (Exception e) {
+                LOGGER.log(java.util.logging.Level.WARNING, "Error configurando 2FA durante login", e);
+                new MessageInf(MessageInf.SGN_WARNING, "Error al generar código QR para 2FA.").show(this);
+                return false;
+            }
+        }
+        
+        String code = javax.swing.JOptionPane.showInputDialog(this, "Ingrese el código de Google Authenticator de 6 dígitos:", "Autenticación 2FA", javax.swing.JOptionPane.QUESTION_MESSAGE);
+        if (code == null || code.trim().isEmpty()) {
+            return false;
+        }
+        try {
+            int pin = Integer.parseInt(code.trim());
+            com.warrenstrange.googleauth.GoogleAuthenticator gAuth = new com.warrenstrange.googleauth.GoogleAuthenticator();
+            boolean isCodeValid = gAuth.authorize(secret, pin);
+            if (!isCodeValid) {
+                new MessageInf(MessageInf.SGN_WARNING, "Código 2FA incorrecto").show(this);
+            }
+            return isCodeValid;
+        } catch (Exception e) {
+            new MessageInf(MessageInf.SGN_WARNING, "Código 2FA inválido").show(this);
+            return false;
+        }
     }
 
     // Clase auxiliar para bordes redondeados manuales

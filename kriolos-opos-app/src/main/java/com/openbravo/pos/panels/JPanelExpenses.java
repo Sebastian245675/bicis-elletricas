@@ -8,6 +8,7 @@ import com.openbravo.pos.forms.BeanFactoryException;
 import com.openbravo.pos.forms.JPanelView;
 import com.openbravo.format.Formats;
 import com.openbravo.beans.JCalendarDialog;
+import com.openbravo.pos.util.ModernActionIcon;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -99,7 +100,7 @@ public class JPanelExpenses extends JPanel implements JPanelView, BeanFactoryApp
         JPanel header = new JPanel(new BorderLayout());
         header.setBackground(new Color(46, 125, 50)); // Emerald
         header.setPreferredSize(new Dimension(0, 50));
-        JLabel title = new JLabel("  MANTENIMIENTO DE GASTOS");
+        JLabel title = new JLabel("  Gastos operativos");
         title.setFont(new Font("Segoe UI", Font.BOLD, 18));
         title.setForeground(Color.WHITE);
         header.add(title, BorderLayout.CENTER);
@@ -131,6 +132,7 @@ public class JPanelExpenses extends JPanel implements JPanelView, BeanFactoryApp
         JButton btnTo = createDateButton(m_jDateTo);
 
         JButton btnSearch = new JButton("Buscar Gastos");
+        btnSearch.setIcon(new ModernActionIcon(ModernActionIcon.Type.SEARCH, 18, Color.WHITE));
         btnSearch.setBackground(new Color(46, 125, 50));
         btnSearch.setForeground(Color.WHITE);
         btnSearch.addActionListener(e -> refreshTable());
@@ -154,20 +156,26 @@ public class JPanelExpenses extends JPanel implements JPanelView, BeanFactoryApp
 
         // --- CENTER: TABLE ---
         m_tableModel = new DefaultTableModel(
-                new Object[] { "Fecha", "Gasto / Nombre", "Monto", "Comentario", "ID" }, 0) {
+                new Object[] { "Fecha", "Concepto", "Monto", "Registrado por", "Comentario", "ID" }, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
         };
         m_table = new JTable(m_tableModel);
-        m_table.setFont(new Font("Segoe UI", Font.BOLD, 14)); // Negrita para visibilidad
-        m_table.setForeground(Color.BLACK); // Negro intenso
-        m_table.setRowHeight(30); // Un poco más alto para que respire la negrita
+        m_table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        m_table.setForeground(new Color(30, 41, 59));
+        m_table.setRowHeight(38);
+        m_table.setShowVerticalLines(false);
+        m_table.setGridColor(new Color(226, 232, 240));
+        m_table.setSelectionBackground(new Color(220, 252, 231));
+        m_table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        m_table.getTableHeader().setBackground(new Color(241, 245, 249));
+        m_table.getTableHeader().setForeground(new Color(51, 65, 85));
         // Hide ID column
-        m_table.getColumnModel().getColumn(4).setMinWidth(0);
-        m_table.getColumnModel().getColumn(4).setMaxWidth(0);
-        m_table.getColumnModel().getColumn(4).setWidth(0);
+        m_table.getColumnModel().getColumn(5).setMinWidth(0);
+        m_table.getColumnModel().getColumn(5).setMaxWidth(0);
+        m_table.getColumnModel().getColumn(5).setWidth(0);
 
         mainContent.add(new JScrollPane(m_table), BorderLayout.CENTER);
 
@@ -256,6 +264,7 @@ public class JPanelExpenses extends JPanel implements JPanelView, BeanFactoryApp
         gbc.weightx = 0;
         gbc.insets = new Insets(5, 20, 5, 10);
         JButton btnAdd = new JButton("<html><center><b>GUARDAR</b><br>GASTO</center></html>");
+        btnAdd.setIcon(new ModernActionIcon(ModernActionIcon.Type.SAVE, 22, Color.WHITE));
         btnAdd.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btnAdd.setBackground(new Color(46, 125, 50));
         btnAdd.setForeground(Color.WHITE);
@@ -282,9 +291,11 @@ public class JPanelExpenses extends JPanel implements JPanelView, BeanFactoryApp
 
         // --- DELETE ACTION ---
         JButton btnDelete = new JButton("Eliminar Gasto Seleccionado");
+        btnDelete.setIcon(new ModernActionIcon(ModernActionIcon.Type.DELETE, 18, Color.WHITE));
         btnDelete.setBackground(new Color(211, 47, 47)); // Red
         btnDelete.setForeground(Color.WHITE);
         btnDelete.addActionListener(e -> deleteSelectedExpense());
+        btnDelete.setVisible(m_App.getAppUserView().getUser().hasPermission("expenses.Delete"));
         filterPanel.add(btnDelete);
     }
 
@@ -295,7 +306,8 @@ public class JPanelExpenses extends JPanel implements JPanelView, BeanFactoryApp
             return;
         }
 
-        String id = (String) m_tableModel.getValueAt(row, 4);
+        row = m_table.convertRowIndexToModel(row);
+        String id = (String) m_tableModel.getValueAt(row, 5);
         if (id == null)
             return;
 
@@ -308,16 +320,20 @@ public class JPanelExpenses extends JPanel implements JPanelView, BeanFactoryApp
                 PreparedStatement ps = con.prepareStatement("DELETE FROM EXPENSES WHERE ID = ?")) {
             ps.setString(1, id);
             ps.executeUpdate();
+            try {
+                com.openbravo.pos.sync.VoltiumSyncService.eliminarGastoRemotoAsync("gasto_pos_" + id);
+            } catch (Exception ignored) {}
             refreshTable();
             JOptionPane.showMessageDialog(this, "Gasto eliminado.");
         } catch (SQLException ex) {
             LOGGER.log(Level.SEVERE, "Error deleting expense", ex);
-            JOptionPane.showMessageDialog(this, "Error al eliminar gasta.");
+            JOptionPane.showMessageDialog(this, "Error al eliminar el gasto.");
         }
     }
 
     private JButton createDateButton(JTextField field) {
-        JButton btn = new JButton("...");
+        JButton btn = new JButton(new ModernActionIcon(ModernActionIcon.Type.CALENDAR, 18));
+        btn.setToolTipText("Seleccionar fecha");
         btn.addActionListener(e -> {
             Date date;
             try {
@@ -364,16 +380,42 @@ public class JPanelExpenses extends JPanel implements JPanelView, BeanFactoryApp
 
         try {
             double amount = Double.parseDouble(amountStr.replace(",", "."));
+            if (!Double.isFinite(amount) || amount <= 0.0) {
+                JOptionPane.showMessageDialog(this, "El monto debe ser mayor que cero.",
+                        "Monto inválido", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            String expenseId = UUID.randomUUID().toString();
             try (Connection con = m_App.getSession().getConnection();
                     PreparedStatement ps = con.prepareStatement(
                             "INSERT INTO EXPENSES (ID, DATENEW, NAME, AMOUNT, RESPONSIBLE, NOTES) VALUES (?, ?, ?, ?, ?, ?)")) {
-                ps.setString(1, UUID.randomUUID().toString());
+                ps.setString(1, expenseId);
                 ps.setTimestamp(2, new Timestamp(new Date().getTime()));
                 ps.setString(3, name);
                 ps.setDouble(4, amount);
-                ps.setString(5, ""); // Ya no usamos responsable, dejamos vacío para compatibilidad DB
+                String responsible = m_App.getAppUserView().getUser().getName();
+                ps.setString(5, responsible == null ? "" : responsible);
                 ps.setString(6, notes);
                 ps.executeUpdate();
+
+                // Sincronizar automáticamente con contabilidad y gastos en panel central
+                try {
+                    com.openbravo.pos.sync.VoltiumSyncService.ExpensePayload exp = new com.openbravo.pos.sync.VoltiumSyncService.ExpensePayload();
+                    exp.id = "gasto_pos_" + expenseId;
+                    exp.agencyId = com.openbravo.pos.sync.VoltiumSyncService.getAgencyId();
+                    exp.fecha = com.openbravo.pos.sync.VoltiumSyncService.formatIsoUtc(new Date());
+                    exp.monto = amount;
+                    exp.tipo = "egreso";
+                    exp.categoria = "Operativos";
+                    exp.concepto = name;
+                    exp.metodoPago = "Efectivo";
+                    exp.responsable = responsible;
+                    exp.notas = notes;
+                    exp.referencia = "EXPENSE-" + expenseId;
+                    com.openbravo.pos.sync.VoltiumSyncService.sincronizarGastoAsync(exp);
+                } catch (Exception exSync) {
+                    LOGGER.log(Level.WARNING, "Error al sincronizar gasto con Voltium: " + exSync.getMessage());
+                }
 
                 m_jName.setText("");
                 m_jAmount.setText("");
@@ -421,6 +463,7 @@ public class JPanelExpenses extends JPanel implements JPanelView, BeanFactoryApp
                     double amount = rs.getDouble(4);
                     String notes = rs.getString(5);
                     String id = rs.getString(6);
+                    String responsible = rs.getString(2);
 
                     total += amount;
 
@@ -428,6 +471,7 @@ public class JPanelExpenses extends JPanel implements JPanelView, BeanFactoryApp
                             Formats.TIMESTAMP.formatValue(ts),
                             name,
                             Formats.CURRENCY.formatValue(amount),
+                            responsible == null || responsible.isBlank() ? "Sin registro" : responsible,
                             notes,
                             id
                     });

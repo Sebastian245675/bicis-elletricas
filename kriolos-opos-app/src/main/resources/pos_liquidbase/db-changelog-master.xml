@@ -15,5 +15,6 @@
     <include file="pos_liquidbase/db-changelog-v5_0.xml"/>
     <include file="pos_liquidbase/db-changelog-v5_1.xml"/>
     <include file="pos_liquidbase/db-changelog-v5_2.xml"/>
+    <include file="pos_liquidbase/db-changelog-facturas.xml"/>
     
 </databaseChangeLog>

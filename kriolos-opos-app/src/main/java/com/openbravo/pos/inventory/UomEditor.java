@@ -1,5 +1,7 @@
 package com.openbravo.pos.inventory;
 
+import com.openbravo.pos.util.ModernActionIcon;
+
 import com.openbravo.basic.BasicException;
 import com.openbravo.data.user.DirtyManager;
 import com.openbravo.data.user.EditorRecord;
@@ -45,7 +47,7 @@ public final class UomEditor extends javax.swing.JPanel implements EditorRecord 
         setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
 
         jLabel2.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLabel2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/info.png"))); // NOI18N
+        jLabel2.setIcon(new ModernActionIcon(ModernActionIcon.Type.INFO, 18));
         jLabel2.setText(AppLocal.getIntString("label.name")); // NOI18N
         jLabel2.setPreferredSize(new java.awt.Dimension(100, 30));
         jLabel2.addMouseListener(new java.awt.event.MouseAdapter() {

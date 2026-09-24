@@ -41,8 +41,8 @@ report.setSentence("SELECT categories.NAME AS catname, " +
     "WHERE ?(QBF_FILTER) " +
 "GROUP BY products.REFERENCE");
 
-report.addParameter("closedcash.DATEEND");
-report.addParameter("closedcash.DATEEND");
+report.addParameter("receipts.DATENEW");
+report.addParameter("receipts.DATENEW");
 paramdates = new com.openbravo.pos.reports.JParamsDatesInterval();
 paramdates.setStartDate(com.openbravo.beans.DateUtils.getToday());
 // JG - 8 Jan 14 paramdates.setEndDate(com.openbravo.beans.DateUtils.getToday());

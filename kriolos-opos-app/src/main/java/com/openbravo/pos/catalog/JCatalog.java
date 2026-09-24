@@ -32,6 +32,8 @@ import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
+import java.text.Normalizer;
+import java.util.ArrayList;
 import java.util.EventListener;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -51,6 +53,8 @@ import javax.swing.event.ListSelectionListener;
  */
 public class JCatalog extends JPanel implements ListSelectionListener, CatalogSelector {
 
+    public static final String ALL_PRODUCTS_CATEGORY_ID = "__ALL__";
+    public static final String SEARCH_CATEGORY_ID = "__SEARCH__";
     private static final int DEFAULT_CATALOG_PANEL_HEIGHT = 280; // Aumentado para mejor visualización
 
     protected EventListenerList listeners = new EventListenerList();
@@ -61,6 +65,10 @@ public class JCatalog extends JPanel implements ListSelectionListener, CatalogSe
     // Set of Products panels
     private final Map<String, ProductInfoExt> productsCached = new HashMap<>();
     private final Set<String> categoriesCached = new HashSet<>();
+    private JCatalogTab searchTab = null;
+    private String currentCategoryId = ALL_PRODUCTS_CATEGORY_ID;
+    private List<ProductInfoExt> allProductsCache = null;
+    private final List<ProductInfoExt> currentFilteredMatches = new ArrayList<>();
 
     private CategoryInfo showingcategory = null;
     private CatalogController controller;
@@ -87,25 +95,40 @@ public class JCatalog extends JPanel implements ListSelectionListener, CatalogSe
         categoriesScrollPane.setBorder(null); // Sin borde para apariencia limpia
         
         // Mejorar apariencia de la lista de categorías
-        categoriesJList.setBackground(new Color(248, 249, 250));
-        categoriesJList.setSelectionBackground(new Color(66, 165, 245));
+        categoriesJList.setBackground(new Color(250, 247, 242));
+        categoriesJList.setSelectionBackground(new Color(202, 159, 65));
         categoriesJList.setSelectionForeground(Color.WHITE);
 
         controller = new CatalogController(dlSales);
         
         setupDualSidebar();
+
+        // Aplicar el color crema/blanco institucional a todos los subpaneles
+        Color institutionalColor = new Color(250, 247, 242);
+        this.setBackground(institutionalColor);
+        categoriesPane.setBackground(institutionalColor);
+        rootCategoriesPane.setBackground(institutionalColor);
+        subCategoriesPane.setBackground(institutionalColor);
+        productsGridPane.setBackground(institutionalColor);
+        categoriesScrollPane.setBackground(institutionalColor);
+        categoriesScrollPane.getViewport().setBackground(institutionalColor);
+        categoriesVerticalSeparatorPane.setBackground(institutionalColor);
+        categoriesVSEndPane.setBackground(institutionalColor);
+        subCatLeftJPanel.setBackground(institutionalColor);
+        subCatRigthJPanel.setBackground(institutionalColor);
+        subCatActionsJPanel.setBackground(institutionalColor);
     }
 
     private void setupDualSidebar() {
         // Preparar contenedor de líneas de ticket
         ticketLinesContainer = new JPanel(new java.awt.BorderLayout());
-        ticketLinesContainer.setBackground(Color.WHITE);
+        ticketLinesContainer.setBackground(new Color(250, 247, 242));
         categoriesPane.add(ticketLinesContainer, "ticketlines");
 
         // Crear Cabecera de cambio
         sidebarHeader = new JPanel(new java.awt.GridLayout(1, 2));
         sidebarHeader.setPreferredSize(new Dimension(265, 45));
-        sidebarHeader.setBackground(new Color(240, 242, 245));
+        sidebarHeader.setBackground(new Color(250, 247, 242));
         sidebarHeader.setBorder(new MatteBorder(0, 0, 1, 0, new Color(220, 225, 230)));
 
         btnToggleTicket = createSidebarButton("VENTA", "/com/openbravo/images/cart_add.png", true);
@@ -120,6 +143,7 @@ public class JCatalog extends JPanel implements ListSelectionListener, CatalogSe
         // Re-estructurar el panel izquierdo
         remove(categoriesPane);
         JPanel sidebarWrapper = new JPanel(new java.awt.BorderLayout());
+        sidebarWrapper.setBackground(new Color(250, 247, 242));
         sidebarWrapper.add(sidebarHeader, java.awt.BorderLayout.NORTH);
         sidebarWrapper.add(categoriesPane, java.awt.BorderLayout.CENTER);
         add(sidebarWrapper, java.awt.BorderLayout.LINE_START);
@@ -153,10 +177,10 @@ public class JCatalog extends JPanel implements ListSelectionListener, CatalogSe
 
     private void updateSidebarButtonState(JButton btn, boolean active) {
         if (active) {
-            btn.setBackground(new Color(21, 101, 192)); // Azul Material
+            btn.setBackground(new Color(202, 159, 65)); // Oro institucional
             btn.setForeground(Color.WHITE);
         } else {
-            btn.setBackground(new Color(245, 247, 250)); // Gris muy claro
+            btn.setBackground(new Color(240, 237, 232)); // Crema un poco más oscuro
             btn.setForeground(new Color(120, 130, 140)); // Gris suave
         }
     }
@@ -214,11 +238,17 @@ public class JCatalog extends JPanel implements ListSelectionListener, CatalogSe
 
         productsCached.clear();
         categoriesCached.clear();
+        allProductsCache = null;
+        currentFilteredMatches.clear();
+        searchTab = null;
 
         showingcategory = null;
 
         // Load all categories.
-        List<CategoryInfo> categories = controller.getRootCategories();
+        List<CategoryInfo> rawCategories = controller.getRootCategories();
+        java.util.List<CategoryInfo> categories = new java.util.ArrayList<>();
+        categories.add(new CategoryInfo(ALL_PRODUCTS_CATEGORY_ID, "⭐ TODOS LOS PRODUCTOS", null, "Ver todos los productos", true));
+        categories.addAll(rawCategories);
 
         // Select the first category
         categoriesJList.setCellRenderer(new SmallCategoryRenderer());
@@ -289,6 +319,9 @@ public class JCatalog extends JPanel implements ListSelectionListener, CatalogSe
     }
 
     private void showProductGridByCat(String categoryId) {
+        if (!SEARCH_CATEGORY_ID.equals(categoryId)) {
+            currentCategoryId = categoryId;
+        }
         if (!categoriesCached.contains(categoryId)) {
 
             JCatalogTab catalogTab = new JCatalogTab();
@@ -296,47 +329,191 @@ public class JCatalog extends JPanel implements ListSelectionListener, CatalogSe
             productsGridPane.add(catalogTab, categoryId);
             categoriesCached.add(categoryId);
 
-            // 1 - SHOW ALL PRODUCT (SET AS CONSTANT) IN CATEGORIY
-            List<ProductInfoExt> prods = controller.getProductConstant();
-            for (ProductInfoExt prod : prods) {
+            int itemCount = 0;
 
-                Image imageIcon = controller.getThumbNailOrDefault(prod.getImage());
+            if (ALL_PRODUCTS_CATEGORY_ID.equals(categoryId)) {
+                // Mostrar todos los productos disponibles en el catálogo
+                List<ProductInfoExt> products = controller.getAllProductCatalog();
+                for (ProductInfoExt prod : products) {
+                    catalogTab.addCatalogItem(buildCatalogItem(prod), new SelectProductListener(prod));
+                    itemCount++;
+                }
+            } else {
+                // 1 - SHOW ALL PRODUCT (SET AS CONSTANT) IN CATEGORIY
+                List<ProductInfoExt> prods = controller.getProductConstant();
+                for (ProductInfoExt prod : prods) {
 
-                String tooltip = (prod.getTextTip() != null && !prod.getTextTip().isBlank()) ? prod.getTextTip() : null;
+                    Image imageIcon = controller.getThumbNailOrDefault(prod.getImage());
 
-                catalogTab.addButton(
-                        new ImageIcon(imageIcon),
-                        new SelectProductListener(prod),
-                        getProductLabel(prod, true),
-                        tooltip);
+                    String tooltip = (prod.getTextTip() != null && !prod.getTextTip().isBlank()) ? prod.getTextTip() : null;
 
-            }
-
-            // 2 - SHOW ALL SUB-CATEGORIES
-            List<CategoryInfo> categories = controller.getSubcategories(categoryId);
-            for (CategoryInfo cat : categories) {
-                String catName = "";
-                if (cat.getCatShowName()) {
-                    catName = cat.getName();
+                    catalogTab.addButton(
+                            new ImageIcon(imageIcon),
+                            new SelectProductListener(prod),
+                            getProductLabel(prod, true),
+                            tooltip);
+                    itemCount++;
                 }
 
-                Image imageIcons = controller.getThumbNailOrDefaultSubCat(cat.getImage());
+                // 2 - SHOW ALL SUB-CATEGORIES
+                List<CategoryInfo> categories = controller.getSubcategories(categoryId);
+                for (CategoryInfo cat : categories) {
+                    String catName = "";
+                    if (cat.getCatShowName()) {
+                        catName = cat.getName();
+                    }
 
-                catalogTab.addButton(
-                        new ImageIcon(imageIcons),
-                        new SelectCategoryListener(cat),
-                        catName,
-                        null);
+                    Image imageIcons = controller.getThumbNailOrDefaultSubCat(cat.getImage());
+
+                    catalogTab.addButton(
+                            new ImageIcon(imageIcons),
+                            new SelectCategoryListener(cat),
+                            catName,
+                            null);
+                    itemCount++;
+                }
+
+                // 3 - SHOW ALL PRODUCT IN SELECTED CATEGORIY
+                List<ProductInfoExt> products = controller.findProductByCategory(categoryId);
+                for (ProductInfoExt prod : products) {
+                    catalogTab.addCatalogItem(buildCatalogItem(prod), new SelectProductListener(prod));
+                    itemCount++;
+                }
             }
 
-            // 3 - SHOW ALL PRODUCT IN SELECTED CATEGORIY
-            List<ProductInfoExt> products = controller.findProductByCategory(categoryId);
-            for (ProductInfoExt prod : products) {
-                catalogTab.addCatalogItem(buildCatalogItem(prod), new SelectProductListener(prod));
+            if (itemCount == 0) {
+                catalogTab.showEmptyState(e -> {
+                    categoriesJList.setSelectedIndex(0);
+                });
             }
         }
         CardLayout cl = (CardLayout) (productsGridPane.getLayout());
         cl.show(productsGridPane, categoryId);
+    }
+
+    private static String normalizeText(String text) {
+        if (text == null) return "";
+        String normalized = Normalizer.normalize(text, Normalizer.Form.NFD);
+        return normalized.replaceAll("\\p{InCombiningDiacriticalMarks}+", "").toLowerCase();
+    }
+
+    private boolean matchesProduct(ProductInfoExt prod, String cleanQuery) {
+        if (prod == null || cleanQuery.isEmpty()) return false;
+        if (prod.getCode() != null && normalizeText(prod.getCode()).contains(cleanQuery)) {
+            return true;
+        }
+        if (prod.getReference() != null && normalizeText(prod.getReference()).contains(cleanQuery)) {
+            return true;
+        }
+        if (prod.getName() != null && normalizeText(prod.getName()).contains(cleanQuery)) {
+            return true;
+        }
+        if (prod.getDisplay() != null && normalizeText(prod.getDisplay()).contains(cleanQuery)) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void filterProducts(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            // Restore previous active category panel
+            CardLayout cl = (CardLayout) (productsGridPane.getLayout());
+            if (currentCategoryId != null && categoriesCached.contains(currentCategoryId)) {
+                cl.show(productsGridPane, currentCategoryId);
+            } else {
+                cl.show(productsGridPane, ALL_PRODUCTS_CATEGORY_ID);
+            }
+            currentFilteredMatches.clear();
+            return;
+        }
+
+        String rawQuery = query.trim();
+        String cleanQuery = normalizeText(rawQuery);
+
+        if (allProductsCache == null) {
+            allProductsCache = controller.getAllProductCatalog();
+            if (allProductsCache == null) {
+                allProductsCache = new ArrayList<>();
+            }
+        }
+
+        currentFilteredMatches.clear();
+        for (ProductInfoExt prod : allProductsCache) {
+            if (matchesProduct(prod, cleanQuery)) {
+                currentFilteredMatches.add(prod);
+            }
+        }
+
+        // Setup searchTab
+        if (searchTab == null) {
+            searchTab = new JCatalogTab();
+            searchTab.applyComponentOrientation(getComponentOrientation());
+            productsGridPane.add(searchTab, SEARCH_CATEGORY_ID);
+        }
+
+        searchTab.clearItems();
+
+        if (currentFilteredMatches.isEmpty()) {
+            searchTab.showSearchEmptyState(rawQuery);
+        } else {
+            for (ProductInfoExt prod : currentFilteredMatches) {
+                searchTab.addCatalogItem(buildCatalogItem(prod), new SelectProductListener(prod));
+            }
+        }
+
+        CardLayout cl = (CardLayout) (productsGridPane.getLayout());
+        cl.show(productsGridPane, SEARCH_CATEGORY_ID);
+    }
+
+    @Override
+    public ProductInfoExt getFirstMatchingProduct(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return null;
+        }
+        String raw = query.trim();
+        String cleanQuery = normalizeText(raw);
+
+        if (allProductsCache == null) {
+            allProductsCache = controller.getAllProductCatalog();
+        }
+
+        if (allProductsCache != null) {
+            // 1. Exact barcode/code match
+            for (ProductInfoExt p : allProductsCache) {
+                if (p.getCode() != null && p.getCode().equalsIgnoreCase(raw)) {
+                    return p;
+                }
+            }
+            // 2. Exact reference match
+            for (ProductInfoExt p : allProductsCache) {
+                if (p.getReference() != null && p.getReference().equalsIgnoreCase(raw)) {
+                    return p;
+                }
+            }
+            // 3. Exact name match
+            for (ProductInfoExt p : allProductsCache) {
+                if (p.getName() != null && normalizeText(p.getName()).equalsIgnoreCase(cleanQuery)) {
+                    return p;
+                }
+            }
+        }
+
+        // 4. First filtered match currently displayed
+        if (!currentFilteredMatches.isEmpty()) {
+            return currentFilteredMatches.get(0);
+        }
+
+        // 5. Any partial match in cache
+        if (allProductsCache != null) {
+            for (ProductInfoExt p : allProductsCache) {
+                if (matchesProduct(p, cleanQuery)) {
+                    return p;
+                }
+            }
+        }
+
+        return null;
     }
 
     private CatalogItem buildCatalogItem(ProductInfoExt product) {
@@ -591,14 +768,18 @@ public class JCatalog extends JPanel implements ListSelectionListener, CatalogSe
             setText(cat.getName());
             
             // Mejorar la apariencia de las categorías
-            setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            if (ALL_PRODUCTS_CATEGORY_ID.equals(cat.getID())) {
+                setFont(new Font("Segoe UI", Font.BOLD, 12));
+            } else {
+                setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            }
             setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
             
             if (isSelected) {
-                setBackground(new Color(66, 165, 245)); // Azul material
+                setBackground(new Color(202, 159, 65)); // Oro institucional
                 setForeground(Color.WHITE);
             } else {
-                setBackground(Color.WHITE);
+                setBackground(new Color(250, 247, 242));
                 setForeground(new Color(33, 33, 33));
             }
             

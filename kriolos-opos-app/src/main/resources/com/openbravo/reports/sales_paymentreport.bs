@@ -21,7 +21,7 @@ report.setReport("/com/openbravo/reports/sales_paymentreport");
 report.setResourceBundle("com/openbravo/reports/sales_paymentreport_messages");
 
 report.setSentence("SELECT " +
-    "LEFT(DATE(receipts.DATENEW),10) AS GROUPDATE, " +
+    "CAST(receipts.DATENEW AS DATE) AS GROUPDATE, " +
     "receipts.DATENEW, " +
     "payments.PAYMENT, " +
     "payments.NOTES, " +

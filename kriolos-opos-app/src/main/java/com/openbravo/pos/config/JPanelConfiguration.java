@@ -66,15 +66,9 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         m_panelconfig.add(panel);
         jPanelDatabase.add(panel.getConfigComponent());
 
-
-
         panel = new JPanelConfigGeneral(oApp);
         m_panelconfig.add(panel);
         jPanelGeneral.add(panel.getConfigComponent());
-
-        panel = new JPanelConfigLocale();
-        m_panelconfig.add(panel);
-        jPanelLocale.add(panel.getConfigComponent());
 
         panel = new JPanelConfigPayment();
         m_panelconfig.add(panel);
@@ -84,29 +78,39 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         m_panelconfig.add(panel);
         jPanelPeripheral.add(panel.getConfigComponent());
 
+        // Opciones del Sistema with sub-tabs
+        JTabbedPane systemTabbedPane = new JTabbedPane();
+        systemTabbedPane.setFont(new java.awt.Font("Arial", 0, 13));
+
         panel = new JPanelConfigSystem();
         m_panelconfig.add(panel);
-        jPanelSystem.add(panel.getConfigComponent());
+        systemTabbedPane.addTab("General", panel.getConfigComponent());
 
-        panel = new JPanelTicketSetup();
-        m_panelconfig.add(panel);
-        jPanelTicketSetup.add(panel.getConfigComponent());
+        JPanelConfigSpecial specialPanel = new JPanelConfigSpecial();
+        m_panelconfig.add(specialPanel);
+        systemTabbedPane.addTab("Alertas y Correo", specialPanel);
+
+        jPanelSystem.add(systemTabbedPane);
 
         panel = new JPanelConfigCompany();
         m_panelconfig.add(panel);
         jPanelCompany.add(panel.getConfigComponent());
 
+        jTabbedPane1.remove(jPanelTicketSetup);
+
         JPanelConfigProfile profilePanel = new JPanelConfigProfile();
         m_panelconfig.add(profilePanel);
         jTabbedPane1.addTab(AppLocal.getIntString("jpanelconfiguration.tab.profile.title"), profilePanel);
 
-        JPanelConfigSpecial specialPanel = new JPanelConfigSpecial();
-        m_panelconfig.add(specialPanel);
-        jTabbedPane1.addTab(AppLocal.getIntString("jpanelconfiguration.tab.special.title"), specialPanel);
+        JPanelConfigEmailReports emailPanel = new JPanelConfigEmailReports(oApp);
+        m_panelconfig.add(emailPanel);
+        jTabbedPane1.addTab("Correo y Reportes", emailPanel);
+
+        JPanelConfigSecurity securityPanel = new JPanelConfigSecurity();
+        m_panelconfig.add(0, securityPanel); // Add to m_panelconfig at 0 to match
+        jTabbedPane1.insertTab("Seguridad", null, securityPanel, null, 0);
 
         jbtnExit.setVisible(false);
-
-
 
         loadProperties();
     }
@@ -128,17 +132,11 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         m_panelconfig.add(panel);
         jPanelDatabase.add(panel.getConfigComponent());
 
-
-
         // Nota: JPanelConfigGeneral necesita AppView para cambiar contraseña
         // En este constructor no tenemos AppView, así que se pasa null
         panel = new JPanelConfigGeneral(null);
         m_panelconfig.add(panel);
         jPanelGeneral.add(panel.getConfigComponent());
-
-        panel = new JPanelConfigLocale();
-        m_panelconfig.add(panel);
-        jPanelLocale.add(panel.getConfigComponent());
 
         panel = new JPanelConfigPayment();
         m_panelconfig.add(panel);
@@ -148,26 +146,38 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         m_panelconfig.add(panel);
         jPanelPeripheral.add(panel.getConfigComponent());
 
+        // Opciones del Sistema with sub-tabs
+        JTabbedPane systemTabbedPane = new JTabbedPane();
+        systemTabbedPane.setFont(new java.awt.Font("Arial", 0, 13));
+
         panel = new JPanelConfigSystem();
         m_panelconfig.add(panel);
-        jPanelSystem.add(panel.getConfigComponent());
+        systemTabbedPane.addTab("General", panel.getConfigComponent());
 
-        panel = new JPanelTicketSetup();
-        m_panelconfig.add(panel);
-        jPanelTicketSetup.add(panel.getConfigComponent());
+        JPanelConfigSpecial specialPanel = new JPanelConfigSpecial();
+        m_panelconfig.add(specialPanel);
+        systemTabbedPane.addTab("Alertas y Correo", specialPanel);
+
+        jPanelSystem.add(systemTabbedPane);
 
         panel = new JPanelConfigCompany();
         m_panelconfig.add(panel);
         jPanelCompany.add(panel.getConfigComponent());
-        
+
+        jTabbedPane1.remove(jPanelTicketSetup);
+
         JPanelConfigProfile profilePanel = new JPanelConfigProfile();
         m_panelconfig.add(profilePanel);
         jTabbedPane1.addTab(AppLocal.getIntString("jpanelconfiguration.tab.profile.title"), profilePanel);
-        
-        JPanelConfigSpecial specialPanel = new JPanelConfigSpecial();
-        m_panelconfig.add(specialPanel);
-        jTabbedPane1.addTab(AppLocal.getIntString("jpanelconfiguration.tab.special.title"), specialPanel);
-        
+
+        JPanelConfigEmailReports emailPanel = new JPanelConfigEmailReports(null);
+        m_panelconfig.add(emailPanel);
+        jTabbedPane1.addTab("Correo y Reportes", emailPanel);
+
+        JPanelConfigSecurity securityPanel = new JPanelConfigSecurity();
+        m_panelconfig.add(0, securityPanel); // Add to m_panelconfig at 0 to match
+        jTabbedPane1.insertTab("Seguridad", null, securityPanel, null, 0);
+
         loadProperties();
 
     }
@@ -246,7 +256,7 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
      */
     public void selectLocaleTab() {
         for (int i = 0; i < jTabbedPane1.getTabCount(); i++) {
-            if (jTabbedPane1.getTitleAt(i).equals(AppLocal.getIntString("jpanelconfiguration.tab.locale.title"))) {
+            if (jTabbedPane1.getTitleAt(i).equals(AppLocal.getIntString("jpanelconfiguration.tab.general.title"))) {
                 jTabbedPane1.setSelectedIndex(i);
                 break;
             }
@@ -312,7 +322,8 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
      * WARNING: Do NOT modify this code. The content of this method is always
      * regenerated by the Form Editor.
      */
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated
+    // Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
         jTabbedPane1 = new javax.swing.JTabbedPane();
@@ -346,10 +357,8 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("pos_messages"); // NOI18N
         jTabbedPane1.addTab(bundle.getString("jpanelconfiguration.tab.general.title"), jPanelGeneral); // NOI18N
 
-        jPanelLocale.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jPanelLocale.setPreferredSize(new java.awt.Dimension(0, 400));
-        jPanelLocale.setLayout(new javax.swing.BoxLayout(jPanelLocale, javax.swing.BoxLayout.LINE_AXIS));
-        jTabbedPane1.addTab(bundle.getString("jpanelconfiguration.tab.locale.title"), jPanelLocale); // NOI18N
+        // jTabbedPane1.addTab(bundle.getString("jpanelconfiguration.tab.locale.title"),
+        // jPanelLocale); // NOI18N
 
         jPanelPayment.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         jPanelPayment.setPreferredSize(new java.awt.Dimension(0, 400));
@@ -379,8 +388,6 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         jPanelDatabase.setPreferredSize(new java.awt.Dimension(0, 520));
         jPanelDatabase.setLayout(new javax.swing.BoxLayout(jPanelDatabase, javax.swing.BoxLayout.LINE_AXIS));
         jTabbedPane1.addTab(bundle.getString("jpanelconfiguration.tab.database.title"), jPanelDatabase); // NOI18N
-
-
 
         jbtnRestore.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         jbtnRestore.setText(AppLocal.getIntString("button.factory")); // NOI18N
@@ -421,46 +428,53 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addComponent(jbtnSave, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
-                .addComponent(jbtnRestore, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
-                .addComponent(jbtnExit, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(31, Short.MAX_VALUE))
-        );
+                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addComponent(jbtnSave, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(18, 18, 18)
+                                .addComponent(jbtnRestore, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(18, 18, 18)
+                                .addComponent(jbtnExit, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap(31, Short.MAX_VALUE)));
         jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                .addComponent(jbtnRestore, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addComponent(jbtnExit, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addComponent(jbtnSave, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-        );
+                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                .addComponent(jbtnRestore, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(jbtnExit, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(jbtnSave, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)));
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jTabbedPane1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap())
-        );
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jTabbedPane1, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                .addContainerGap()));
         layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jTabbedPane1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
-        );
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addComponent(jTabbedPane1, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap()));
     }// </editor-fold>//GEN-END:initComponents
 
-    private void jbtnRestoreActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbtnRestoreActionPerformed
+    private void jbtnRestoreActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jbtnRestoreActionPerformed
 
         if (JOptionPane.showConfirmDialog(this,
                 AppLocal.getIntString("message.configfactory"),
@@ -470,21 +484,20 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
             restoreProperties();
         }
 
-    }//GEN-LAST:event_jbtnRestoreActionPerformed
+    }// GEN-LAST:event_jbtnRestoreActionPerformed
 
-    private void jbtnSaveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbtnSaveActionPerformed
+    private void jbtnSaveActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jbtnSaveActionPerformed
 
         saveProperties();
 
-    }//GEN-LAST:event_jbtnSaveActionPerformed
+    }// GEN-LAST:event_jbtnSaveActionPerformed
 
-    private void jbtnExitActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbtnExitActionPerformed
+    private void jbtnExitActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jbtnExitActionPerformed
         if (deactivate() && closeEventListener != null) {
             closeEventListener.windowClosed(new CloseEvent(this));
         }
 
-    }//GEN-LAST:event_jbtnExitActionPerformed
-
+    }// GEN-LAST:event_jbtnExitActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel jPanel1;

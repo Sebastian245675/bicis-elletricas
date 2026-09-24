@@ -16,6 +16,8 @@
 
 package com.openbravo.pos.panels;
 
+import com.openbravo.pos.util.ModernLookAndFeel;
+import com.openbravo.pos.util.ModernActionIcon;
 import com.openbravo.pos.forms.DataLogicSystem;
 import com.openbravo.pos.forms.AppUser;
 import com.openbravo.pos.forms.AppView;
@@ -230,6 +232,60 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
      */
     @Override
     public void activate() throws BasicException {
+        // Sebastian - Si la caja activa está cerrada, crear una nueva automáticamente sin pedir fondo
+        if (m_loadedMoneyIndex == null && m_App.getActiveCashDateEnd() != null) {
+            LOGGER.info("🔑 Sebastian - Caja activa cerrada detectada al activar. Creando nuevo turno automáticamente...");
+            try {
+                String newCashIndex = UUID.randomUUID().toString();
+                int newSequence = m_dlSystem.getSequenceCash(m_App.getProperties().getHost()) + 1;
+                Date now = new Date();
+                
+                // Insertar nuevo turno en base de datos (con 0.0 de fondo inicial, no se pide)
+                m_dlSystem.execInsertCash(
+                        new Object[] {
+                                newCashIndex,
+                                m_App.getProperties().getHost(),
+                                newSequence,
+                                now,
+                                null,
+                                0.0
+                        });
+                
+                // Actualizar en memoria en JRootApp
+                if (m_App instanceof JRootApp) {
+                    ((JRootApp) m_App).setActiveCash(newCashIndex, newSequence, now, null, 0.0);
+                }
+                LOGGER.info("🆕 Sebastian - Nuevo turno creado automáticamente sin solicitar fondo inicial.");
+            } catch (Exception ex) {
+                LOGGER.log(Level.SEVERE, "Error al crear nuevo turno automáticamente al activar", ex);
+            }
+        }
+
+        // Verificar rol para mostrar/ocultar dinámicamente el botón de Cerrar Mes
+        boolean isAdmin = false;
+        try {
+            AppUser currentUser = m_App.getAppUserView().getUser();
+            if (currentUser != null) {
+                String roleId = currentUser.getRole();
+                if (roleId != null) {
+                    roleId = roleId.trim();
+                    if ("0".equals(roleId) || "1".equals(roleId) || "ADMIN".equalsIgnoreCase(roleId)) {
+                        isAdmin = true;
+                    }
+                }
+                if (currentUser.getName() != null && currentUser.getName().toLowerCase().contains("admin")) {
+                    isAdmin = true;
+                }
+            }
+        } catch (Exception ex) {
+            LOGGER.log(Level.WARNING, "Error al verificar rol del usuario en activate: " + ex.getMessage(), ex);
+        }
+
+        if (btnCloseMonth != null) {
+            btnCloseMonth.setVisible(isAdmin);
+            LOGGER.info("Visibilidad de btnCloseMonth configurada dinamicamente a: " + isAdmin);
+        }
+
         // Verificar y crear las columnas faltante_cierre y sobrante_cierre si no
         // existen
         verificarColumnasFaltanteSobrante();
@@ -333,8 +389,45 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
      */
     @Override
     public boolean deactivate() {
-
+        m_loadedMoneyIndex = null;
         return true;
+    }
+
+    public void printPaymentsForClosedShift(String moneyIndex) {
+        PaymentsModel backupModel = m_PaymentsToClose;
+        Integer backupResult = result;
+        
+        try {
+            m_PaymentsToClose = PaymentsModel.loadInstance(m_App, moneyIndex);
+            
+            result = 0;
+            s = m_App.getSession();
+            con = s.getConnection();
+            SimpleDateFormat ndf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String startStr = ndf.format(m_PaymentsToClose.getDateStart());
+            String sql;
+            if (m_PaymentsToClose.getDateEnd() != null) {
+                String endStr = ndf.format(m_PaymentsToClose.getDateEnd());
+                sql = "SELECT COUNT(*) FROM draweropened WHERE TICKETID = 'No Sale' AND OPENDATE > {fn TIMESTAMP('" + startStr + "')} AND OPENDATE <= {fn TIMESTAMP('" + endStr + "')}";
+            } else {
+                sql = "SELECT COUNT(*) FROM draweropened WHERE TICKETID = 'No Sale' AND OPENDATE > {fn TIMESTAMP('" + startStr + "')}";
+            }
+            java.sql.PreparedStatement pstmt = con.prepareStatement(sql);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                result = rs.getInt(1);
+            }
+            rs.close();
+            pstmt.close();
+            
+            printPayments("Printer.CloseCash", false);
+            
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Error printing closed shift ticket", ex);
+        } finally {
+            m_PaymentsToClose = backupModel;
+            result = backupResult;
+        }
     }
 
     private void loadData() throws BasicException {
@@ -359,7 +452,17 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         m_jsalestable.setModel(new DefaultTableModel());
 
         // LoadData
-        m_PaymentsToClose = PaymentsModel.loadInstance(m_App);
+        if (m_loadedMoneyIndex != null) {
+            m_PaymentsToClose = PaymentsModel.loadInstance(m_App, m_loadedMoneyIndex);
+            if (m_btnCashier != null) m_btnCashier.setEnabled(false);
+            if (m_btnDay != null) m_btnDay.setEnabled(false);
+            if (btnCloseMonth != null) btnCloseMonth.setEnabled(false);
+        } else {
+            m_PaymentsToClose = PaymentsModel.loadInstance(m_App);
+            if (m_btnCashier != null) m_btnCashier.setEnabled(true);
+            if (m_btnDay != null) m_btnDay.setEnabled(true);
+            if (btnCloseMonth != null) btnCloseMonth.setEnabled(true);
+        }
 
         // Populate Data
         m_jSequence.setText(m_PaymentsToClose.printSequence());
@@ -375,16 +478,19 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             m_jCount.setText(m_PaymentsToClose.printPayments());
             m_jCash.setText(m_PaymentsToClose.printPaymentsTotal());
 
-            // Obtener el monto inicial de la caja activa actual directamente desde la BD
             try {
                 Double initialAmount = null;
-                String activeCashIndex = m_App.getActiveCashIndex();
+                String activeCashIndex = m_loadedMoneyIndex != null ? m_loadedMoneyIndex : m_App.getActiveCashIndex();
                 s = m_App.getSession();
                 con = s.getConnection();
 
                 // Consultar directamente desde la BD para asegurar que obtenemos el valor
                 // correcto
-                SQL = "SELECT INITIAL_AMOUNT FROM CLOSEDCASH WHERE MONEY = ? AND DATEEND IS NULL";
+                if (m_loadedMoneyIndex != null) {
+                    SQL = "SELECT INITIAL_AMOUNT FROM CLOSEDCASH WHERE MONEY = ?";
+                } else {
+                    SQL = "SELECT INITIAL_AMOUNT FROM CLOSEDCASH WHERE MONEY = ? AND DATEEND IS NULL";
+                }
 
                 java.sql.PreparedStatement pstmt = con.prepareStatement(SQL);
                 pstmt.setString(1, activeCashIndex);
@@ -492,10 +598,18 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             con = s.getConnection();
             String sdbmanager = m_dlSystem.getDBVersion();
 
-            SQL = "SELECT * " +
-                    "FROM draweropened " +
-                    "WHERE TICKETID = 'No Sale' AND OPENDATE > {fn TIMESTAMP('" + m_PaymentsToClose.getDateStartDerby()
-                    + "')}";
+            if (m_PaymentsToClose.getDateEnd() != null) {
+                SimpleDateFormat ndf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                SQL = "SELECT * " +
+                        "FROM draweropened " +
+                        "WHERE TICKETID = 'No Sale' AND OPENDATE > {fn TIMESTAMP('" + m_PaymentsToClose.getDateStartDerby() + "')} " +
+                        "AND OPENDATE <= {fn TIMESTAMP('" + ndf.format(m_PaymentsToClose.getDateEnd()) + "')}";
+            } else {
+                SQL = "SELECT * " +
+                        "FROM draweropened " +
+                        "WHERE TICKETID = 'No Sale' AND OPENDATE > {fn TIMESTAMP('" + m_PaymentsToClose.getDateStartDerby()
+                        + "')}";
+            }
 
             stmt = (Statement) con.createStatement();
             rs = stmt.executeQuery(SQL);
@@ -506,9 +620,17 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
 
             // Get Ticket DELETES & Line Voids
             dresult = 0;
-            SQL = "SELECT * " +
-                    "FROM lineremoved " +
-                    "WHERE REMOVEDDATE > {fn TIMESTAMP('" + m_PaymentsToClose.getDateStartDerby() + "')}";
+            if (m_PaymentsToClose.getDateEnd() != null) {
+                SimpleDateFormat ndf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                SQL = "SELECT * " +
+                        "FROM lineremoved " +
+                        "WHERE REMOVEDDATE > {fn TIMESTAMP('" + m_PaymentsToClose.getDateStartDerby() + "')} " +
+                        "AND REMOVEDDATE <= {fn TIMESTAMP('" + ndf.format(m_PaymentsToClose.getDateEnd()) + "')}";
+            } else {
+                SQL = "SELECT * " +
+                        "FROM lineremoved " +
+                        "WHERE REMOVEDDATE > {fn TIMESTAMP('" + m_PaymentsToClose.getDateStartDerby() + "')}";
+            }
 
             stmt = (Statement) con.createStatement();
             rs = stmt.executeQuery(SQL);
@@ -548,32 +670,24 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 String userName = m_PaymentsToClose.getUser();
                 String dateStart = m_PaymentsToClose.printDateStart();
                 String dateEnd = m_PaymentsToClose.printDateEnd();
-                String timeRange = "";
+                String sequence = m_PaymentsToClose.printSequence();
 
-                if (dateStart != null && !dateStart.isEmpty()) {
-                    SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
-                    SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a");
-                    try {
-                        Date startDate = sdf.parse(dateStart);
-                        String startTime = timeFormat.format(startDate);
-                        if (dateEnd != null && !dateEnd.isEmpty()) {
-                            Date endDate = sdf.parse(dateEnd);
-                            String endTime = timeFormat.format(endDate);
-                            timeRange = String.format("De %s a %s - (Turno Actual)", startTime, endTime);
-                        } else {
-                            timeRange = String.format("De %s - (Turno Actual)", startTime);
-                        }
-                    } catch (ParseException e) {
-                        timeRange = dateStart;
+                String shiftInfo;
+                if (dateEnd != null && !dateEnd.isEmpty()) {
+                    shiftInfo = String.format("Caja Cerrada  •  Turno: %s  •  Fecha: %s a %s  •  Usuario: %s", sequence, dateStart, dateEnd, userName);
+                    m_jShiftInfoLabel.setText(shiftInfo);
+                    if (m_jShiftInfoLabel.getParent() != null) {
+                        m_jShiftInfoLabel.getParent().setVisible(true);
+                    }
+                } else {
+                    shiftInfo = "";
+                    m_jShiftInfoLabel.setText(shiftInfo);
+                    if (m_jShiftInfoLabel.getParent() != null) {
+                        m_jShiftInfoLabel.getParent().setVisible(false);
                     }
                 }
-
-                String shiftInfo = String.format("Corte de %s iniciado el %s", userName,
-                        dateStart != null ? dateStart.split(" ")[0] : "");
-                if (!timeRange.isEmpty()) {
-                    shiftInfo += "\n" + timeRange;
-                }
-                m_jShiftInfoLabel.setText(shiftInfo);
+                revalidate();
+                repaint();
             }
 
             // Actualizar tarjetas de métricas
@@ -586,7 +700,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 // Calcular ganancia real (ventas totales - costo de compra)
                 double profit = 0.0;
                 try {
-                    String activeCashIndex = m_App.getActiveCashIndex();
+                    String activeCashIndex = getActiveCashIndexOrLoaded();
                     Session session = m_App.getSession();
                     Connection conn = session.getConnection();
 
@@ -640,11 +754,13 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             // Obtener fondo inicial directamente desde la BD
             double initialAmount = 0.0;
             try {
-                String activeCashIndex = m_App.getActiveCashIndex();
+                String activeCashIndex = getActiveCashIndexOrLoaded();
                 Session session = m_App.getSession();
                 Connection conn = session.getConnection();
 
-                String sql = "SELECT INITIAL_AMOUNT FROM CLOSEDCASH WHERE MONEY = ? AND DATEEND IS NULL";
+                String sql = m_loadedMoneyIndex != null ?
+                        "SELECT INITIAL_AMOUNT FROM CLOSEDCASH WHERE MONEY = ?" :
+                        "SELECT INITIAL_AMOUNT FROM CLOSEDCASH WHERE MONEY = ? AND DATEEND IS NULL";
                 java.sql.PreparedStatement pstmt = conn.prepareStatement(sql);
                 pstmt.setString(1, activeCashIndex);
 
@@ -718,7 +834,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             // Obtener entradas y salidas de efectivo desde receipts y payments
             s = m_App.getSession();
             con = s.getConnection();
-            String activeCashIndex = m_App.getActiveCashIndex();
+            String activeCashIndex = getActiveCashIndexOrLoaded();
             Date dateStart = m_PaymentsToClose.getDateStart();
 
             LOGGER.info("updateCashMovements: Buscando movimientos para MONEY=" + activeCashIndex +
@@ -806,7 +922,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             // Calcular total de entradas desde la base de datos
             s = m_App.getSession();
             con = s.getConnection();
-            String activeCashIndex = m_App.getActiveCashIndex();
+            String activeCashIndex = getActiveCashIndexOrLoaded();
             Date dateStart = m_PaymentsToClose.getDateStart();
 
             // Sumar todas las entradas (cashin)
@@ -1569,7 +1685,239 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 java.util.List<ConsolidatedProduct> consolidatedProductList = new java.util.ArrayList<>();
                 java.util.List<PaymentsModel.ProductSalesLine> currentShiftProducts = new java.util.ArrayList<>();
 
-                if (isDayClose && closeDate != null) {
+                if (m_isMonthMode) {
+                    LOGGER.info("Es cierre del mes, obteniendo todos los turnos...");
+                    if (closeDate == null) {
+                        closeDate = new Date();
+                    }
+                    java.util.List<ShiftData> allShifts = getAllShiftsForMonth(closeDate);
+                    LOGGER.info("Turnos obtenidos para el mes: " + (allShifts != null ? allShifts.size() : 0));
+
+                    script.put("allShifts", allShifts);
+                    script.put("isMonthClose", Boolean.TRUE);
+                    script.put("isDayClose", Boolean.FALSE);
+
+                    double totalMonthSalesRaw = 0.0;
+                    double totalMonthPaymentsRaw = 0.0;
+                    double totalMonthInitialAmountRaw = 0.0;
+                    double totalMonthCashSalesRaw = 0.0;
+                    double totalMonthCardSalesRaw = 0.0;
+                    double totalMonthCreditSalesRaw = 0.0;
+                    double totalMonthVoucherSalesRaw = 0.0;
+                    double totalMonthCashInRaw = 0.0;
+                    double totalMonthCashOutRaw = 0.0;
+                    double totalMonthReturnsRaw = 0.0;
+                    double totalMonthCreditPaymentsRaw = 0.0;
+                    double totalMonthProfitRaw = 0.0;
+
+                    // Ventas + Ganancia por Departamento
+                    java.util.List<java.util.Map<String, String>> monthDeptLinesMap = new java.util.ArrayList<>();
+                    java.util.List<PaymentsModel.RefundLine> allRefundLines = new java.util.ArrayList<>();
+
+                    try {
+                        Session session = m_App.getSession();
+                        java.sql.Connection conn = session.getConnection();
+
+                        if (allShifts != null && !allShifts.isEmpty()) {
+                            for (ShiftData shift : allShifts) {
+                                String money = shift.getMoney();
+                                if (money == null || money.isEmpty()) continue;
+
+                                totalMonthInitialAmountRaw += shift.getInitialAmount();
+                                totalMonthPaymentsRaw += shift.getTotalPayments();
+                                totalMonthSalesRaw += shift.getTotalSales();
+                                totalMonthCashInRaw += shift.getCashIn();
+                                totalMonthCashOutRaw += shift.getCashOut();
+
+                                // query forms of payment
+                                try {
+                                    java.sql.PreparedStatement ps = conn.prepareStatement(
+                                            "SELECT payments.PAYMENT, COALESCE(SUM(payments.TOTAL),0) AS TOTAL " +
+                                            "FROM payments INNER JOIN receipts ON payments.RECEIPT=receipts.ID " +
+                                            "INNER JOIN tickets ON receipts.ID=tickets.ID " +
+                                            "WHERE receipts.MONEY=? AND tickets.TICKETTYPE=0 GROUP BY payments.PAYMENT");
+                                    ps.setString(1, money);
+                                    java.sql.ResultSet rs = ps.executeQuery();
+                                    while (rs.next()) {
+                                        String pt = rs.getString("PAYMENT");
+                                        double pv = rs.getDouble("TOTAL");
+                                        if ("cash".equals(pt))
+                                            totalMonthCashSalesRaw += pv;
+                                        else if ("card".equals(pt) || "magcard".equals(pt))
+                                            totalMonthCardSalesRaw += pv;
+                                        else if ("debt".equals(pt))
+                                            totalMonthCreditSalesRaw += pv;
+                                        else if ("voucher".equals(pt))
+                                            totalMonthVoucherSalesRaw += pv;
+                                    }
+                                    rs.close();
+                                    ps.close();
+                                } catch (Exception ex) {
+                                    LOGGER.log(Level.WARNING, "Error pagos mes " + money, ex);
+                                }
+
+                                // query returns
+                                try {
+                                    java.sql.PreparedStatement ps = conn.prepareStatement(
+                                            "SELECT COALESCE(SUM(ABS(payments.TOTAL)),0) FROM receipts " +
+                                            "INNER JOIN payments ON receipts.ID=payments.RECEIPT " +
+                                            "INNER JOIN tickets ON receipts.ID=tickets.ID WHERE receipts.MONEY=? " +
+                                            "AND (payments.PAYMENT='cash' OR payments.PAYMENT='cashrefund') " +
+                                            "AND (tickets.TICKETTYPE=1 OR payments.TOTAL<0)");
+                                    ps.setString(1, money);
+                                    java.sql.ResultSet rs = ps.executeQuery();
+                                    if (rs.next())
+                                        totalMonthReturnsRaw += rs.getDouble(1);
+                                    rs.close();
+                                    ps.close();
+                                } catch (Exception ex) {
+                                    LOGGER.log(Level.WARNING, "Error devoluciones mes " + money, ex);
+                                }
+
+                                // query abonos (credit payments)
+                                try {
+                                    java.sql.PreparedStatement ps = conn.prepareStatement(
+                                            "SELECT COALESCE(SUM(payments.TOTAL),0) FROM receipts " +
+                                            "INNER JOIN payments ON receipts.ID=payments.RECEIPT " +
+                                            "WHERE receipts.MONEY=? AND payments.PAYMENT='debt'");
+                                    ps.setString(1, money);
+                                    java.sql.ResultSet rs = ps.executeQuery();
+                                    if (rs.next())
+                                        totalMonthCreditPaymentsRaw += rs.getDouble(1);
+                                    rs.close();
+                                    ps.close();
+                                } catch (Exception ex) {
+                                    LOGGER.log(Level.WARNING, "Error abonos mes " + money, ex);
+                                }
+
+                                // query profit
+                                try {
+                                    java.sql.PreparedStatement ps = conn.prepareStatement(
+                                            "SELECT COALESCE(SUM((ticketlines.PRICE-COALESCE(products.PRICEBUY,0))*ticketlines.UNITS),0) " +
+                                            "FROM ticketlines INNER JOIN receipts ON ticketlines.TICKET=receipts.ID " +
+                                            "LEFT JOIN products ON ticketlines.PRODUCT=products.ID " +
+                                            "WHERE receipts.MONEY=? AND ticketlines.PRODUCT IS NOT NULL");
+                                    ps.setString(1, money);
+                                    java.sql.ResultSet rs = ps.executeQuery();
+                                    if (rs.next())
+                                        totalMonthProfitRaw += rs.getDouble(1);
+                                    rs.close();
+                                    ps.close();
+                                } catch (Exception ex) {
+                                    LOGGER.log(Level.WARNING, "Error ganancia mes " + money, ex);
+                                }
+                            }
+                        }
+
+                        java.util.Map<String, double[]> deptMap = new java.util.LinkedHashMap<>();
+                        if (allShifts != null) {
+                            try {
+                                for (ShiftData shift : allShifts) {
+                                    String money = shift.getMoney();
+                                    if (money == null || money.isEmpty()) continue;
+                                    java.sql.PreparedStatement ps = conn.prepareStatement(
+                                            "SELECT COALESCE(categories.NAME,'Sin Departamento') AS CAT, " +
+                                            "SUM(ticketlines.UNITS) AS UNITS, " +
+                                            "SUM(ticketlines.PRICE*ticketlines.UNITS) AS TOTAL, " +
+                                            "SUM((ticketlines.PRICE-COALESCE(products.PRICEBUY,0))*ticketlines.UNITS) AS PROFIT " +
+                                            "FROM ticketlines INNER JOIN tickets ON ticketlines.TICKET=tickets.ID " +
+                                            "INNER JOIN receipts ON tickets.ID=receipts.ID " +
+                                            "INNER JOIN products ON ticketlines.PRODUCT=products.ID " +
+                                            "LEFT JOIN categories ON products.CATEGORY=categories.ID " +
+                                            "WHERE receipts.MONEY=? AND tickets.TICKETTYPE=0 " +
+                                            "GROUP BY COALESCE(categories.NAME,'Sin Departamento')");
+                                    ps.setString(1, money);
+                                    java.sql.ResultSet rs = ps.executeQuery();
+                                    while (rs.next()) {
+                                        String cat = rs.getString("CAT");
+                                        double[] acc = deptMap.getOrDefault(cat, new double[] { 0, 0, 0 });
+                                        acc[0] += rs.getDouble("UNITS");
+                                        acc[1] += rs.getDouble("TOTAL");
+                                        acc[2] += rs.getDouble("PROFIT");
+                                        deptMap.put(cat, acc);
+                                    }
+                                    rs.close();
+                                    ps.close();
+                                }
+
+                                for (java.util.Map.Entry<String, double[]> entry : deptMap.entrySet()) {
+                                    java.util.Map<String, String> row = new java.util.HashMap<>();
+                                    row.put("name", entry.getKey());
+                                    row.put("sales", Formats.CURRENCY.formatValue(entry.getValue()[1]));
+                                    row.put("profit", Formats.CURRENCY.formatValue(entry.getValue()[2]));
+                                    monthDeptLinesMap.add(row);
+                                }
+                            } catch (Exception ex) {
+                                LOGGER.log(Level.WARNING, "Error dept mes para ticket", ex);
+                            }
+                        }
+
+                        if (allShifts != null && !allShifts.isEmpty()) {
+                            try {
+                                java.util.List<String> moneyList = new java.util.ArrayList<>();
+                                for (ShiftData shift : allShifts) {
+                                    if (shift.getMoney() != null && !shift.getMoney().isEmpty()) {
+                                         moneyList.add(shift.getMoney());
+                                    }
+                                }
+
+                                if (!moneyList.isEmpty()) {
+                                    StringBuilder placeholders = new StringBuilder();
+                                    for (int i = 0; i < moneyList.size(); i++) {
+                                        if (i > 0) placeholders.append(",");
+                                        placeholders.append("?");
+                                    }
+                                    String sqlRefunds = "SELECT receipts.DATENEW, tickets.TICKETID, payments.TOTAL FROM receipts " +
+                                            "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
+                                            "INNER JOIN tickets ON receipts.ID = tickets.ID " +
+                                            "WHERE receipts.MONEY IN (" + placeholders.toString() + ") " +
+                                            "AND (payments.PAYMENT = 'cash' OR payments.PAYMENT = 'cashrefund') " +
+                                            "AND (tickets.TICKETTYPE = 1 OR payments.TOTAL < 0) " +
+                                            "ORDER BY receipts.DATENEW DESC";
+
+                                    java.sql.PreparedStatement pstmt = conn.prepareStatement(sqlRefunds);
+                                    for (int i = 0; i < moneyList.size(); i++) {
+                                        pstmt.setString(i + 1, moneyList.get(i));
+                                    }
+                                    java.sql.ResultSet rs = pstmt.executeQuery();
+                                    while (rs.next()) {
+                                        java.util.Date date = rs.getTimestamp("DATENEW");
+                                        int ticketId = rs.getInt("TICKETID");
+                                        double amount = Math.abs(rs.getDouble("TOTAL"));
+                                        allRefundLines.add(new PaymentsModel.RefundLine(date, ticketId, amount));
+                                    }
+                                    rs.close();
+                                    pstmt.close();
+                                }
+                            } catch (Exception e) {
+                                 LOGGER.log(Level.WARNING, "Error devoluciones mes para ticket: " + e.getMessage(), e);
+                            }
+                        }
+                    } catch (Exception ex) {
+                        LOGGER.log(Level.SEVERE, "Error de base de datos en reporte de mes para ticket", ex);
+                    }
+
+                    double totalMonthCashTotalRaw = totalMonthInitialAmountRaw + totalMonthCashSalesRaw + totalMonthCreditPaymentsRaw
+                            + totalMonthCashInRaw - totalMonthCashOutRaw - totalMonthReturnsRaw;
+
+                    script.put("totalMonthSales", Formats.CURRENCY.formatValue(totalMonthSalesRaw));
+                    script.put("totalMonthPayments", Formats.CURRENCY.formatValue(totalMonthPaymentsRaw));
+                    script.put("totalMonthInitialAmount", Formats.CURRENCY.formatValue(totalMonthInitialAmountRaw));
+                    script.put("totalMonthCashSales", Formats.CURRENCY.formatValue(totalMonthCashSalesRaw));
+                    script.put("totalMonthCardSales", Formats.CURRENCY.formatValue(totalMonthCardSalesRaw));
+                    script.put("totalMonthCreditSales", Formats.CURRENCY.formatValue(totalMonthCreditSalesRaw));
+                    script.put("totalMonthVoucherSales", Formats.CURRENCY.formatValue(totalMonthVoucherSalesRaw));
+                    script.put("totalMonthCashIn", Formats.CURRENCY.formatValue(totalMonthCashInRaw));
+                    script.put("totalMonthCashOut", Formats.CURRENCY.formatValue(totalMonthCashOutRaw));
+                    script.put("totalMonthReturns", Formats.CURRENCY.formatValue(totalMonthReturnsRaw));
+                    script.put("totalMonthCreditPay", Formats.CURRENCY.formatValue(totalMonthCreditPaymentsRaw));
+                    script.put("totalMonthProfit", Formats.CURRENCY.formatValue(totalMonthProfitRaw));
+                    script.put("totalMonthCashTotal", Formats.CURRENCY.formatValue(totalMonthCashTotalRaw));
+
+                    script.put("monthDeptLines", monthDeptLinesMap);
+                    script.put("refundLines", allRefundLines);
+                    script.put("productosText", "");
+                } else if (isDayClose && closeDate != null) {
                     LOGGER.info("Es cierre del día, obteniendo todos los turnos...");
                     java.util.List<ShiftData> allShifts = getAllShiftsForDay(closeDate);
                     LOGGER.info("Turnos obtenidos: " + (allShifts != null ? allShifts.size() : 0));
@@ -2986,19 +3334,51 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     /**
      * Crea el diseño moderno basado en la imagen de referencia usando HTML/CSS
      */
+    private void styleModernButton(JButton button, Color bgNormal, Color bgHover, Color borderNormal, Dimension prefSize) {
+        button.setFont(ModernLookAndFeel.getPreferredFont("Baradig", Font.BOLD, 12));
+        button.setForeground(Color.WHITE);
+        button.setBackground(bgNormal);
+        button.setPreferredSize(prefSize);
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(borderNormal, 1),
+                BorderFactory.createEmptyBorder(6, 12, 6, 12)));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(bgHover);
+            }
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(bgNormal);
+            }
+        });
+    }
+
     private void createModernLayout() {
         setLayout(new BorderLayout());
-        setBackground(Color.WHITE);
+        Color creamBg = new Color(250, 247, 242);
+        Color goldColor = new Color(202, 159, 65);
+        Color goldHover = new Color(220, 175, 75);
+        Color goldBorder = new Color(180, 140, 50);
+        Color slateColor = new Color(100, 116, 139);
+        Color slateHover = new Color(71, 85, 105);
+        Color greenColor = new Color(4, 120, 87);
+        Color greenHover = new Color(5, 150, 105);
+
+        setBackground(creamBg);
 
         // Panel principal con HTML
         JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(Color.WHITE);
+        mainPanel.setBackground(creamBg);
 
         // Editor HTML para mostrar el contenido
         JEditorPane htmlViewer = new JEditorPane();
         htmlViewer.setContentType("text/html");
         htmlViewer.setEditable(false);
-        htmlViewer.setBackground(Color.WHITE);
+        htmlViewer.setFocusable(false); // Evitar cursor vertical sobre números
+        htmlViewer.setBackground(creamBg);
 
         // Generar HTML inicial
         String htmlContent = generateHTMLContent();
@@ -3010,79 +3390,52 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         // Scroll pane
         JScrollPane scrollPane = new JScrollPane(htmlViewer);
         scrollPane.setBorder(null);
-        scrollPane.getViewport().setBackground(Color.WHITE);
+        scrollPane.getViewport().setBackground(creamBg);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
         // Panel de botones en la parte superior con título y fecha a la izquierda
         JPanel buttonPanel = new JPanel(new BorderLayout());
-        buttonPanel.setBackground(Color.WHITE);
+        buttonPanel.setBackground(creamBg);
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(8, 24, 8, 24));
 
         // Panel izquierdo con botones de corte
         JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        leftPanel.setBackground(Color.WHITE);
+        leftPanel.setBackground(creamBg);
 
         // Botones de corte - movidos a la izquierda
-        JButton btnCashier = new JButton("🧾 Corte de cajero");
-        btnCashier.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        btnCashier.setPreferredSize(new Dimension(140, 28));
-        btnCashier.setForeground(Color.WHITE);
-        btnCashier.setBackground(new Color(59, 130, 246));
-        btnCashier.setFocusPainted(false);
-        btnCashier.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(37, 99, 235), 1),
-                BorderFactory.createEmptyBorder(6, 12, 6, 12)));
-        btnCashier.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnCashier.addActionListener(e -> {
-            try {
-                LOGGER.info("Ejecutando Corte de cajero (Recarga de datos)...");
-                loadData();
-                updateModernLayoutData();
-                JOptionPane.showMessageDialog(this, "Información de corte actualizada.", "Corte de Cajero",
-                        JOptionPane.INFORMATION_MESSAGE);
-            } catch (BasicException ex) {
-                LOGGER.log(Level.SEVERE, "Error al recargar datos de corte", ex);
-            }
+        m_btnCashier = new JButton("Corte de cajero",
+                new ModernActionIcon(ModernActionIcon.Type.CALCULATOR, 18));
+        styleModernButton(m_btnCashier, goldColor, goldHover, goldBorder, new Dimension(160, 32));
+        m_btnCashier.addActionListener(e -> {
+            m_jCloseCashActionPerformed(null);
         });
-        leftPanel.add(btnCashier);
+        leftPanel.add(m_btnCashier);
 
-        JButton btnDay = new JButton("📅 Corte del día");
-        btnDay.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        btnDay.setPreferredSize(new Dimension(140, 28));
-        btnDay.setForeground(Color.WHITE);
-        btnDay.setBackground(new Color(168, 85, 247));
-        btnDay.setFocusPainted(false);
-        btnDay.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(147, 51, 234), 1),
-                BorderFactory.createEmptyBorder(6, 12, 6, 12)));
-        btnDay.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnDay.addActionListener(e -> {
-            performDayCloseReport();
+        m_btnDay = new JButton("Corte del día",
+                new ModernActionIcon(ModernActionIcon.Type.CALENDAR, 18));
+        styleModernButton(m_btnDay, goldColor, goldHover, goldBorder, new Dimension(160, 32));
+        m_btnDay.addActionListener(e -> {
+            m_jCloseCashActionPerformed(null, true);
         });
-        leftPanel.add(btnDay);
+        leftPanel.add(m_btnDay);
 
         buttonPanel.add(leftPanel, BorderLayout.WEST);
 
         // Panel derecho con botones pequeños y pulidos
         JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        rightPanel.setBackground(Color.WHITE);
+        rightPanel.setBackground(creamBg);
 
         // Botón Imprimir
         JButton btnPrint = new JButton("Imprimir");
-        btnPrint.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        btnPrint.setPreferredSize(new Dimension(90, 28));
-        btnPrint.setBackground(new Color(108, 117, 125));
-        btnPrint.setForeground(Color.WHITE);
-        btnPrint.setFocusPainted(false);
-        btnPrint.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(73, 80, 87), 1),
-                BorderFactory.createEmptyBorder(6, 12, 6, 12)));
-        btnPrint.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnPrint.setIcon(new ModernActionIcon(ModernActionIcon.Type.PRINT, 18, Color.WHITE));
+        styleModernButton(btnPrint, slateColor, slateHover, slateHover, new Dimension(100, 32));
         btnPrint.addActionListener(e -> {
             try {
-                // Sebastian - Si estamos en modo corte del día, imprimir con isDayClose=true
-                if (m_isDayMode) {
+                // Sebastian - Si estamos en modo corte de mes o del día, imprimir correspondientemente
+                if (m_isMonthMode) {
+                    printPayments("Printer.CloseCash", false);
+                } else if (m_isDayMode) {
                     printPayments("Printer.CloseCash", true);
                 } else {
                     printPayments("Printer.CloseCash", false);
@@ -3093,26 +3446,48 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         });
         rightPanel.add(btnPrint);
 
-        // Botón Cerrar Turno
-        JButton btnFinishShift = new JButton("🔒 Cerrar Turno");
-        btnFinishShift.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        btnFinishShift.setPreferredSize(new Dimension(140, 28));
-        btnFinishShift.setForeground(Color.WHITE);
-        btnFinishShift.setBackground(new Color(25, 135, 84)); // Verde
-        btnFinishShift.setFocusPainted(false);
-        btnFinishShift.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(20, 108, 67), 1),
-                BorderFactory.createEmptyBorder(6, 12, 6, 12)));
-        btnFinishShift.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnFinishShift.addActionListener(e -> {
-            m_jCloseCashActionPerformed(
-                    new java.awt.event.ActionEvent(btnFinishShift, java.awt.event.ActionEvent.ACTION_PERFORMED, ""));
+        // Botón Ver Ventas (productos vendidos en el turno)
+        JButton btnViewSales = new JButton("Ver ventas",
+                new ModernActionIcon(ModernActionIcon.Type.VIEW, 18));
+        styleModernButton(btnViewSales, goldColor, goldHover, goldBorder, new Dimension(120, 32));
+        btnViewSales.addActionListener(e -> {
+            showProductsSoldDialog();
         });
-        rightPanel.add(btnFinishShift);
+        rightPanel.add(btnViewSales);
+
+        // Botón Cerrar Mes (crear siempre, pero ocultar/mostrar según rol en activate())
+        btnCloseMonth = new JButton("Cerrar mes",
+                new ModernActionIcon(ModernActionIcon.Type.CALENDAR, 18, Color.WHITE));
+        styleModernButton(btnCloseMonth, greenColor, greenHover, greenColor.darker(), new Dimension(160, 32));
+        btnCloseMonth.addActionListener(e -> {
+            performMonthCloseReport();
+        });
+        btnCloseMonth.setVisible(false); // Ocultar por defecto, activate() decidirá si mostrarlo
+        rightPanel.add(btnCloseMonth);
 
         buttonPanel.add(rightPanel, BorderLayout.EAST);
 
-        mainPanel.add(buttonPanel, BorderLayout.NORTH);
+        // Header de información del turno (arriba como antes)
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(creamBg);
+        headerPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 2, 0, goldColor),
+                BorderFactory.createEmptyBorder(12, 24, 12, 24)
+        ));
+
+        m_jShiftInfoLabel = new JLabel("Cargando información del turno...");
+        m_jShiftInfoLabel.setFont(ModernLookAndFeel.getPreferredFont("Baradig", Font.BOLD, 15));
+        m_jShiftInfoLabel.setForeground(new Color(51, 65, 85));
+        headerPanel.add(m_jShiftInfoLabel, BorderLayout.WEST);
+
+        // Contenedor para agrupar header y botones verticalmente
+        JPanel topContainer = new JPanel();
+        topContainer.setLayout(new BoxLayout(topContainer, BoxLayout.Y_AXIS));
+        topContainer.setBackground(creamBg);
+        topContainer.add(headerPanel);
+        topContainer.add(buttonPanel);
+
+        mainPanel.add(topContainer, BorderLayout.NORTH);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
 
         add(mainPanel, BorderLayout.CENTER);
@@ -3121,6 +3496,23 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     private JEditorPane m_htmlViewer;
     /** Sebastian - true cuando el panel está mostrando el corte del día */
     private boolean m_isDayMode = false;
+    private boolean m_isMonthMode = false;
+    private JButton btnCloseMonth;
+    private JButton m_btnCashier;
+    private JButton m_btnDay;
+    private String m_loadedMoneyIndex = null;
+
+    public void setLoadedMoneyIndex(String moneyIndex) {
+        this.m_loadedMoneyIndex = moneyIndex;
+    }
+
+    public String getLoadedMoneyIndex() {
+        return m_loadedMoneyIndex;
+    }
+
+    private String getActiveCashIndexOrLoaded() {
+        return m_loadedMoneyIndex != null ? m_loadedMoneyIndex : m_App.getActiveCashIndex();
+    }
 
     /**
      * Genera el contenido HTML completo con el diseño exacto de la imagen
@@ -3582,28 +3974,28 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             // Generar HTML con diseño ultra-estable para Swing
             StringBuilder html = new StringBuilder();
             html.append("<html><head><style>");
-            html.append("body { font-family: sans-serif; background-color: #ffffff; margin: 0; padding: 10px; }");
+            html.append("body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #FAF7F2; margin: 0; padding: 10px; }");
             html.append(
-                    ".metric-card { background-color: #f1f3f5; border: 1px solid #dee2e6; padding: 12px; margin: 5px; }");
+                    ".metric-card { background-color: #ffffff; border: 1px solid #CA9F41; padding: 16px; margin: 5px; }");
             html.append(
-                    ".metric-label { font-size: 13px; color: #6c757d; font-weight: bold; text-transform: uppercase; }");
-            html.append(".metric-value { font-size: 26px; font-weight: bold; color: #212529; margin-top: 3px; }");
+                    ".metric-label { font-size: 14px; color: #7f6a42; font-weight: bold; text-transform: uppercase; }");
+            html.append(".metric-value { font-size: 28px; font-weight: bold; color: #CA9F41; margin-top: 4px; }");
             html.append(
-                    ".section-title { font-size: 18px; font-weight: bold; color: #212529; border-bottom: 2px solid #343a40; padding-bottom: 5px; margin: 20px 0 10px 0; text-transform: uppercase; }");
+                    ".section-title { font-size: 18px; font-weight: bold; color: #CA9F41; border-bottom: 2px solid #CA9F41; padding-bottom: 5px; margin: 20px 0 10px 0; text-transform: uppercase; }");
             html.append(".data-table { width: 100%; border-collapse: collapse; }");
             html.append(
-                    ".data-cell { font-size: 16px; padding: 8px 0; border-bottom: 1px solid #eeeeee; color: #444444; }");
+                    ".data-cell { font-size: 16px; padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #475569; }");
             html.append(
-                    ".val-cell { font-size: 16px; padding: 8px 0; border-bottom: 1px solid #eeeeee; font-weight: bold; text-align: right; }");
+                    ".val-cell { font-size: 16px; padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-weight: bold; text-align: right; color: #1e293b; }");
             html.append(
-                    ".total-label { font-size: 22px; font-weight: bold; padding-top: 15px; border-top: 2px solid #333333; }");
+                    ".total-label { font-size: 22px; font-weight: bold; color: #334155; padding-top: 15px; border-top: 2px solid #CA9F41; }");
             html.append(
-                    ".total-value { font-size: 26px; font-weight: bold; color: #212529; text-align: right; padding-top: 15px; border-top: 2px solid #333333; }");
+                    ".total-value { font-size: 26px; font-weight: bold; color: #CA9F41; text-align: right; padding-top: 15px; border-top: 2px solid #CA9F41; }");
             html.append(
-                    ".list-item { font-size: 15px; padding: 6px 0; border-bottom: 1px solid #f8f9fa; color: #555555; }");
-            html.append(".positive { color: #28a745; }");
-            html.append(".negative { color: #dc3545; }");
-            html.append(".empty-msg { font-size: 14px; color: #999999; font-style: italic; padding: 10px 0; }");
+                    ".list-item { font-size: 15px; padding: 6px 0; border-bottom: 1px solid #e2e8f0; color: #475569; }");
+            html.append(".positive { color: #15803d; }");
+            html.append(".negative { color: #b91c1c; }");
+            html.append(".empty-msg { font-size: 14px; color: #94a3b8; font-style: italic; padding: 10px 0; }");
             html.append("</style></head><body>");
 
             // Tabla contenedora principal
@@ -3664,6 +4056,8 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     .append(Formats.CURRENCY.formatValue(voucherSales)).append("</td></tr>");
             html.append("<tr><td class='data-cell'>Devoluciones de Ventas</td><td class='val-cell negative'>- ")
                     .append(Formats.CURRENCY.formatValue(returns)).append("</td></tr>");
+            // Spacer row to align with the 6 rows of Dinero en Caja
+            html.append("<tr><td class='data-cell' style='border-bottom: none;'>&nbsp;</td><td class='val-cell' style='border-bottom: none;'>&nbsp;</td></tr>");
             html.append("<tr><td class='total-label'>Total</td><td class='total-value'>")
                     .append(Formats.CURRENCY.formatValue(totalSalesWithReturns)).append("</td></tr>");
             html.append("</table>");
@@ -3803,7 +4197,8 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         buttonPanel.setBackground(new Color(95, 135, 145));
 
         // Botón "Hacer corte de cajero" (estilo premium con gradiente azul)
-        JButton btnCashier = new JButton("🧾 Hacer corte de cajero");
+        JButton btnCashier = new JButton("Hacer corte de cajero",
+                new ModernActionIcon(ModernActionIcon.Type.CALCULATOR, 18));
         btnCashier.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btnCashier.setPreferredSize(new Dimension(200, 45));
         btnCashier.setForeground(Color.WHITE);
@@ -3854,7 +4249,8 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         buttonPanel.add(btnCashier);
 
         // Botón "Hacer corte del día" (estilo premium con gradiente púrpura)
-        JButton btnDay = new JButton("📅 Hacer corte del día");
+        JButton btnDay = new JButton("Hacer corte del día",
+                new ModernActionIcon(ModernActionIcon.Type.CALENDAR, 18));
         btnDay.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btnDay.setPreferredSize(new Dimension(200, 45));
         btnDay.setForeground(Color.WHITE);
@@ -4559,7 +4955,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         jPanel1.add(jLabel6, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 130, -1, -1));
 
         m_jCloseCash.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        m_jCloseCash.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/calculator.png"))); // NOI18N
+        m_jCloseCash.setIcon(new ModernActionIcon(ModernActionIcon.Type.CALCULATOR, 20));
         m_jCloseCash.setText(AppLocal.getIntString("button.closecash")); // NOI18N
         m_jCloseCash.setToolTipText(bundle.getString("tooltip.btn.closecash")); // NOI18N
         m_jCloseCash.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
@@ -4576,8 +4972,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         jPanel1.add(m_jCloseCash, new org.netbeans.lib.awtextra.AbsoluteConstraints(170, 450, -1, -1));
 
         m_jPrintCashPreview.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        m_jPrintCashPreview
-                .setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/printer.png"))); // NOI18N
+        m_jPrintCashPreview.setIcon(new ModernActionIcon(ModernActionIcon.Type.PRINT, 20));
         m_jPrintCashPreview.setText(AppLocal.getIntString("button.partialcash")); // NOI18N
         m_jPrintCashPreview.setToolTipText(AppLocal.getIntString("tooltip.btn.partialcash")); // NOI18N
         m_jPrintCashPreview.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
@@ -4593,7 +4988,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         jPanel1.add(m_jPrintCashPreview, new org.netbeans.lib.awtextra.AbsoluteConstraints(370, 450, -1, -1));
 
         m_jPrintCash1.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        m_jPrintCash1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/printer.png"))); // NOI18N
+        m_jPrintCash1.setIcon(new ModernActionIcon(ModernActionIcon.Type.PRINT, 20));
         m_jPrintCash1.setText(AppLocal.getIntString("button.closecashpreview")); // NOI18N
         m_jPrintCash1.setToolTipText(bundle.getString("tooltip.btn.closecashpreview")); // NOI18N
         m_jPrintCash1.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
@@ -4609,7 +5004,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         jPanel1.add(m_jPrintCash1, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 450, -1, -1));
 
         m_jReprintCash.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        m_jReprintCash.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/printer.png"))); // NOI18N
+        m_jReprintCash.setIcon(new ModernActionIcon(ModernActionIcon.Type.HISTORY, 20));
         m_jReprintCash.setText(AppLocal.getIntString("button.closecashreprint")); // NOI18N
         m_jReprintCash.setToolTipText(bundle.getString("tooltip.btn.closecashreprint")); // NOI18N
         m_jReprintCash.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
@@ -4628,6 +5023,10 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     }// </editor-fold>//GEN-END:initComponents
 
     private void m_jCloseCashActionPerformed(java.awt.event.ActionEvent evt) {
+        m_jCloseCashActionPerformed(evt, false);
+    }
+
+    private void m_jCloseCashActionPerformed(java.awt.event.ActionEvent evt, boolean isDayClose) {
 
         LOGGER.info("=== INICIO: Botón de cierre de caja presionado (Redireccionando a JDialogCloseShift) ===");
 
@@ -4639,20 +5038,24 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             parentFrame = (Frame) ((Dialog) parentWindow).getParent();
         }
 
-        // Abrir directamente el diálogo de cierre
-        JDialogCloseShift dialog = new JDialogCloseShift(parentFrame, m_App);
+        // Abrir directamente el diálogo de cierre con el indicador de Cierre del Día
+        JDialogCloseShift dialog = new JDialogCloseShift(parentFrame, m_App, isDayClose);
         dialog.setVisible(true);
 
         if (dialog.isClosed() && dialog.shouldCloseShift()) {
             // El turno fue cerrado exitosamente
-            LOGGER.info("Turno cerrado exitosamente desde JDialogCloseShift. Redirigiendo a Login...");
+            LOGGER.info("Turno cerrado exitosamente desde JDialogCloseShift. Mostrando resumen en pantalla...");
 
-            // Sebastian - Cerrar la vista actual y mostrar login después de cerrar turno
-            if (m_App instanceof JRootApp) {
-                JRootApp rootApp = (JRootApp) m_App;
-                if (rootApp.closeAppView()) {
-                    rootApp.showLoginPanelPublic();
-                }
+            // Actualizar la fecha de fin y refrescar la barra superior/HTML en pantalla
+            Date dNow = new Date();
+            m_PaymentsToClose.setDateEnd(dNow);
+            updateModernLayoutData();
+
+            // Imprimir el ticket de cierre correspondiente
+            try {
+                printPayments("Printer.CloseCash", isDayClose);
+            } catch (Exception ex) {
+                LOGGER.log(Level.WARNING, "Error al imprimir ticket de cierre", ex);
             }
         }
     }// GEN-LAST:event_m_jCloseCashActionPerformed
@@ -6134,7 +6537,8 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
 
             // Panel de botones: Imprimir Ticket y Cerrar
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-            JButton btnPrint = new JButton("🖨️ Imprimir Ticket");
+            JButton btnPrint = new JButton("Imprimir ticket",
+                    new ModernActionIcon(ModernActionIcon.Type.PRINT, 18));
             JButton btnClose = new JButton("Cancelar");
 
             btnPrint.addActionListener(e -> {
@@ -6873,7 +7277,8 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
 
             // Panel de botones: Imprimir Ticket y Cerrar
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-            JButton btnPrint = new JButton("🖨️ Imprimir Ticket");
+            JButton btnPrint = new JButton("Imprimir ticket",
+                    new ModernActionIcon(ModernActionIcon.Type.PRINT, 18));
             JButton btnClose = new JButton("Cancelar");
 
             btnPrint.addActionListener(e -> {
@@ -6903,6 +7308,592 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
                     "Error generando reporte del turno: " + e.getMessage(), e);
             msg.show(this);
+        }
+    }
+
+    private java.util.List<ShiftData> getAllShiftsForMonth(Date monthDate) {
+        java.util.List<ShiftData> shifts = new java.util.ArrayList<>();
+
+        try {
+            Session session = m_App.getSession();
+            java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("yyyy-MM");
+            String monthStr = dateFormat.format(monthDate);
+
+            // Calcular inicio y fin del mes
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.setTime(monthDate);
+            cal.set(java.util.Calendar.DAY_OF_MONTH, 1);
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+            cal.set(java.util.Calendar.MINUTE, 0);
+            cal.set(java.util.Calendar.SECOND, 0);
+            cal.set(java.util.Calendar.MILLISECOND, 0);
+            java.sql.Timestamp monthStart = new java.sql.Timestamp(cal.getTimeInMillis());
+
+            cal.add(java.util.Calendar.MONTH, 1);
+            java.sql.Timestamp monthEnd = new java.sql.Timestamp(cal.getTimeInMillis());
+
+            // Obtener todos los turnos del mes
+            String sql = "SELECT closedcash.MONEY, closedcash.HOST, closedcash.HOSTSEQUENCE, " +
+                    "closedcash.DATESTART, closedcash.DATEEND, closedcash.INITIAL_AMOUNT " +
+                    "FROM closedcash " +
+                    "WHERE closedcash.DATESTART >= ? AND closedcash.DATESTART < ? " +
+                    "AND (closedcash.DATEEND IS NOT NULL OR closedcash.MONEY = ?) " +
+                    "ORDER BY closedcash.HOSTSEQUENCE ASC";
+
+            java.sql.PreparedStatement pstmt = session.getConnection().prepareStatement(sql);
+            pstmt.setTimestamp(1, monthStart);
+            pstmt.setTimestamp(2, monthEnd);
+            String activeCashMoney = m_App.getActiveCashIndex();
+            pstmt.setString(3, activeCashMoney != null ? activeCashMoney : "");
+            java.sql.ResultSet rs = pstmt.executeQuery();
+
+            LOGGER.info("Buscando turnos del mes: " + monthStr + " (desde " + monthStart + " hasta " + monthEnd + ")");
+
+            int shiftCount = 0;
+            while (rs.next()) {
+                shiftCount++;
+                String money = rs.getString("MONEY");
+                String host = rs.getString("HOST");
+                int sequence = rs.getInt("HOSTSEQUENCE");
+                Date dateStart = rs.getTimestamp("DATESTART");
+                Date dateEnd = rs.getTimestamp("DATEEND");
+                double initialAmount = rs.getDouble("INITIAL_AMOUNT");
+                if (rs.wasNull()) {
+                    initialAmount = 0.0;
+                }
+
+                // Obtener el usuario del primer ticket del turno
+                String userName = "admin";
+                try {
+                    java.sql.PreparedStatement userStmt = session.getConnection().prepareStatement(
+                            "SELECT people.NAME FROM tickets " +
+                                    "INNER JOIN receipts ON tickets.ID = receipts.ID " +
+                                    "INNER JOIN people ON tickets.PERSON = people.ID " +
+                                    "WHERE receipts.MONEY = ? " +
+                                    "ORDER BY receipts.DATENEW ASC " +
+                                    "LIMIT 1");
+                    userStmt.setString(1, money);
+                    java.sql.ResultSet userRs = userStmt.executeQuery();
+                    if (userRs.next()) {
+                        userName = userRs.getString("NAME");
+                        if (userName == null || userName.trim().isEmpty()) {
+                            userName = "admin";
+                        }
+                    }
+                    userRs.close();
+                    userStmt.close();
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Error obteniendo usuario del turno: " + e.getMessage(), e);
+                }
+
+                ShiftData shift = new ShiftData(money, host, sequence, dateStart, dateEnd, userName);
+                shift.setInitialAmount(initialAmount);
+
+                // Obtener pagos del turno
+                java.util.List<PaymentsModel.PaymentsLine> payments = new StaticSentence(session,
+                        "SELECT payments.PAYMENT, SUM(payments.TOTAL), payments.NOTES, COUNT(payments.PAYMENT) " +
+                                "FROM payments, receipts " +
+                                "WHERE payments.RECEIPT = receipts.ID AND receipts.MONEY = ? " +
+                                "GROUP BY payments.PAYMENT, payments.NOTES",
+                        SerializerWriteString.INSTANCE,
+                        new SerializerReadClass(PaymentsModel.PaymentsLine.class))
+                        .list(money);
+
+                if (payments != null && !payments.isEmpty()) {
+                    shift.getPaymentLines().addAll(payments);
+                    double totalPayments = 0.0;
+                    for (PaymentsModel.PaymentsLine pl : payments) {
+                        totalPayments += pl.getValue();
+                    }
+                    shift.setTotalPayments(totalPayments);
+                }
+
+                // Obtener entradas y salidas del turno
+                try {
+                    java.sql.PreparedStatement cashInStmt = session.getConnection().prepareStatement(
+                            "SELECT COALESCE(SUM(payments.TOTAL), 0) AS TOTAL " +
+                                    "FROM payments " +
+                                    "INNER JOIN receipts ON payments.RECEIPT = receipts.ID " +
+                                    "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cashin'");
+                    cashInStmt.setString(1, money);
+                    java.sql.ResultSet cashInRs = cashInStmt.executeQuery();
+                    if (cashInRs.next()) {
+                        double cashIn = cashInRs.getDouble("TOTAL");
+                        if (!cashInRs.wasNull()) {
+                            shift.setCashIn(cashIn);
+                        }
+                    }
+                    cashInRs.close();
+                    cashInStmt.close();
+
+                    java.sql.PreparedStatement cashOutStmt = session.getConnection().prepareStatement(
+                            "SELECT COALESCE(SUM(payments.TOTAL), 0) AS TOTAL " +
+                                    "FROM payments " +
+                                    "INNER JOIN receipts ON payments.RECEIPT = receipts.ID " +
+                                    "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cashout'");
+                    cashOutStmt.setString(1, money);
+                    java.sql.ResultSet cashOutRs = cashOutStmt.executeQuery();
+                    if (cashOutRs.next()) {
+                        double cashOut = cashOutRs.getDouble("TOTAL");
+                        if (!cashOutRs.wasNull()) {
+                            shift.setCashOut(cashOut);
+                        }
+                    }
+                    cashOutRs.close();
+                    cashOutStmt.close();
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Error obteniendo entradas/salidas: " + e.getMessage(), e);
+                }
+
+                // Obtener productos vendidos del turno
+                try {
+                    java.util.List<PaymentsModel.ProductSalesLine> products = new StaticSentence(session,
+                            "SELECT products.NAME, " +
+                                    "SUM(ticketlines.UNITS) as TOTAL_UNITS, " +
+                                    "COALESCE(SUM(ticketlines.PRICE * ticketlines.UNITS) / NULLIF(SUM(ticketlines.UNITS), 0), 0) as AVG_PRICE, " +
+                                    "AVG(taxes.RATE) as AVG_TAX_RATE, " +
+                                    "SUM(ticketlines.PRICE * ticketlines.UNITS * (1.0 + taxes.RATE)) as TOTAL_VALUE " +
+                                    "FROM ticketlines " +
+                                    "INNER JOIN tickets ON ticketlines.TICKET = tickets.ID " +
+                                    "INNER JOIN receipts ON tickets.ID = receipts.ID " +
+                                    "INNER JOIN products ON ticketlines.PRODUCT = products.ID " +
+                                    "INNER JOIN taxes ON ticketlines.TAXID = taxes.ID " +
+                                    "WHERE receipts.MONEY = ? " +
+                                    "GROUP BY products.NAME " +
+                                    "HAVING SUM(ticketlines.UNITS) <> 0",
+                            SerializerWriteString.INSTANCE,
+                            new SerializerReadClass(PaymentsModel.ProductSalesLine.class))
+                            .list(money);
+
+                    if (products != null && !products.isEmpty()) {
+                        shift.getProductLines().addAll(products);
+                        double totalSales = 0.0;
+                        for (PaymentsModel.ProductSalesLine psl : products) {
+                            Double productTotal = psl.getTotalValue();
+                            if (productTotal != null) {
+                                totalSales += productTotal;
+                            } else {
+                                double priceWithTax = psl.getProductPrice() * (1.0 + psl.getTaxRate());
+                                totalSales += priceWithTax * psl.getProductUnits();
+                            }
+                        }
+                        shift.setTotalSales(totalSales);
+                    }
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Error obteniendo productos del turno: " + e.getMessage(), e);
+                }
+
+                shifts.add(shift);
+            }
+
+            rs.close();
+            pstmt.close();
+
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error obteniendo turnos del mes: " + e.getMessage(), e);
+        }
+
+        return shifts;
+    }
+
+    private void performMonthCloseReport() {
+        try {
+            LOGGER.info("Iniciando Corte del Mes...");
+            Date dayDate = new Date();
+
+            java.util.List<ShiftData> allShifts = getAllShiftsForMonth(dayDate);
+            if (allShifts == null || allShifts.isEmpty()) {
+                JOptionPane.showMessageDialog(this,
+                        "No se encontraron turnos para el mes actual.",
+                        "Corte del Mes", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            LOGGER.info("Turnos del mes encontrados: " + allShifts.size());
+
+            double monthInitialAmount = 0.0, monthCashSales = 0.0, monthCardSales = 0.0;
+            double monthCreditSales = 0.0, monthVoucherSales = 0.0;
+            double monthCashIn = 0.0, monthCashOut = 0.0, monthReturns = 0.0;
+            double monthCreditPay = 0.0, monthProfit = 0.0;
+
+            Session session = m_App.getSession();
+            java.sql.Connection conn = session.getConnection();
+
+            for (ShiftData shift : allShifts) {
+                String money = shift.getMoney();
+                if (money == null || money.isEmpty())
+                    continue;
+                monthInitialAmount += shift.getInitialAmount();
+                monthCashSales += shift.getTotalPayments();
+                monthCashIn += shift.getCashIn();
+                monthCashOut += shift.getCashOut();
+                try {
+                    java.sql.PreparedStatement ps = conn.prepareStatement(
+                            "SELECT payments.PAYMENT, COALESCE(SUM(payments.TOTAL),0) AS TOTAL " +
+                                    "FROM payments INNER JOIN receipts ON payments.RECEIPT=receipts.ID " +
+                                    "INNER JOIN tickets ON receipts.ID=tickets.ID " +
+                                    "WHERE receipts.MONEY=? AND tickets.TICKETTYPE=0 GROUP BY payments.PAYMENT");
+                    ps.setString(1, money);
+                    java.sql.ResultSet rs = ps.executeQuery();
+                    while (rs.next()) {
+                        String pt = rs.getString("PAYMENT");
+                        double pv = rs.getDouble("TOTAL");
+                        if ("card".equals(pt) || "magcard".equals(pt))
+                            monthCardSales += pv;
+                        else if ("debt".equals(pt))
+                            monthCreditSales += pv;
+                        else if ("voucher".equals(pt))
+                            monthVoucherSales += pv;
+                    }
+                    rs.close();
+                    ps.close();
+                } catch (Exception ex) {
+                    LOGGER.log(Level.WARNING, "Error pagos mes " + money, ex);
+                }
+                try {
+                    java.sql.PreparedStatement ps = conn.prepareStatement(
+                            "SELECT COALESCE(SUM(ABS(payments.TOTAL)),0) FROM receipts " +
+                                    "INNER JOIN payments ON receipts.ID=payments.RECEIPT " +
+                                    "INNER JOIN tickets ON receipts.ID=tickets.ID WHERE receipts.MONEY=? " +
+                                    "AND (payments.PAYMENT='cash' OR payments.PAYMENT='cashrefund') " +
+                                    "AND (tickets.TICKETTYPE=1 OR payments.TOTAL<0)");
+                    ps.setString(1, money);
+                    java.sql.ResultSet rs = ps.executeQuery();
+                    if (rs.next())
+                        monthReturns += rs.getDouble(1);
+                    rs.close();
+                    ps.close();
+                } catch (Exception ex) {
+                    LOGGER.log(Level.WARNING, "Error devoluciones mes " + money, ex);
+                }
+                try {
+                    java.sql.PreparedStatement ps = conn.prepareStatement(
+                            "SELECT COALESCE(SUM(payments.TOTAL),0) FROM receipts " +
+                                    "INNER JOIN payments ON receipts.ID=payments.RECEIPT " +
+                                    "WHERE receipts.MONEY=? AND payments.PAYMENT='debt'");
+                    ps.setString(1, money);
+                    java.sql.ResultSet rs = ps.executeQuery();
+                    if (rs.next())
+                        monthCreditPay += rs.getDouble(1);
+                    rs.close();
+                    ps.close();
+                } catch (Exception ex) {
+                    LOGGER.log(Level.WARNING, "Error abonos mes " + money, ex);
+                }
+                try {
+                    java.sql.PreparedStatement ps = conn.prepareStatement(
+                            "SELECT COALESCE(SUM((ticketlines.PRICE-COALESCE(products.PRICEBUY,0))*ticketlines.UNITS),0) " +
+                                    "FROM ticketlines INNER JOIN receipts ON ticketlines.TICKET=receipts.ID " +
+                                    "LEFT JOIN products ON ticketlines.PRODUCT=products.ID " +
+                                    "WHERE receipts.MONEY=? AND ticketlines.PRODUCT IS NOT NULL");
+                    ps.setString(1, money);
+                    java.sql.ResultSet rs = ps.executeQuery();
+                    if (rs.next())
+                        monthProfit += rs.getDouble(1);
+                    rs.close();
+                    ps.close();
+                } catch (Exception ex) {
+                    LOGGER.log(Level.WARNING, "Error ganancia mes " + money, ex);
+                }
+            }
+
+            // Ventas + Ganancia por Departamento
+            java.util.Map<String, double[]> deptMap = new java.util.LinkedHashMap<>();
+            try {
+                for (ShiftData shift : allShifts) {
+                    String money = shift.getMoney();
+                    if (money == null || money.isEmpty())
+                        continue;
+                    java.sql.PreparedStatement ps = conn.prepareStatement(
+                            "SELECT COALESCE(categories.NAME,'Sin Departamento') AS CAT, " +
+                                    "SUM(ticketlines.UNITS) AS UNITS, " +
+                                    "SUM(ticketlines.PRICE*ticketlines.UNITS) AS TOTAL, " +
+                                    "SUM((ticketlines.PRICE-COALESCE(products.PRICEBUY,0))*ticketlines.UNITS) AS PROFIT " +
+                                    "FROM ticketlines INNER JOIN tickets ON ticketlines.TICKET=tickets.ID " +
+                                    "INNER JOIN receipts ON tickets.ID=receipts.ID " +
+                                    "INNER JOIN products ON ticketlines.PRODUCT=products.ID " +
+                                    "LEFT JOIN categories ON products.CATEGORY=categories.ID " +
+                                    "WHERE receipts.MONEY=? AND tickets.TICKETTYPE=0 " +
+                                    "GROUP BY COALESCE(categories.NAME,'Sin Departamento')");
+                    ps.setString(1, money);
+                    java.sql.ResultSet rs = ps.executeQuery();
+                    while (rs.next()) {
+                        String cat = rs.getString("CAT");
+                        double[] acc = deptMap.getOrDefault(cat, new double[] { 0, 0, 0 });
+                        acc[0] += rs.getDouble("UNITS");
+                        acc[1] += rs.getDouble("TOTAL");
+                        acc[2] += rs.getDouble("PROFIT");
+                        deptMap.put(cat, acc);
+                    }
+                    rs.close();
+                    ps.close();
+                }
+            } catch (Exception ex) {
+                LOGGER.log(Level.WARNING, "Error dept mes", ex);
+            }
+
+            // Listas detalladas
+            java.util.List<String> monthInflowsList = new java.util.ArrayList<>();
+            java.util.List<String> monthOutflowsList = new java.util.ArrayList<>();
+            java.util.List<String> monthCreditPaysList = new java.util.ArrayList<>();
+            java.util.List<String> monthReturnsList = new java.util.ArrayList<>();
+            try {
+                java.text.SimpleDateFormat tf = new java.text.SimpleDateFormat("dd/MM h:mm a");
+                for (ShiftData shift : allShifts) {
+                    String money = shift.getMoney();
+                    if (money == null || money.isEmpty())
+                        continue;
+                    // Entradas
+                    java.sql.PreparedStatement ps = conn.prepareStatement(
+                            "SELECT receipts.DATENEW,payments.TOTAL,payments.NOTES FROM receipts " +
+                                    "INNER JOIN payments ON receipts.ID=payments.RECEIPT " +
+                                    "WHERE receipts.MONEY=? AND payments.PAYMENT='cashin' ORDER BY receipts.DATENEW DESC");
+                    ps.setString(1, money);
+                    java.sql.ResultSet rs = ps.executeQuery();
+                    while (rs.next()) {
+                        String t = tf.format(rs.getTimestamp("DATENEW")).toLowerCase();
+                        double v = rs.getDouble("TOTAL");
+                        String n = rs.getString("NOTES");
+                        monthInflowsList.add(String.format("%s %s: %s", t,
+                                (n != null && !n.trim().isEmpty()) ? escapeHtml(n) : "Entrada de Dinero",
+                                Formats.CURRENCY.formatValue(v)));
+                    }
+                    rs.close();
+                    ps.close();
+                    // Salidas
+                    ps = conn.prepareStatement(
+                            "SELECT receipts.DATENEW,payments.TOTAL,payments.NOTES FROM receipts " +
+                                    "INNER JOIN payments ON receipts.ID=payments.RECEIPT " +
+                                    "WHERE receipts.MONEY=? AND payments.PAYMENT='cashout' ORDER BY receipts.DATENEW DESC");
+                    ps.setString(1, money);
+                    rs = ps.executeQuery();
+                    while (rs.next()) {
+                        String t = tf.format(rs.getTimestamp("DATENEW")).toLowerCase();
+                        double v = Math.abs(rs.getDouble("TOTAL"));
+                        String n = rs.getString("NOTES");
+                        monthOutflowsList.add(String.format("%s %s: %s", t,
+                                (n != null && !n.trim().isEmpty()) ? escapeHtml(n) : "Efectivo",
+                                Formats.CURRENCY.formatValue(v)));
+                    }
+                    rs.close();
+                    ps.close();
+                    // Pagos credito
+                    ps = conn.prepareStatement(
+                            "SELECT receipts.DATENEW,payments.TOTAL,customers.NAME FROM receipts " +
+                                    "INNER JOIN payments ON receipts.ID=payments.RECEIPT " +
+                                    "LEFT JOIN tickets ON receipts.ID=tickets.ID " +
+                                    "LEFT JOIN customers ON tickets.CUSTOMER=customers.ID " +
+                                    "WHERE receipts.MONEY=? AND payments.PAYMENT='debt' ORDER BY receipts.DATENEW DESC");
+                    ps.setString(1, money);
+                    rs = ps.executeQuery();
+                    while (rs.next()) {
+                        String t = tf.format(rs.getTimestamp("DATENEW")).toLowerCase();
+                        double v = rs.getDouble("TOTAL");
+                        String c = rs.getString("NAME");
+                        monthCreditPaysList.add(String.format("%s De %s: %s", t,
+                                (c != null && !c.isEmpty()) ? escapeHtml(c) : "Cliente",
+                                Formats.CURRENCY.formatValue(v)));
+                    }
+                    rs.close();
+                    ps.close();
+                    // Devoluciones
+                    ps = conn.prepareStatement(
+                            "SELECT receipts.DATENEW,ABS(payments.TOTAL) AS TOTAL,tickets.TICKETID FROM receipts " +
+                                    "INNER JOIN payments ON receipts.ID=payments.RECEIPT " +
+                                    "INNER JOIN tickets ON receipts.ID=tickets.ID " +
+                                    "WHERE receipts.MONEY=? " +
+                                    "AND (payments.PAYMENT='cash' OR payments.PAYMENT='cashrefund') " +
+                                    "AND (tickets.TICKETTYPE=1 OR payments.TOTAL<0) ORDER BY receipts.DATENEW DESC");
+                    ps.setString(1, money);
+                    rs = ps.executeQuery();
+                    while (rs.next()) {
+                        String t = tf.format(rs.getTimestamp("DATENEW")).toLowerCase();
+                        monthReturnsList.add(String.format("%s Devolucion #%d: %s", t,
+                                rs.getInt("TICKETID"), Formats.CURRENCY.formatValue(rs.getDouble("TOTAL"))));
+                    }
+                    rs.close();
+                    ps.close();
+                }
+            } catch (Exception ex) {
+                LOGGER.log(Level.WARNING, "Error detalle listas mes", ex);
+            }
+
+            double monthTotalSales = monthCashSales + monthCardSales + monthCreditSales + monthVoucherSales;
+            double monthCashTotal = monthInitialAmount + monthCashSales + monthCreditPay + monthCashIn - monthCashOut;
+
+            java.text.SimpleDateFormat sdfMonth = new java.text.SimpleDateFormat("MMMM yyyy", new java.util.Locale("es", "MX"));
+            String monthName = sdfMonth.format(dayDate).toUpperCase();
+
+            // ----- HTML -----
+            StringBuilder html = new StringBuilder();
+            html.append("<html><head><style>");
+            html.append("body{font-family:sans-serif;background:#fff;margin:0;padding:10px;}");
+            html.append(
+                    ".hdr{background:#047857;color:#fff;padding:10px 14px;font-size:18px;font-weight:bold;margin-bottom:8px;}");
+            html.append(".metric-card{background:#f1f3f5;border:1px solid #dee2e6;padding:12px;margin:5px;}");
+            html.append(".metric-label{font-size:13px;color:#6c757d;font-weight:bold;text-transform:uppercase;}");
+            html.append(".metric-value{font-size:26px;font-weight:bold;color:#212529;margin-top:3px;}");
+            html.append(
+                    ".st{font-size:16px;font-weight:bold;color:#212529;border-bottom:2px solid #343a40;padding-bottom:4px;margin:14px 0 6px 0;text-transform:uppercase;}");
+            html.append(".dt{width:100%;border-collapse:collapse;}");
+            html.append(".dc{font-size:14px;padding:5px 0;border-bottom:1px solid #eee;color:#444;}");
+            html.append(
+                    ".vc{font-size:14px;padding:5px 0;border-bottom:1px solid #eee;font-weight:bold;text-align:right;}");
+            html.append(".tl{font-size:18px;font-weight:bold;padding-top:10px;border-top:2px solid #333;}");
+            html.append(
+                    ".tv{font-size:20px;font-weight:bold;color:#212529;text-align:right;padding-top:10px;border-top:2px solid #333;}");
+            html.append(".li{font-size:13px;padding:4px 0;border-bottom:1px solid #f8f9fa;color:#555;}");
+            html.append(".pos{color:#28a745;} .neg{color:#dc3545;}");
+            html.append(".em{font-size:12px;color:#999;font-style:italic;padding:6px 0;}");
+            html.append("</style></head><body>");
+            html.append("<div class='hdr'>CORTE DEL MES &mdash; ").append(monthName)
+                    .append(" (").append(allShifts.size()).append(" turno").append(allShifts.size() == 1 ? "" : "s")
+                    .append(")</div>");
+
+            // Metricas
+            html.append("<table width='100%' border='0' cellspacing='8' cellpadding='0'><tr>");
+            html.append(
+                    "<td width='50%' valign='top'><div class='metric-card'><div class='metric-label'>Ventas Totales del Mes</div><div class='metric-value'>")
+                    .append(Formats.CURRENCY.formatValue(monthTotalSales)).append("</div></div></td>");
+            html.append(
+                    "<td width='50%' valign='top'><div class='metric-card' style='background:white;'><div class='metric-label'>Ganancia del Mes</div><div class='metric-value'>")
+                    .append(Formats.CURRENCY.formatValue(monthProfit)).append("</div></div></td>");
+            html.append("</tr></table>");
+
+            // Dinero Caja | Ventas
+            html.append("<table width='100%' border='0' cellspacing='8' cellpadding='0'><tr>");
+            html.append(
+                    "<td width='50%' valign='top' style='padding-right:12px;'><div class='st'>Dinero en Caja (Mes)</div><table class='dt'>");
+            html.append("<tr><td class='dc'>Fondo de caja total acumulado</td><td class='vc'>")
+                    .append(Formats.CURRENCY.formatValue(monthInitialAmount)).append("</td></tr>");
+            html.append("<tr><td class='dc'>Ventas en Efectivo</td><td class='vc pos'>+ ")
+                    .append(Formats.CURRENCY.formatValue(monthCashSales)).append("</td></tr>");
+            html.append("<tr><td class='dc'>Abonos en efectivo</td><td class='vc pos'>+ ")
+                    .append(Formats.CURRENCY.formatValue(monthCreditPay)).append("</td></tr>");
+            html.append("<tr><td class='dc'>Entradas</td><td class='vc pos'>+ ")
+                    .append(Formats.CURRENCY.formatValue(monthCashIn)).append("</td></tr>");
+            html.append("<tr><td class='dc'>Salidas</td><td class='vc neg'>- ")
+                    .append(Formats.CURRENCY.formatValue(monthCashOut)).append("</td></tr>");
+            html.append("<tr><td class='dc'>Devoluciones efectivo</td><td class='vc neg'>- ")
+                    .append(Formats.CURRENCY.formatValue(monthReturns)).append("</td></tr>");
+            html.append("<tr><td class='tl'>Total en Caja</td><td class='tv'>")
+                    .append(Formats.CURRENCY.formatValue(monthCashTotal)).append("</td></tr>");
+            html.append("</table></td>");
+
+            html.append(
+                    "<td width='50%' valign='top' style='padding-left:12px;'><div class='st'>Resumen Ventas (Mes)</div><table class='dt'>");
+            html.append("<tr><td class='dc'>En Efectivo</td><td class='vc pos'>+ ")
+                    .append(Formats.CURRENCY.formatValue(monthCashSales)).append("</td></tr>");
+            html.append("<tr><td class='dc'>Con Tarjeta de Crédito</td><td class='vc pos'>+ ")
+                    .append(Formats.CURRENCY.formatValue(monthCardSales)).append("</td></tr>");
+            html.append("<tr><td class='dc'>A Crédito</td><td class='vc pos'>+ ")
+                    .append(Formats.CURRENCY.formatValue(monthCreditSales)).append("</td></tr>");
+            html.append("<tr><td class='dc'>Con Vales de Despensa</td><td class='vc pos'>+ ")
+                    .append(Formats.CURRENCY.formatValue(monthVoucherSales)).append("</td></tr>");
+            html.append("<tr><td class='dc'>Devoluciones de Ventas</td><td class='vc neg'>- ")
+                    .append(Formats.CURRENCY.formatValue(monthReturns)).append("</td></tr>");
+            html.append("<tr><td class='dc' style='border-bottom:none;'>&nbsp;</td><td class='vc' style='border-bottom:none;'>&nbsp;</td></tr>");
+            html.append("<tr><td class='tl'>Total Ventas</td><td class='tv'>")
+                    .append(Formats.CURRENCY.formatValue(monthTotalSales)).append("</td></tr>");
+            html.append("</table></td></tr></table>");
+
+            // Listas
+            html.append("<table width='100%' border='0' cellspacing='8' cellpadding='0'><tr>");
+            html.append("<td width='50%' valign='top' style='padding-right:12px;'><div class='st'>⬇️ Entradas de efectivo (Mes)</div>");
+            if (monthInflowsList.isEmpty()) {
+                html.append("<div class='em'>- No hubo entradas -</div>");
+            } else {
+                for (String item : monthInflowsList) {
+                    html.append("<div class='li'>").append(item).append("</div>");
+                }
+            }
+            html.append("</td>");
+            html.append("<td width='50%' valign='top' style='padding-left:12px;'><div class='st'>⬆️ Salidas de efectivo (Mes)</div>");
+            if (monthOutflowsList.isEmpty()) {
+                html.append("<div class='em'>- No hubo salidas -</div>");
+            } else {
+                for (String item : monthOutflowsList) {
+                    html.append("<div class='li'>").append(item).append("</div>");
+                }
+            }
+            html.append("</td></tr><tr>");
+
+            html.append("<td width='50%' valign='top' style='padding-right:12px;'><div class='st'>📦 Ventas por Departamento (Mes)</div>");
+            if (deptMap.isEmpty()) {
+                html.append("<div class='em'>- Sin ventas por departamento -</div>");
+            } else {
+                html.append("<table class='dt'><tr><td class='dc'><b>Departamento</b></td><td class='vc'><b>Total</b></td></tr>");
+                for (java.util.Map.Entry<String, double[]> entry : deptMap.entrySet()) {
+                    html.append("<tr><td class='dc'>").append(escapeHtml(entry.getKey())).append("</td><td class='vc'>")
+                            .append(Formats.CURRENCY.formatValue(entry.getValue()[1]))
+                            .append(" (").append(Formats.DOUBLE.formatValue(entry.getValue()[0])).append(" un)</td></tr>");
+                }
+                html.append("</table>");
+            }
+            html.append("</td>");
+            html.append("<td width='50%' valign='top' style='padding-left:12px;'><div class='st'>👥 Pagos de Créditos (Mes)</div>");
+            if (monthCreditPaysList.isEmpty()) {
+                html.append("<div class='em'>- No se recibieron pagos -</div>");
+            } else {
+                for (String item : monthCreditPaysList) {
+                    html.append("<div class='li'>").append(item).append("</div>");
+                }
+            }
+            html.append("</td></tr><tr>");
+
+            html.append("<td width='50%' valign='top' style='padding-right:12px;'><div class='st'>💰 Ganancias por Departamento (Mes)</div>");
+            if (deptMap.isEmpty()) {
+                html.append("<div class='em'>- Sin ganancias -</div>");
+            } else {
+                html.append("<table class='dt'><tr><td class='dc'><b>Departamento</b></td><td class='vc'><b>Ganancia</b></td></tr>");
+                for (java.util.Map.Entry<String, double[]> entry : deptMap.entrySet()) {
+                    double g = entry.getValue()[2];
+                    html.append("<tr><td class='dc'>").append(escapeHtml(entry.getKey())).append("</td>")
+                            .append("<td class='vc ").append(g >= 0 ? "pos" : "neg").append("'>")
+                            .append(Formats.CURRENCY.formatValue(g)).append("</td></tr>");
+                }
+                html.append("</table>");
+            }
+            html.append("</td>");
+            html.append("<td width='50%' valign='top' style='padding-left:12px;'><div class='st'>↩️ Devoluciones en efectivo (Mes)</div>");
+            if (monthReturnsList.isEmpty()) {
+                html.append("<div class='em'>- No hubo devoluciones -</div>");
+            } else {
+                for (String item : monthReturnsList) {
+                    html.append("<div class='li'>").append(item).append("</div>");
+                }
+            }
+            html.append("</td></tr></table>");
+
+            // Resumen de turnos
+            html.append("<div class='st'>Turnos del Mes</div>");
+            for (ShiftData shift : allShifts) {
+                java.text.SimpleDateFormat sdfTime = new java.text.SimpleDateFormat("dd/MM h:mm a");
+                String ini = shift.getDateStart() != null ? sdfTime.format(shift.getDateStart()) : "?";
+                String fin = shift.getDateEnd() != null ? sdfTime.format(shift.getDateEnd()) : "En curso";
+                html.append("<div class='li'>Turno ").append(shift.getSequence())
+                        .append(" &mdash; ").append(escapeHtml(shift.getUserName()))
+                        .append(" (").append(ini).append(" a ").append(fin).append(")")
+                        .append(" &mdash; Ventas: ").append(Formats.CURRENCY.formatValue(shift.getTotalSales()))
+                        .append("</div>");
+            }
+            html.append("</body></html>");
+
+            if (m_htmlViewer != null) {
+                m_htmlViewer.setText(html.toString());
+                SwingUtilities.invokeLater(() -> {
+                    if (m_htmlViewer.getParent() instanceof javax.swing.JViewport)
+                        ((javax.swing.JViewport) m_htmlViewer.getParent()).setViewPosition(new java.awt.Point(0, 0));
+                });
+            }
+            m_isDayMode = false;
+            m_isMonthMode = true;
+            LOGGER.info("Corte del Mes cargado. Turnos: " + allShifts.size());
+
+            JOptionPane.showMessageDialog(this, "Resumen de corte del mes generado correctamente.", "Corte del Mes", JOptionPane.INFORMATION_MESSAGE);
+
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error en performMonthCloseReport", e);
+            JOptionPane.showMessageDialog(this, "Error generando el corte del mes: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -7209,6 +8200,8 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     .append(Formats.CURRENCY.formatValue(dayVoucherSales)).append("</td></tr>");
             html.append("<tr><td class='dc'>Devoluciones</td><td class='vc neg'>- ")
                     .append(Formats.CURRENCY.formatValue(dayReturns)).append("</td></tr>");
+            // Spacer row to align with the 6 rows of Dinero en Caja
+            html.append("<tr><td class='dc' style='border-bottom: none;'>&nbsp;</td><td class='vc' style='border-bottom: none;'>&nbsp;</td></tr>");
             html.append("<tr><td class='tl'>Total</td><td class='tv'>")
                     .append(Formats.CURRENCY.formatValue(dayTotalSales)).append("</td></tr>");
             html.append("</table></td></tr></table>");
@@ -7309,6 +8302,258 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     "Error generando el corte del dia:\n" + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private void showProductsSoldDialog() {
+        String moneyIndex = getActiveCashIndexOrLoaded();
+        if (moneyIndex == null) {
+            JOptionPane.showMessageDialog(this, "No hay ningún turno seleccionado.", "Información", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // Fetch data from DB
+        java.util.List<Object[]> rows = new java.util.ArrayList<>();
+        double totalSalesSum = 0.0;
+        double totalUnitsSum = 0.0;
+
+        try {
+            Session session = m_App.getSession();
+            Connection conn = session.getConnection();
+
+            String sql = "SELECT " +
+                         "  receipts.DATENEW, " +
+                         "  products.REFERENCE, " +
+                         "  products.NAME, " +
+                         "  ticketlines.UNITS, " +
+                         "  (ticketlines.UNITS * ticketlines.PRICE * (1.0 + COALESCE(taxes.RATE, 0.0))) AS TOTAL " +
+                         "FROM receipts " +
+                         "INNER JOIN tickets ON receipts.ID = tickets.ID " +
+                         "INNER JOIN ticketlines ON tickets.ID = ticketlines.TICKET " +
+                         "INNER JOIN products ON ticketlines.PRODUCT = products.ID " +
+                         "LEFT JOIN taxes ON ticketlines.TAXID = taxes.ID " +
+                         "WHERE receipts.MONEY = ? " +
+                         "ORDER BY receipts.DATENEW DESC, ticketlines.LINE";
+
+            java.sql.PreparedStatement pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, moneyIndex);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                Date saleTime = rs.getTimestamp(1);
+                String ref = rs.getString(2);
+                String name = rs.getString(3);
+                double units = rs.getDouble(4);
+                double total = rs.getDouble(5);
+                
+                rows.add(new Object[] { saleTime, ref, name, units, total });
+                totalSalesSum += total;
+                totalUnitsSum += units;
+            }
+            rs.close();
+            pstmt.close();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error cargando productos vendidos", e);
+            JOptionPane.showMessageDialog(this, "Error al cargar la lista de productos: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Create Dialog
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Productos Vendidos del Turno", true);
+        dialog.setSize(850, 600);
+        dialog.setLocationRelativeTo(this);
+        dialog.getContentPane().setBackground(Color.WHITE);
+
+        // Header Panel
+        JPanel headerPanel = new JPanel(new BorderLayout(0, 8));
+        headerPanel.setBackground(Color.WHITE);
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(20, 24, 12, 24));
+
+        JLabel titleLabel = new JLabel("Productos vendidos en este turno");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        titleLabel.setForeground(new Color(15, 23, 42)); // slate-900
+        headerPanel.add(titleLabel, BorderLayout.NORTH);
+
+        // KPI panel in header
+        JPanel kpiPanel = new JPanel(new GridLayout(1, 2, 16, 0));
+        kpiPanel.setBackground(Color.WHITE);
+
+        // KPI 1: Artículos vendidos
+        JPanel kpi1 = new JPanel(new BorderLayout(0, 4));
+        kpi1.setBackground(Color.WHITE);
+        kpi1.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(226, 232, 240)),
+            BorderFactory.createEmptyBorder(12, 16, 12, 16)
+        ));
+        JLabel kpi1Title = new JLabel("CANTIDAD DE ARTÍCULOS");
+        kpi1Title.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        kpi1Title.setForeground(new Color(100, 116, 139)); // slate-500
+        JLabel kpi1Value = new JLabel(String.valueOf(Formats.DOUBLE.formatValue(totalUnitsSum)));
+        kpi1Value.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        kpi1Value.setForeground(new Color(15, 23, 42));
+        kpi1.add(kpi1Title, BorderLayout.NORTH);
+        kpi1.add(kpi1Value, BorderLayout.CENTER);
+
+        // KPI 2: Total ventas de productos
+        JPanel kpi2 = new JPanel(new BorderLayout(0, 4));
+        kpi2.setBackground(Color.WHITE);
+        kpi2.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(226, 232, 240)),
+            BorderFactory.createEmptyBorder(12, 16, 12, 16)
+        ));
+        JLabel kpi2Title = new JLabel("TOTAL EN VENTAS");
+        kpi2Title.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        kpi2Title.setForeground(new Color(100, 116, 139));
+        JLabel kpi2Value = new JLabel(Formats.CURRENCY.formatValue(totalSalesSum));
+        kpi2Value.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        kpi2Value.setForeground(new Color(16, 185, 129)); // emerald-500
+        kpi2.add(kpi2Title, BorderLayout.NORTH);
+        kpi2.add(kpi2Value, BorderLayout.CENTER);
+
+        kpiPanel.add(kpi1);
+        kpiPanel.add(kpi2);
+        headerPanel.add(kpiPanel, BorderLayout.CENTER);
+
+        // Search panel (Fixed width of 220px for the input bar)
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+        searchPanel.setBackground(Color.WHITE);
+        searchPanel.setBorder(BorderFactory.createEmptyBorder(8, 0, 8, 0));
+        
+        JLabel searchLabel = new JLabel("🔍 Buscar producto:");
+        searchLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        searchLabel.setForeground(new Color(71, 85, 105));
+        
+        JTextField searchField = new JTextField(15);
+        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        searchField.setPreferredSize(new Dimension(180, 26)); // Fixed search bar width
+        searchField.setMaximumSize(new Dimension(180, 26));
+        
+        searchPanel.add(searchLabel);
+        searchPanel.add(searchField);
+        headerPanel.add(searchPanel, BorderLayout.SOUTH);
+
+        dialog.add(headerPanel, BorderLayout.NORTH);
+
+        // Table Model & JTable
+        DefaultTableModel tableModel = new DefaultTableModel(
+            new Object[] { "Código", "Producto", "Hora", "Cantidad", "Total" }, 0
+        ) {
+            @Override
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+
+        // Populate table model initially
+        SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a");
+        for (Object[] r : rows) {
+            String timeStr = timeFormat.format((Date) r[0]).toLowerCase();
+            tableModel.addRow(new Object[] {
+                r[1], // Código
+                r[2], // Producto
+                timeStr, // Hora
+                Formats.DOUBLE.formatValue((Double) r[3]),
+                Formats.CURRENCY.formatValue((Double) r[4])
+            });
+        }
+
+        JTable table = new JTable(tableModel);
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        table.setRowHeight(36);
+        table.setShowGrid(false);
+        table.setIntercellSpacing(new Dimension(0, 0));
+        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        table.getTableHeader().setBackground(new Color(241, 245, 249));
+        table.getTableHeader().setForeground(new Color(15, 23, 42));
+        table.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)));
+
+        table.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable t, Object val, boolean isSel, boolean hasFocus, int r, int c) {
+                Component comp = super.getTableCellRendererComponent(t, val, isSel, hasFocus, r, c);
+                if (!isSel) {
+                    comp.setBackground(r % 2 == 0 ? Color.WHITE : new Color(248, 250, 252));
+                } else {
+                    comp.setBackground(new Color(99, 102, 241, 40));
+                }
+                comp.setForeground(new Color(15, 23, 42));
+                if (comp instanceof JLabel) {
+                    JLabel lbl = (JLabel) comp;
+                    lbl.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
+                    if (c == 2) {
+                        lbl.setHorizontalAlignment(JLabel.CENTER); // Center Hora
+                    } else if (c == 3 || c == 4) {
+                        lbl.setHorizontalAlignment(JLabel.RIGHT); // Right-align Cantidad and Total
+                    } else {
+                        lbl.setHorizontalAlignment(JLabel.LEFT); // Left-align Código and Producto
+                    }
+                }
+                return comp;
+            }
+        });
+
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        TableColumnModel colModel = table.getColumnModel();
+        colModel.getColumn(0).setPreferredWidth(100); // Código
+        colModel.getColumn(1).setPreferredWidth(370); // Producto
+        colModel.getColumn(2).setPreferredWidth(90);  // Hora
+        colModel.getColumn(3).setPreferredWidth(80);  // Cantidad
+        colModel.getColumn(4).setPreferredWidth(110); // Total
+
+        // ScrollPane
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240)));
+        scrollPane.getViewport().setBackground(Color.WHITE);
+
+        JPanel centerPanel = new JPanel(new BorderLayout());
+        centerPanel.setBackground(Color.WHITE);
+        centerPanel.setBorder(BorderFactory.createEmptyBorder(0, 24, 16, 24));
+        centerPanel.add(scrollPane, BorderLayout.CENTER);
+        dialog.add(centerPanel, BorderLayout.CENTER);
+
+        // Search Filter Action
+        searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            private void filter() {
+                String query = searchField.getText().toLowerCase().trim();
+                tableModel.setRowCount(0);
+                SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a");
+                for (Object[] r : rows) {
+                    String ref = String.valueOf(r[1]).toLowerCase();
+                    String name = String.valueOf(r[2]).toLowerCase();
+                    if (query.isEmpty() || ref.contains(query) || name.contains(query)) {
+                        String timeStr = timeFormat.format((Date) r[0]).toLowerCase();
+                        tableModel.addRow(new Object[] {
+                            r[1], // Código
+                            r[2], // Producto
+                            timeStr, // Hora
+                            Formats.DOUBLE.formatValue((Double) r[3]),
+                            Formats.CURRENCY.formatValue((Double) r[4])
+                        });
+                    }
+                }
+            }
+            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { filter(); }
+            @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { filter(); }
+            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { filter(); }
+        });
+
+        // Bottom Panel
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        bottomPanel.setBackground(new Color(248, 250, 252));
+        bottomPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(226, 232, 240)),
+            BorderFactory.createEmptyBorder(12, 24, 12, 24)
+        ));
+
+        JButton btnClose = new JButton("Cerrar");
+        btnClose.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnClose.setPreferredSize(new Dimension(100, 32));
+        btnClose.setForeground(new Color(71, 85, 105));
+        btnClose.setBackground(Color.WHITE);
+        btnClose.setBorder(BorderFactory.createLineBorder(new Color(203, 213, 225)));
+        btnClose.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnClose.addActionListener(e -> dialog.dispose());
+
+        bottomPanel.add(btnClose);
+        dialog.add(bottomPanel, BorderLayout.SOUTH);
+
+        dialog.setVisible(true);
     }
 
 }

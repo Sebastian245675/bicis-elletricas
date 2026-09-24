@@ -6,7 +6,7 @@ import javax.swing.*;
 /**
  * Panel de flujo personalizado para productos con mejor distribución
  */
-public class JFlowPanel extends JPanel {
+public class JFlowPanel extends JPanel implements Scrollable {
     
     private static final long serialVersionUID = 1L;
     
@@ -18,7 +18,36 @@ public class JFlowPanel extends JPanel {
         // Usar GridBagLayout para mejor control
         setLayout(new ModernFlowLayout(FlowLayout.LEFT, DEFAULT_HGAP, DEFAULT_VGAP));
         setOpaque(true);
-        setBackground(new Color(248, 250, 252));
+        setBackground(new Color(250, 247, 242));
+    }
+
+    public void resetLayout() {
+        setLayout(new ModernFlowLayout(FlowLayout.LEFT, DEFAULT_HGAP, DEFAULT_VGAP));
+    }
+
+    @Override
+    public Dimension getPreferredScrollableViewportSize() {
+        return getPreferredSize();
+    }
+
+    @Override
+    public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 24;
+    }
+
+    @Override
+    public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 72;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportWidth() {
+        return true;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportHeight() {
+        return false;
     }
     
     /**
@@ -28,6 +57,60 @@ public class JFlowPanel extends JPanel {
         
         public ModernFlowLayout(int align, int hgap, int vgap) {
             super(align, hgap, vgap);
+        }
+
+        @Override
+        public Dimension preferredLayoutSize(Container target) {
+            return computeLayoutSize(target, true);
+        }
+
+        @Override
+        public Dimension minimumLayoutSize(Container target) {
+            return computeLayoutSize(target, false);
+        }
+
+        private Dimension computeLayoutSize(Container target, boolean preferred) {
+            synchronized (target.getTreeLock()) {
+                int targetWidth = target.getWidth();
+                if (targetWidth <= 0 && target.getParent() != null) {
+                    targetWidth = target.getParent().getWidth();
+                }
+                if (targetWidth <= 0) {
+                    targetWidth = 800;
+                }
+
+                Insets insets = target.getInsets();
+                int maxWidth = targetWidth - (insets.left + insets.right + getHgap() * 2);
+                if (maxWidth <= 0) {
+                    maxWidth = Integer.MAX_VALUE;
+                }
+
+                int nmembers = target.getComponentCount();
+                int x = 0;
+                int y = insets.top + getVgap();
+                int rowh = 0;
+                int maxRowWidth = 0;
+
+                for (int i = 0; i < nmembers; i++) {
+                    Component m = target.getComponent(i);
+                    if (m.isVisible()) {
+                        Dimension d = preferred ? m.getPreferredSize() : m.getMinimumSize();
+                        if (x > 0 && (x + d.width) > maxWidth) {
+                            y += getVgap() + rowh;
+                            x = 0;
+                            rowh = 0;
+                        }
+                        if (x > 0) {
+                            x += getHgap();
+                        }
+                        x += d.width;
+                        rowh = Math.max(rowh, d.height);
+                        maxRowWidth = Math.max(maxRowWidth, x);
+                    }
+                }
+                y += rowh + getVgap() + insets.bottom;
+                return new Dimension(Math.max(maxRowWidth + insets.left + insets.right + getHgap() * 2, targetWidth), y);
+            }
         }
         
         @Override

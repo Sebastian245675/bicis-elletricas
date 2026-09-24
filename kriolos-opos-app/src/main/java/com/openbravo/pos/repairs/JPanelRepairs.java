@@ -11,447 +11,567 @@ import com.openbravo.pos.forms.BeanFactoryApp;
 import com.openbravo.pos.forms.BeanFactoryException;
 import com.openbravo.pos.forms.JPanelView;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.datatransfer.StringSelection;
+import java.text.Normalizer;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import javax.swing.*;
 import javax.swing.border.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 
+/** Recepción y seguimiento del taller de bicicletas. */
 public class JPanelRepairs extends JPanel implements JPanelView, BeanFactoryApp {
 
-    private AppView m_App;
+    private static final String[] STATUS_CODES = {"PENDING", "IN_PROGRESS", "READY", "CLOSED", "CANCELLED"};
+    private static final String[] STATUS_LABELS = {"Pendiente", "En reparación", "Lista para entregar", "Entregada", "Cancelada"};
+    private static final String[] SERVICE_TEMPLATES = {
+        "Seleccionar servicio frecuente...", "Afinación general", "Ajuste de frenos",
+        "Ajuste de cambios", "Cambio o reparación de llanta", "Centrado de rueda",
+        "Servicio de suspensión", "Mantenimiento de transmisión",
+        "Armado y puesta a punto", "Diagnóstico de bicicleta eléctrica"
+    };
+    private static final Color NAVY = new Color(14, 30, 45);
+    private static final Color NAVY_SOFT = new Color(30, 59, 86);
+    private static final Color CANVAS = new Color(241, 245, 249);
+    private static final Color SURFACE = Color.WHITE;
+    private static final Color LINE = new Color(214, 222, 230);
+    private static final Color TEXT = new Color(36, 48, 63);
+    private static final Color MUTED = new Color(100, 116, 139);
+    private static final Color GREEN = new Color(22, 121, 72);
+    private static final Color BLUE = new Color(0, 105, 217);
+    private static final Color RED = new Color(190, 38, 51);
+    private static final Font TITLE = new Font("Segoe UI", Font.BOLD, 19);
+    private static final Font LABEL = new Font("Segoe UI", Font.BOLD, 12);
+    private static final Font FIELD = new Font("Segoe UI", Font.PLAIN, 14);
+
     private DataLogicRepairs dlRepairs;
     private DataLogicCustomers dlCustomers;
-
-    private JTable m_tableRepairs;
-    private DefaultTableModel m_modelRepairs;
-    private List<RepairInfo> m_repairsList;
-
-    private JTextField m_txtRepairNumber;
-    private JTextField m_txtCustomer;
-    private JTextField m_txtBicycle;
-    private JTextArea m_txtObservations;
-    private JComboBox<TechnicianInfo> m_cmbTechnician;
-    private JComboBox<String> m_cmbStatus;
-    private JTextField m_txtCost;
-    private JLabel m_lblEntryDate;
-
-    private String m_selectedCustomerId;
-    private RepairInfo m_currentRepair;
-
-    // Design Tokens (Matching Punto MX palette)
-    private static final Color COLOR_NAVY = new Color(14, 30, 45);
-    private static final Color COLOR_NAVY_SOFT = new Color(30, 59, 86);
-    private static final Color COLOR_CANVAS = new Color(241, 245, 249);
-    private static final Color COLOR_SURFACE = Color.WHITE;
-    private static final Color COLOR_LINE = new Color(214, 222, 230);
-    private static final Color COLOR_TEXT = new Color(36, 48, 63);
-    private static final Color COLOR_TEXT_MUTED = new Color(110, 122, 138);
-    private static final Color BRAND_EMERALD = new Color(46, 125, 50);
-
-    private static final Font FONT_TITLE = new Font("Segoe UI", Font.BOLD, 18);
-    private static final Font FONT_LABEL = new Font("Segoe UI", Font.BOLD, 12);
-    private static final Font FONT_FIELD = new Font("Segoe UI", Font.PLAIN, 14);
-
-    public JPanelRepairs() {
-    }
+    private JTable table;
+    private DefaultTableModel tableModel;
+    private List<RepairInfo> repairs = new ArrayList<>();
+    private JTextField search;
+    private JComboBox<String> statusFilter;
+    private JTextField repairNumber;
+    private JTextField customer;
+    private JTextField bicycle;
+    private JTextArea observations;
+    private JComboBox<String> serviceTemplate;
+    private JComboBox<TechnicianInfo> technician;
+    private JComboBox<String> status;
+    private JTextField cost;
+    private JLabel entryDate;
+    private JLabel pendingCount;
+    private JLabel workshopCount;
+    private JLabel readyCount;
+    private JLabel deliveredCount;
+    private String selectedCustomerId;
+    private RepairInfo currentRepair;
 
     @Override
     public void init(AppView app) throws BeanFactoryException {
-        m_App = app;
         dlRepairs = (DataLogicRepairs) app.getBean("com.openbravo.pos.repairs.DataLogicRepairs");
         dlCustomers = (DataLogicCustomers) app.getBean("com.openbravo.pos.customers.DataLogicCustomers");
-        initComponents();
+        buildUi();
     }
 
-    private void initComponents() {
-        setLayout(new BorderLayout());
-        setBackground(COLOR_CANVAS);
+    private void buildUi() {
+        setLayout(new BorderLayout(0, 12));
+        setBackground(CANVAS);
+        setBorder(new EmptyBorder(0, 0, 12, 0));
+        add(createHeader(), BorderLayout.NORTH);
+        JPanel body = new JPanel(new BorderLayout(0, 12));
+        body.setOpaque(false);
+        body.setBorder(new EmptyBorder(0, 15, 0, 15));
+        body.add(createMetrics(), BorderLayout.NORTH);
+        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, createList(), createForm());
+        split.setDividerLocation(500);
+        split.setResizeWeight(.43);
+        split.setDividerSize(8);
+        split.setBorder(null);
+        split.setOpaque(false);
+        body.add(split, BorderLayout.CENTER);
+        add(body, BorderLayout.CENTER);
+        loadData();
+        clearForm();
+    }
 
-        // --- HEADER ---
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(COLOR_SURFACE);
-        header.setBorder(BorderFactory.createCompoundBorder(
-            new MatteBorder(0, 0, 1, 0, COLOR_LINE),
-            new EmptyBorder(10, 20, 10, 20)
-        ));
-        
-        JLabel title = new JLabel("MÓDULO DE REPARACIONES");
-        title.setFont(FONT_TITLE);
-        title.setForeground(COLOR_NAVY);
-        header.add(title, BorderLayout.WEST);
-
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+    private JPanel createHeader() {
+        JPanel header = new JPanel(new BorderLayout(16, 0));
+        header.setBackground(SURFACE);
+        header.setBorder(new CompoundBorder(new MatteBorder(0, 0, 1, 0, LINE), new EmptyBorder(12, 20, 12, 20)));
+        JPanel titles = new JPanel(new GridLayout(2, 1, 0, 2));
+        titles.setOpaque(false);
+        JLabel title = new JLabel("TALLER DE BICICLETAS");
+        title.setFont(TITLE);
+        title.setForeground(NAVY);
+        JLabel subtitle = new JLabel("Recepción, diagnóstico y seguimiento de servicios");
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        subtitle.setForeground(MUTED);
+        titles.add(title);
+        titles.add(subtitle);
+        header.add(titles, BorderLayout.WEST);
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         actions.setOpaque(false);
-        
-        JButton btnNew = createStyledButton("NUEVO", "/com/openbravo/images/editnew.png", BRAND_EMERALD);
-        btnNew.addActionListener(e -> clearForm());
-        
-        JButton btnSave = createStyledButton("GUARDAR", "/com/openbravo/images/filesave.png", new Color(0, 105, 217));
-        btnSave.addActionListener(e -> saveRepair());
-
-        JButton btnDelete = createStyledButton("ELIMINAR", "/com/openbravo/images/editdelete.png", new Color(200, 35, 51));
-        btnDelete.addActionListener(e -> deleteRepair());
-
-        actions.add(btnNew);
-        actions.add(btnSave);
-        actions.add(btnDelete);
+        JButton newButton = button("NUEVA ORDEN", "/com/openbravo/images/editnew.png", GREEN);
+        newButton.addActionListener(e -> clearForm());
+        JButton copyButton = button("COPIAR FOLIO", "/com/openbravo/images/copy.png", NAVY_SOFT);
+        copyButton.addActionListener(e -> copyFolio());
+        JButton saveButton = button("GUARDAR", "/com/openbravo/images/filesave.png", BLUE);
+        saveButton.addActionListener(e -> saveRepair());
+        JButton deleteButton = button("ELIMINAR", "/com/openbravo/images/editdelete.png", RED);
+        deleteButton.addActionListener(e -> deleteRepair());
+        actions.add(newButton);
+        actions.add(copyButton);
+        actions.add(saveButton);
+        actions.add(deleteButton);
         header.add(actions, BorderLayout.EAST);
+        return header;
+    }
 
-        add(header, BorderLayout.NORTH);
+    private JPanel createMetrics() {
+        JPanel panel = new JPanel(new GridLayout(1, 4, 10, 0));
+        panel.setOpaque(false);
+        pendingCount = metric(panel, "PENDIENTES", new Color(180, 120, 20));
+        workshopCount = metric(panel, "EN REPARACIÓN", BLUE);
+        readyCount = metric(panel, "LISTAS PARA ENTREGAR", GREEN);
+        deliveredCount = metric(panel, "ENTREGADAS", NAVY_SOFT);
+        return panel;
+    }
 
-        // --- CONTENT (SplitPane) ---
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        splitPane.setDividerLocation(420);
-        splitPane.setDividerSize(8);
-        splitPane.setBorder(new EmptyBorder(15, 15, 15, 15));
-        splitPane.setOpaque(false);
+    private JLabel metric(JPanel parent, String caption, Color accent) {
+        JPanel card = new JPanel(new BorderLayout(10, 0));
+        card.setBackground(SURFACE);
+        card.setBorder(new CompoundBorder(new MatteBorder(0, 4, 0, 0, accent), new EmptyBorder(8, 12, 8, 12)));
+        JLabel title = new JLabel(caption);
+        title.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        title.setForeground(MUTED);
+        JLabel value = new JLabel("0", SwingConstants.RIGHT);
+        value.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        value.setForeground(accent);
+        card.add(title, BorderLayout.CENTER);
+        card.add(value, BorderLayout.EAST);
+        parent.add(card);
+        return value;
+    }
 
-        // --- LEFT: LIST ---
-        JPanel listPanel = new JPanel(new BorderLayout());
-        listPanel.setBackground(COLOR_SURFACE);
-        listPanel.setBorder(new LineBorder(COLOR_LINE, 1));
-
-        m_modelRepairs = new DefaultTableModel(new String[]{"ID", "ORDEN", "CLIENTE", "ESTADO", "FECHA"}, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
-        };
-        m_tableRepairs = new JTable(m_modelRepairs);
-        m_tableRepairs.setRowHeight(36);
-        m_tableRepairs.setFont(FONT_FIELD);
-        m_tableRepairs.setShowGrid(false);
-        m_tableRepairs.setIntercellSpacing(new Dimension(0, 0));
-        m_tableRepairs.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        
-        // Custom Table Header
-        m_tableRepairs.getTableHeader().setFont(FONT_LABEL);
-        m_tableRepairs.getTableHeader().setBackground(new Color(248, 250, 252));
-        m_tableRepairs.getTableHeader().setForeground(COLOR_TEXT_MUTED);
-        m_tableRepairs.getTableHeader().setBorder(new MatteBorder(0, 0, 1, 0, COLOR_LINE));
-
-        // Hide ID Column
-        m_tableRepairs.removeColumn(m_tableRepairs.getColumnModel().getColumn(0));
-        
-        // Set Column Widths
-        TableColumnModel colModel = m_tableRepairs.getColumnModel();
-        colModel.getColumn(0).setPreferredWidth(60); // Nº
-        colModel.getColumn(1).setPreferredWidth(180); // Cliente
-        colModel.getColumn(2).setPreferredWidth(90); // Estado
-        colModel.getColumn(3).setPreferredWidth(90); // Fecha
-
-        // Renderers
-        m_tableRepairs.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                if (!isSelected) {
-                    c.setBackground(row % 2 == 0 ? COLOR_SURFACE : new Color(250, 251, 253));
-                }
-                setBorder(new EmptyBorder(0, 10, 0, 10));
-                
-                // Status highlighting
-                if (column == 2) {
-                    String status = (String) value;
-                    if ("PENDING".equals(status)) setForeground(new Color(184, 134, 11)); // DarkGoldenRod
-                    else if ("IN_PROGRESS".equals(status)) setForeground(new Color(0, 102, 204));
-                    else if ("CLOSED".equals(status)) setForeground(BRAND_EMERALD);
-                    else if ("CANCELLED".equals(status)) setForeground(Color.GRAY);
-                } else {
-                    setForeground(isSelected ? Color.WHITE : COLOR_TEXT);
-                }
-                return c;
-            }
+    private JPanel createList() {
+        JPanel panel = new JPanel(new BorderLayout(0, 8));
+        panel.setBackground(SURFACE);
+        panel.setBorder(new CompoundBorder(new LineBorder(LINE), new EmptyBorder(10, 10, 10, 10)));
+        JPanel filters = new JPanel(new BorderLayout(8, 0));
+        filters.setOpaque(false);
+        search = textField(true);
+        search.setToolTipText("Buscar por folio, cliente o datos de la bicicleta");
+        search.putClientProperty("JTextField.placeholderText", "Buscar orden, cliente o bicicleta...");
+        search.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e) { filterRows(); }
+            @Override public void removeUpdate(DocumentEvent e) { filterRows(); }
+            @Override public void changedUpdate(DocumentEvent e) { filterRows(); }
         });
+        statusFilter = new JComboBox<>(new String[]{"Todos los estados", "Pendiente", "En reparación", "Lista para entregar", "Entregada", "Cancelada"});
+        statusFilter.setFont(FIELD);
+        statusFilter.setPreferredSize(new Dimension(175, 34));
+        statusFilter.addActionListener(e -> filterRows());
+        filters.add(search, BorderLayout.CENTER);
+        filters.add(statusFilter, BorderLayout.EAST);
+        panel.add(filters, BorderLayout.NORTH);
 
-        m_tableRepairs.getSelectionModel().addListSelectionListener(e -> {
+        tableModel = new DefaultTableModel(new String[]{"ID", "ORDEN", "CLIENTE", "ESTADO", "FECHA"}, 0) {
+            @Override public boolean isCellEditable(int row, int column) { return false; }
+        };
+        table = new JTable(tableModel);
+        table.setRowHeight(36);
+        table.setFont(FIELD);
+        table.setShowGrid(false);
+        table.setIntercellSpacing(new Dimension(0, 0));
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.getTableHeader().setFont(LABEL);
+        table.getTableHeader().setBackground(new Color(248, 250, 252));
+        table.getTableHeader().setForeground(MUTED);
+        table.removeColumn(table.getColumnModel().getColumn(0));
+        TableColumnModel columns = table.getColumnModel();
+        columns.getColumn(0).setPreferredWidth(78);
+        columns.getColumn(1).setPreferredWidth(180);
+        columns.getColumn(2).setPreferredWidth(125);
+        columns.getColumn(3).setPreferredWidth(90);
+        table.setDefaultRenderer(Object.class, new RepairRenderer());
+        table.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) loadSelectedRepair();
         });
-
-        JScrollPane scroll = new JScrollPane(m_tableRepairs);
+        JScrollPane scroll = new JScrollPane(table);
         scroll.setBorder(null);
-        scroll.getViewport().setBackground(COLOR_SURFACE);
-        listPanel.add(scroll, BorderLayout.CENTER);
-        splitPane.setLeftComponent(listPanel);
+        panel.add(scroll, BorderLayout.CENTER);
+        return panel;
+    }
 
-        // --- RIGHT: FORM ---
-        JPanel formContainer = new JPanel(new BorderLayout());
-        formContainer.setOpaque(false);
-        formContainer.setBorder(new EmptyBorder(0, 15, 0, 0));
+    private JPanel createForm() {
+        JPanel outer = new JPanel(new BorderLayout());
+        outer.setOpaque(false);
+        outer.setBorder(new EmptyBorder(0, 12, 0, 0));
+        JPanel form = new JPanel(new GridBagLayout());
+        form.setBackground(SURFACE);
+        form.setBorder(new LineBorder(LINE));
+        GridBagConstraints gbc = constraints();
+        form.add(section("INFORMACIÓN DE LA ORDEN"), gbc);
+        repairNumber = textField(false);
+        addField(form, gbc, "N.º DE ORDEN", repairNumber);
+        gbc.gridy++;
+        form.add(label("CLIENTE *"), gbc);
+        JPanel customerRow = new JPanel(new BorderLayout(8, 0));
+        customerRow.setOpaque(false);
+        customer = textField(false);
+        JButton find = new JButton("BUSCAR");
+        find.setFont(LABEL);
+        find.setPreferredSize(new Dimension(90, 34));
+        find.addActionListener(e -> findCustomer());
+        customerRow.add(customer, BorderLayout.CENTER);
+        customerRow.add(find, BorderLayout.EAST);
+        gbc.gridy++;
+        form.add(customerRow, gbc);
 
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBackground(COLOR_SURFACE);
-        formPanel.setBorder(new LineBorder(COLOR_LINE, 1));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(8, 20, 8, 20);
-        gbc.weightx = 1.0;
+        addSection(form, gbc, "BICICLETA Y SERVICIO");
+        bicycle = textField(true);
+        bicycle.setToolTipText("Ejemplo: Trek Marlin 7, rodada 29, negra, serie ABC123");
+        bicycle.putClientProperty("JTextField.placeholderText", "Marca, modelo, rodada, color y número de serie");
+        addField(form, gbc, "IDENTIFICACIÓN DE LA BICICLETA *", bicycle);
+        gbc.gridy++;
+        form.add(label("SERVICIO FRECUENTE"), gbc);
+        serviceTemplate = new JComboBox<>(SERVICE_TEMPLATES);
+        serviceTemplate.setFont(FIELD);
+        serviceTemplate.setPreferredSize(new Dimension(0, 34));
+        serviceTemplate.addActionListener(e -> insertServiceTemplate());
+        gbc.gridy++;
+        form.add(serviceTemplate, gbc);
+        gbc.gridy++;
+        form.add(label("DIAGNÓSTICO, REFACCIONES Y AUTORIZACIÓN *"), gbc);
+        observations = new JTextArea(4, 20);
+        observations.setFont(FIELD);
+        observations.setBorder(new EmptyBorder(6, 10, 6, 10));
+        observations.setLineWrap(true);
+        observations.setWrapStyleWord(true);
+        JScrollPane observationScroll = new JScrollPane(observations);
+        observationScroll.setBorder(new LineBorder(LINE));
+        gbc.gridy++;
+        form.add(observationScroll, gbc);
 
-        // Group 1: Identificación
-        gbc.gridx = 0; gbc.gridy = 0;
-        formPanel.add(createSectionHeader("INFORMACIÓN DEL SERVICIO"), gbc);
-
+        addSection(form, gbc, "SEGUIMIENTO Y COBRO");
+        JPanel statusRow = new JPanel(new GridLayout(1, 2, 14, 0));
+        statusRow.setOpaque(false);
+        JPanel technicianColumn = fieldColumn("TÉCNICO ASIGNADO");
+        technician = new JComboBox<>();
+        technician.setFont(FIELD);
+        technicianColumn.add(technician, BorderLayout.CENTER);
+        JPanel statusColumn = fieldColumn("ESTADO ACTUAL");
+        status = new JComboBox<>(STATUS_LABELS);
+        status.setFont(FIELD);
+        statusColumn.add(status, BorderLayout.CENTER);
+        statusRow.add(technicianColumn);
+        statusRow.add(statusColumn);
         gbc.gridy++;
-        formPanel.add(createLabel("Nº DE ORDEN"), gbc);
-        m_txtRepairNumber = createTextField(false);
+        form.add(statusRow, gbc);
+        cost = textField(true);
+        cost.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        cost.setForeground(GREEN);
+        addField(form, gbc, "COSTO DEL SERVICIO ($) *", cost);
         gbc.gridy++;
-        formPanel.add(m_txtRepairNumber, gbc);
-
-        gbc.gridy++;
-        formPanel.add(createLabel("CLIENTE"), gbc);
-        JPanel pnlCustomer = new JPanel(new BorderLayout(8, 0));
-        pnlCustomer.setOpaque(false);
-        m_txtCustomer = createTextField(false);
-        JButton btnFindCustomer = new JButton();
-        try {
-            java.net.URL imgUrl = getClass().getResource("/com/openbravo/images/search24.png");
-            if (imgUrl != null) btnFindCustomer.setIcon(new ImageIcon(imgUrl));
-        } catch (Exception e) {}
-        btnFindCustomer.setPreferredSize(new Dimension(40, 32));
-        btnFindCustomer.addActionListener(e -> findCustomer());
-        pnlCustomer.add(m_txtCustomer, BorderLayout.CENTER);
-        pnlCustomer.add(btnFindCustomer, BorderLayout.EAST);
-        gbc.gridy++;
-        formPanel.add(pnlCustomer, gbc);
-
-        // Group 2: Detalles
-        gbc.gridy++;
-        gbc.insets = new Insets(20, 20, 8, 20);
-        formPanel.add(createSectionHeader("DETALLES TÉCNICOS"), gbc);
-        gbc.insets = new Insets(8, 20, 8, 20);
-
-        gbc.gridy++;
-        formPanel.add(createLabel("IDENTIFICACIÓN DE BICICLETA / EQUIPO"), gbc);
-        m_txtBicycle = createTextField(true);
-        gbc.gridy++;
-        formPanel.add(m_txtBicycle, gbc);
-
-        gbc.gridy++;
-        formPanel.add(createLabel("OBSERVACIONES / DIAGNÓSTICO"), gbc);
-        m_txtObservations = new JTextArea(3, 20);
-        m_txtObservations.setFont(FONT_FIELD);
-        m_txtObservations.setBorder(new CompoundBorder(new LineBorder(COLOR_LINE), new EmptyBorder(5, 10, 5, 10)));
-        m_txtObservations.setLineWrap(true);
-        m_txtObservations.setWrapStyleWord(true);
-        gbc.gridy++;
-        formPanel.add(new JScrollPane(m_txtObservations), gbc);
-
-        // Group 3: Estado y Costo
-        gbc.gridy++;
-        gbc.insets = new Insets(20, 20, 8, 20);
-        formPanel.add(createSectionHeader("ESTADO Y LIQUIDACIÓN"), gbc);
-        gbc.insets = new Insets(8, 20, 8, 20);
-
-        JPanel pnlStatusRow = new JPanel(new GridLayout(1, 2, 20, 0));
-        pnlStatusRow.setOpaque(false);
-        
-        JPanel pnlTechCol = new JPanel(new BorderLayout(0, 5));
-        pnlTechCol.setOpaque(false);
-        pnlTechCol.add(createLabel("TÉCNICO ASIGNADO"), BorderLayout.NORTH);
-        m_cmbTechnician = new JComboBox<>();
-        m_cmbTechnician.setPreferredSize(new Dimension(0, 32));
-        m_cmbTechnician.setFont(FONT_FIELD);
-        pnlTechCol.add(m_cmbTechnician, BorderLayout.CENTER);
-        
-        JPanel pnlStatusCol = new JPanel(new BorderLayout(0, 5));
-        pnlStatusCol.setOpaque(false);
-        pnlStatusCol.add(createLabel("ESTADO ACTUAL"), BorderLayout.NORTH);
-        m_cmbStatus = new JComboBox<>(new String[]{"PENDING", "IN_PROGRESS", "CLOSED", "CANCELLED"});
-        m_cmbStatus.setPreferredSize(new Dimension(0, 32));
-        m_cmbStatus.setFont(FONT_FIELD);
-        pnlStatusCol.add(m_cmbStatus, BorderLayout.CENTER);
-        
-        pnlStatusRow.add(pnlTechCol);
-        pnlStatusRow.add(pnlStatusCol);
-        gbc.gridy++;
-        formPanel.add(pnlStatusRow, gbc);
-
-        gbc.gridy++;
-        formPanel.add(createLabel("COSTO DEL SERVICIO ($)"), gbc);
-        m_txtCost = createTextField(true);
-        m_txtCost.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        m_txtCost.setForeground(BRAND_EMERALD);
-        gbc.gridy++;
-        formPanel.add(m_txtCost, gbc);
-
-        gbc.gridy++;
-        gbc.weighty = 1.0;
+        gbc.weighty = 1;
         gbc.fill = GridBagConstraints.BOTH;
-        m_lblEntryDate = new JLabel("Registrado el: -", SwingConstants.RIGHT);
-        m_lblEntryDate.setFont(new Font("Segoe UI", Font.ITALIC, 11));
-        m_lblEntryDate.setForeground(COLOR_TEXT_MUTED);
-        formPanel.add(m_lblEntryDate, gbc);
-
-        formContainer.add(formPanel, BorderLayout.CENTER);
-        splitPane.setRightComponent(formContainer);
-        add(splitPane, BorderLayout.CENTER);
-
-        loadData();
+        entryDate = new JLabel("Registrado el: -", SwingConstants.RIGHT);
+        entryDate.setFont(new Font("Segoe UI", Font.ITALIC, 11));
+        entryDate.setForeground(MUTED);
+        form.add(entryDate, gbc);
+        outer.add(new JScrollPane(form, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER), BorderLayout.CENTER);
+        return outer;
     }
 
-    private JLabel createSectionHeader(String text) {
-        JLabel lbl = new JLabel(text);
-        lbl.setFont(FONT_LABEL);
-        lbl.setForeground(COLOR_NAVY_SOFT);
-        lbl.setBorder(new MatteBorder(0, 0, 1, 0, COLOR_LINE));
-        return lbl;
+    private GridBagConstraints constraints() {
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(7, 20, 7, 20);
+        gbc.weightx = 1;
+        return gbc;
     }
 
-    private JLabel createLabel(String text) {
-        JLabel lbl = new JLabel(text);
-        lbl.setFont(FONT_LABEL);
-        lbl.setForeground(COLOR_TEXT_MUTED);
-        return lbl;
+    private void addSection(JPanel form, GridBagConstraints gbc, String text) {
+        gbc.gridy++;
+        gbc.insets = new Insets(14, 20, 7, 20);
+        form.add(section(text), gbc);
+        gbc.insets = new Insets(7, 20, 7, 20);
     }
 
-    private JTextField createTextField(boolean editable) {
-        JTextField txt = new JTextField();
-        txt.setPreferredSize(new Dimension(0, 32));
-        txt.setFont(FONT_FIELD);
-        txt.setEditable(editable);
-        txt.setBorder(new CompoundBorder(new LineBorder(COLOR_LINE), new EmptyBorder(0, 10, 0, 10)));
-        if (!editable) txt.setBackground(new Color(248, 250, 252));
-        return txt;
+    private void addField(JPanel form, GridBagConstraints gbc, String caption, JComponent component) {
+        gbc.gridy++;
+        form.add(label(caption), gbc);
+        gbc.gridy++;
+        form.add(component, gbc);
     }
 
-    private JButton createStyledButton(String text, String iconPath, Color bg) {
-        JButton btn = new JButton(text);
+    private JPanel fieldColumn(String caption) {
+        JPanel panel = new JPanel(new BorderLayout(0, 5));
+        panel.setOpaque(false);
+        panel.add(label(caption), BorderLayout.NORTH);
+        return panel;
+    }
+
+    private JLabel section(String text) {
+        JLabel result = label(text);
+        result.setForeground(NAVY_SOFT);
+        result.setBorder(new MatteBorder(0, 0, 1, 0, LINE));
+        return result;
+    }
+
+    private JLabel label(String text) {
+        JLabel result = new JLabel(text);
+        result.setFont(LABEL);
+        result.setForeground(MUTED);
+        return result;
+    }
+
+    private JTextField textField(boolean editable) {
+        JTextField result = new JTextField();
+        result.setPreferredSize(new Dimension(0, 34));
+        result.setFont(FIELD);
+        result.setEditable(editable);
+        result.setBorder(new CompoundBorder(new LineBorder(LINE), new EmptyBorder(0, 10, 0, 10)));
+        if (!editable) result.setBackground(new Color(248, 250, 252));
+        return result;
+    }
+
+    private JButton button(String text, String iconPath, Color background) {
+        JButton result = new JButton(text);
         try {
-            java.net.URL imgUrl = getClass().getResource(iconPath);
-            if (imgUrl != null) {
-                btn.setIcon(new ImageIcon(imgUrl));
-            }
-        } catch (Exception e) { /* ignore if icon fails */ }
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        btn.setBackground(bg);
-        btn.setForeground(Color.WHITE);
-        btn.setFocusPainted(false);
-        btn.setBorder(new EmptyBorder(8, 16, 8, 16));
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        return btn;
+            java.net.URL url = getClass().getResource(iconPath);
+            if (url != null) result.setIcon(new ImageIcon(url));
+        } catch (RuntimeException ignored) { }
+        result.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        result.setBackground(background);
+        result.setForeground(Color.WHITE);
+        result.setFocusPainted(false);
+        result.setBorder(new EmptyBorder(8, 13, 8, 13));
+        result.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        return result;
     }
 
     private void loadData() {
         try {
-            m_repairsList = dlRepairs.getRepairs();
-            m_modelRepairs.setRowCount(0);
-            for (RepairInfo r : m_repairsList) {
-                m_modelRepairs.addRow(new Object[]{
-                    r.getId(),
-                    r.getRepairNumber(),
-                    r.getCustomerName() != null ? r.getCustomerName() : "N/A",
-                    r.getStatus(),
-                    Formats.DATE.formatValue(r.getEntryDate())
-                });
-            }
-
-            List<TechnicianInfo> techs = dlRepairs.getTechnicians();
-            m_cmbTechnician.removeAllItems();
-            for (TechnicianInfo t : techs) m_cmbTechnician.addItem(t);
+            repairs = dlRepairs.getRepairs();
+            List<TechnicianInfo> technicians = dlRepairs.getTechnicians();
+            technician.setModel(new DefaultComboBoxModel<>(technicians.toArray(new TechnicianInfo[0])));
+            updateMetrics();
+            filterRows();
         } catch (BasicException e) {
             new MessageInf(e).show(this);
+        }
+    }
+
+    private void updateMetrics() {
+        int pending = 0, workshop = 0, ready = 0, delivered = 0;
+        for (RepairInfo repair : repairs) {
+            if ("PENDING".equals(repair.getStatus())) pending++;
+            else if ("IN_PROGRESS".equals(repair.getStatus())) workshop++;
+            else if ("READY".equals(repair.getStatus())) ready++;
+            else if ("CLOSED".equals(repair.getStatus())) delivered++;
+        }
+        pendingCount.setText(String.valueOf(pending));
+        workshopCount.setText(String.valueOf(workshop));
+        readyCount.setText(String.valueOf(ready));
+        deliveredCount.setText(String.valueOf(delivered));
+    }
+
+    private void filterRows() {
+        if (tableModel == null) return;
+        String query = normalize(search == null ? "" : search.getText());
+        int selected = statusFilter == null ? 0 : statusFilter.getSelectedIndex();
+        String statusCode = selected == 0 ? null : STATUS_CODES[selected - 1];
+        tableModel.setRowCount(0);
+        for (RepairInfo repair : repairs) {
+            String searchable = normalize(safe(repair.getRepairNumber()) + " " + safe(repair.getCustomerName()) + " " + safe(repair.getBicycleDetails()));
+            if ((statusCode == null || statusCode.equals(repair.getStatus())) && (query.isEmpty() || searchable.contains(query))) {
+                tableModel.addRow(new Object[]{repair.getId(), repair.getRepairNumber(), fallback(repair.getCustomerName(), "Sin cliente"), statusLabel(repair.getStatus()), Formats.DATE.formatValue(repair.getEntryDate())});
+            }
         }
     }
 
     private void findCustomer() {
         JCustomerFinder finder = JCustomerFinder.getCustomerFinder(this, dlCustomers);
         finder.setVisible(true);
-        CustomerInfo customer = finder.getSelectedCustomer();
-        if (customer != null) {
-            m_selectedCustomerId = customer.getId();
-            m_txtCustomer.setText(customer.getName());
+        CustomerInfo selected = finder.getSelectedCustomer();
+        if (selected != null) {
+            selectedCustomerId = selected.getId();
+            customer.setText(selected.getName());
         }
     }
 
     private void loadSelectedRepair() {
-        int row = m_tableRepairs.getSelectedRow();
-        if (row != -1) {
-            String id = (String) m_modelRepairs.getValueAt(row, 0);
-            for (RepairInfo r : m_repairsList) {
-                if (r.getId().equals(id)) {
-                    m_currentRepair = r;
-                    m_txtRepairNumber.setText(r.getRepairNumber());
-                    m_txtCustomer.setText(r.getCustomerName());
-                    m_selectedCustomerId = r.getCustomerId();
-                    m_txtBicycle.setText(r.getBicycleDetails());
-                    m_txtObservations.setText(r.getObservations());
-                    m_cmbStatus.setSelectedItem(r.getStatus());
-                    m_txtCost.setText(r.getTotalCost() != null ? r.getTotalCost().toString() : "0.0");
-                    m_lblEntryDate.setText("Registrado el: " + Formats.TIMESTAMP.formatValue(r.getEntryDate()));
-                    for (int i = 0; i < m_cmbTechnician.getItemCount(); i++) {
-                        TechnicianInfo t = m_cmbTechnician.getItemAt(i);
-                        if (t.getId() != null && t.getId().equals(r.getTechnicianId())) {
-                            m_cmbTechnician.setSelectedIndex(i);
-                            break;
-                        }
-                    }
-                    return;
-                }
+        int row = table.getSelectedRow();
+        if (row < 0) return;
+        String id = (String) tableModel.getValueAt(table.convertRowIndexToModel(row), 0);
+        for (RepairInfo repair : repairs) {
+            if (repair.getId().equals(id)) {
+                currentRepair = repair;
+                repairNumber.setText(repair.getRepairNumber());
+                customer.setText(safe(repair.getCustomerName()));
+                selectedCustomerId = repair.getCustomerId();
+                bicycle.setText(safe(repair.getBicycleDetails()));
+                observations.setText(safe(repair.getObservations()));
+                status.setSelectedIndex(statusIndex(repair.getStatus()));
+                cost.setText(repair.getTotalCost() == null ? "0.00" : String.format(Locale.US, "%.2f", repair.getTotalCost()));
+                entryDate.setText("Registrado el: " + Formats.TIMESTAMP.formatValue(repair.getEntryDate()));
+                selectTechnician(repair.getTechnicianId());
+                return;
             }
         }
     }
 
+    private void selectTechnician(String id) {
+        if (id == null) return;
+        for (int i = 0; i < technician.getItemCount(); i++) {
+            if (id.equals(technician.getItemAt(i).getId())) technician.setSelectedIndex(i);
+        }
+    }
+
     private void clearForm() {
-        m_currentRepair = null;
-        m_txtRepairNumber.setText("PENDIENTE ASIGNAR");
-        m_txtCustomer.setText("");
-        m_selectedCustomerId = null;
-        m_txtBicycle.setText("");
-        m_txtObservations.setText("");
-        m_cmbStatus.setSelectedIndex(0);
-        m_txtCost.setText("0.0");
-        m_lblEntryDate.setText("Registrado el: -");
-        m_tableRepairs.clearSelection();
+        currentRepair = null;
+        selectedCustomerId = null;
+        repairNumber.setText("Se asignará al guardar");
+        customer.setText("");
+        bicycle.setText("");
+        observations.setText("");
+        serviceTemplate.setSelectedIndex(0);
+        status.setSelectedIndex(0);
+        cost.setText("0.00");
+        entryDate.setText("Registrado el: -");
+        table.clearSelection();
+    }
+
+    private void insertServiceTemplate() {
+        int index = serviceTemplate.getSelectedIndex();
+        if (index <= 0) return;
+        String text = "Servicio solicitado: " + SERVICE_TEMPLATES[index]
+                + "\nFalla reportada: \nRevisión realizada: \nRefacciones requeridas: \nAutorización del cliente: Pendiente";
+        if (!observations.getText().trim().isEmpty()) text = observations.getText().trim() + "\n\n" + text;
+        observations.setText(text);
+        observations.requestFocusInWindow();
     }
 
     private void saveRepair() {
+        if (!validateForm()) return;
         try {
-            if (m_selectedCustomerId == null) {
-                JOptionPane.showMessageDialog(this, "Debe seleccionar un cliente.", "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            RepairInfo r = m_currentRepair != null ? m_currentRepair : new RepairInfo();
-            r.setCustomerId(m_selectedCustomerId);
-            r.setBicycleDetails(m_txtBicycle.getText());
-            r.setObservations(m_txtObservations.getText());
-            r.setStatus(m_cmbStatus.getSelectedItem().toString());
-            try {
-                r.setTotalCost(Double.parseDouble(m_txtCost.getText()));
-            } catch (NumberFormatException e) {
-                r.setTotalCost(0.0);
-            }
-
-            TechnicianInfo tech = (TechnicianInfo) m_cmbTechnician.getSelectedItem();
-            if (tech != null) r.setTechnicianId(tech.getId());
-
-            if (r.getStatus().equals("CLOSED") && r.getExitDate() == null) r.setExitDate(new java.util.Date());
-
-            dlRepairs.saveRepair(r);
+            RepairInfo repair = currentRepair == null ? new RepairInfo() : currentRepair;
+            repair.setCustomerId(selectedCustomerId);
+            repair.setBicycleDetails(bicycle.getText().trim());
+            repair.setObservations(observations.getText().trim());
+            String statusCode = STATUS_CODES[status.getSelectedIndex()];
+            repair.setStatus(statusCode);
+            repair.setTotalCost(parseCost(cost.getText()));
+            TechnicianInfo selectedTechnician = (TechnicianInfo) technician.getSelectedItem();
+            repair.setTechnicianId(selectedTechnician == null ? null : selectedTechnician.getId());
+            if ("CLOSED".equals(statusCode) && repair.getExitDate() == null) repair.setExitDate(new java.util.Date());
+            if (!"CLOSED".equals(statusCode)) repair.setExitDate(null);
+            dlRepairs.saveRepair(repair);
             loadData();
             clearForm();
-            JOptionPane.showMessageDialog(this, "Registro procesado exitosamente.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "La orden de taller se guardó correctamente.", "Orden guardada", JOptionPane.INFORMATION_MESSAGE);
         } catch (BasicException e) {
             new MessageInf(e).show(this);
         }
     }
 
+    private boolean validateForm() {
+        if (selectedCustomerId == null) return validationError("Selecciona el cliente que entrega la bicicleta.", customer);
+        if (bicycle.getText().trim().isEmpty()) return validationError("Captura marca, modelo, rodada, color o número de serie.", bicycle);
+        if (observations.getText().trim().isEmpty()) return validationError("Registra la falla reportada o el diagnóstico.", observations);
+        try {
+            if (parseCost(cost.getText()) < 0) return validationError("El costo no puede ser negativo.", cost);
+        } catch (NumberFormatException e) {
+            return validationError("Ingresa un costo válido, por ejemplo 450.00.", cost);
+        }
+        return true;
+    }
+
+    private boolean validationError(String message, JComponent component) {
+        JOptionPane.showMessageDialog(this, message, "Revisa la orden", JOptionPane.WARNING_MESSAGE);
+        component.requestFocusInWindow();
+        return false;
+    }
+
+    private double parseCost(String value) {
+        String result = safe(value).trim().replace("$", "").replace(" ", "");
+        if (result.contains(",") && result.contains(".")) result = result.replace(",", "");
+        else result = result.replace(',', '.');
+        return Double.parseDouble(result);
+    }
+
     private void deleteRepair() {
-        if (m_currentRepair != null) {
-            if (JOptionPane.showConfirmDialog(this, "¿Desea eliminar este registro de reparación?", "Confirmar Eliminación", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-                try {
-                    dlRepairs.deleteRepair(m_currentRepair.getId());
-                    loadData();
-                    clearForm();
-                } catch (BasicException e) {
-                    new MessageInf(e).show(this);
-                }
+        if (currentRepair == null) {
+            JOptionPane.showMessageDialog(this, "Selecciona una orden para eliminarla.", "Sin selección", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        String message = "¿Deseas eliminar definitivamente la orden " + currentRepair.getRepairNumber() + "?";
+        if (JOptionPane.showConfirmDialog(this, message, "Eliminar orden", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION) {
+            try {
+                dlRepairs.deleteRepair(currentRepair.getId());
+                loadData();
+                clearForm();
+            } catch (BasicException e) {
+                new MessageInf(e).show(this);
             }
         }
     }
 
+    private void copyFolio() {
+        if (currentRepair == null) {
+            JOptionPane.showMessageDialog(this, "Primero guarda o selecciona una orden.", "Folio no disponible", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        String folio = repairNumber.getText().trim();
+        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(folio), null);
+        JOptionPane.showMessageDialog(this, "Folio " + folio + " copiado.", "Folio copiado", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private static int statusIndex(String value) {
+        for (int i = 0; i < STATUS_CODES.length; i++) if (STATUS_CODES[i].equals(value)) return i;
+        return 0;
+    }
+
+    private static String statusLabel(String value) { return STATUS_LABELS[statusIndex(value)]; }
+    private static String safe(String value) { return value == null ? "" : value; }
+    private static String fallback(String value, String fallback) { return safe(value).trim().isEmpty() ? fallback : value; }
+    private static String normalize(String value) {
+        return Normalizer.normalize(safe(value), Normalizer.Form.NFD).replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT).trim();
+    }
+
+    private final class RepairRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable source, Object value, boolean selected, boolean focus, int row, int column) {
+            Component component = super.getTableCellRendererComponent(source, value, selected, focus, row, column);
+            if (!selected) component.setBackground(row % 2 == 0 ? SURFACE : new Color(250, 251, 253));
+            setBorder(new EmptyBorder(0, 9, 0, 9));
+            if (column == 2 && !selected) {
+                String label = String.valueOf(value);
+                if ("Pendiente".equals(label)) setForeground(new Color(180, 120, 20));
+                else if ("En reparación".equals(label)) setForeground(BLUE);
+                else if ("Lista para entregar".equals(label)) setForeground(GREEN);
+                else if ("Entregada".equals(label)) setForeground(NAVY_SOFT);
+                else setForeground(Color.GRAY);
+                setFont(LABEL);
+            } else {
+                setForeground(selected ? Color.WHITE : TEXT);
+                setFont(FIELD);
+            }
+            return component;
+        }
+    }
+
     @Override public JComponent getComponent() { return this; }
-    @Override public String getTitle() { return "Reparaciones"; }
+    @Override public String getTitle() { return "Taller de bicicletas"; }
     @Override public void activate() throws BasicException { loadData(); }
     @Override public boolean deactivate() { return true; }
     @Override public Object getBean() { return this; }

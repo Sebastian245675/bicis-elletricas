@@ -1,5 +1,7 @@
 package com.openbravo.pos.inventory;
 
+import com.openbravo.pos.util.ModernActionIcon;
+
 import com.openbravo.basic.BasicException;
 import com.openbravo.data.loader.SentenceList;
 import com.openbravo.data.loader.Session;
@@ -116,40 +118,12 @@ public class JPanelPromotions extends JPanel implements JPanelView, BeanFactoryA
 
     private void initComponents() {
         setLayout(new BorderLayout());
-        setBackground(new Color(248, 250, 252)); // Slate 50
-
-        // --- HEADER ---
-        JPanel header = new JPanel(new GridBagLayout());
-        header.setBackground(Color.WHITE);
-        header.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)), // Slate 200 bottom border
-            BorderFactory.createEmptyBorder(18, 24, 18, 24)
-        ));
-
-        GridBagConstraints gbcH = new GridBagConstraints();
-        gbcH.gridx = 0; gbcH.gridy = 0;
-        gbcH.weightx = 1.0;
-        gbcH.fill = GridBagConstraints.HORIZONTAL;
-        gbcH.anchor = GridBagConstraints.WEST;
-
-        JLabel title = new JLabel("Gestión de Promociones y Descuentos");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        title.setForeground(new Color(15, 23, 42)); // Slate 900
-        header.add(title, gbcH);
-
-        gbcH.gridy = 1;
-        gbcH.insets = new Insets(4, 0, 0, 0);
-        JLabel subtitle = new JLabel("Crea, programa y gestiona ofertas especiales y campañas de descuento para productos o categorías.");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        subtitle.setForeground(new Color(100, 116, 139)); // Slate 500
-        header.add(subtitle, gbcH);
-
-        add(header, BorderLayout.NORTH);
+        setBackground(new Color(250, 247, 242)); // Soft Crema background
 
         // --- MAIN CONTENT ---
-        JPanel mainContent = new JPanel(new BorderLayout(24, 24));
+        JPanel mainContent = new JPanel(new BorderLayout(16, 16));
         mainContent.setOpaque(false);
-        mainContent.setBorder(new EmptyBorder(24, 24, 24, 24));
+        mainContent.setBorder(new EmptyBorder(16, 16, 16, 16));
         add(mainContent, BorderLayout.CENTER);
 
         // --- TOP: FORM PANEL ---
@@ -160,11 +134,11 @@ public class JPanelPromotions extends JPanel implements JPanelView, BeanFactoryA
         formPanel.setBackground(Color.WHITE);
         formPanel.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(226, 232, 240), 1), // Slate 200 border
-            new EmptyBorder(24, 24, 24, 24)
+            new EmptyBorder(20, 24, 20, 24)
         ));
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 12, 10, 12);
+        gbc.insets = new Insets(8, 12, 8, 12);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.anchor = GridBagConstraints.WEST;
 
@@ -199,7 +173,7 @@ public class JPanelPromotions extends JPanel implements JPanelView, BeanFactoryA
         
         m_jDiscount = new JTextField(8);
         m_jDiscount.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        m_jDiscount.setForeground(new Color(37, 99, 235)); // Modern primary blue text
+        m_jDiscount.setForeground(new Color(202, 159, 65)); // Modern primary gold text
         m_jDiscount.setHorizontalAlignment(JTextField.CENTER);
         m_jDiscount.setBorder(inputBorder);
         m_jDiscount.setToolTipText("Ingrese solo el número (ej: 15 para 15%)");
@@ -255,17 +229,11 @@ public class JPanelPromotions extends JPanel implements JPanelView, BeanFactoryA
         datesPanel.add(new JLabel("Desde: "));
         datesPanel.add(m_jDateFrom);
         JButton btnFrom = createDateButton(m_jDateFrom);
-        btnFrom.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
-        btnFrom.setContentAreaFilled(false);
-        btnFrom.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         datesPanel.add(btnFrom);
         
         datesPanel.add(new JLabel("  Hasta: "));
         datesPanel.add(m_jDateTo);
         JButton btnTo = createDateButton(m_jDateTo);
-        btnTo.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
-        btnTo.setContentAreaFilled(false);
-        btnTo.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         datesPanel.add(btnTo);
         
         gbc.gridx = 3; gbc.weightx = 1.0;
@@ -299,9 +267,9 @@ public class JPanelPromotions extends JPanel implements JPanelView, BeanFactoryA
         JButton btnSearchProd = new JButton("Buscar Producto");
         btnSearchProd.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnSearchProd.setBackground(Color.WHITE);
-        btnSearchProd.setForeground(new Color(37, 99, 235)); // Primary blue text
+        btnSearchProd.setForeground(new Color(202, 159, 65)); // brand gold
         btnSearchProd.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(37, 99, 235), 1),
+            BorderFactory.createLineBorder(new Color(202, 159, 65), 1),
             BorderFactory.createEmptyBorder(6, 12, 6, 12)
         ));
         btnSearchProd.setContentAreaFilled(false);
@@ -353,7 +321,7 @@ public class JPanelPromotions extends JPanel implements JPanelView, BeanFactoryA
         gbc.anchor = GridBagConstraints.EAST;
         JButton btnSave = new JButton("Crear Promoción");
         btnSave.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnSave.setBackground(new Color(37, 99, 235)); // Primary blue background
+        btnSave.setBackground(new Color(202, 159, 65)); // brand gold background
         btnSave.setForeground(Color.WHITE);
         btnSave.setPreferredSize(new Dimension(180, 38));
         btnSave.setBorder(BorderFactory.createEmptyBorder(6, 16, 6, 16));
@@ -382,20 +350,9 @@ public class JPanelPromotions extends JPanel implements JPanelView, BeanFactoryA
         tableTitle.setForeground(new Color(15, 23, 42)); // Slate 900
         tableHeaderPanel.add(tableTitle, BorderLayout.WEST);
 
-        JLabel tableSubtitle = new JLabel("Lista de campañas vigentes y programadas en el sistema");
-        tableSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        tableSubtitle.setForeground(new Color(100, 116, 139)); // Slate 500
-        tableHeaderPanel.add(tableSubtitle, BorderLayout.SOUTH);
-
-        // Destructive delete button right next to the title or aligned cleanly on the right
+        // Destructive delete button
         JButton btnDelete = new JButton("Eliminar Promoción");
         btnDelete.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnDelete.setBackground(new Color(220, 38, 38)); // Slate Red 600
-        btnDelete.setForeground(Color.WHITE);
-        btnDelete.setPreferredSize(new Dimension(160, 32));
-        btnDelete.setBorder(BorderFactory.createEmptyBorder(4, 12, 4, 12));
-        btnDelete.setFocusPainted(false);
-        btnDelete.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         btnDelete.addActionListener(e -> deletePromotion());
         tableHeaderPanel.add(btnDelete, BorderLayout.EAST);
 
@@ -410,20 +367,19 @@ public class JPanelPromotions extends JPanel implements JPanelView, BeanFactoryA
         };
         m_table = new JTable(m_tableModel);
         m_table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        m_table.setRowHeight(35); // Padded spacing row height
-        m_table.setShowVerticalLines(false); // Only horizontal gridlines
+        m_table.setRowHeight(35);
+        m_table.setShowVerticalLines(false);
         m_table.setShowHorizontalLines(true);
-        m_table.setGridColor(new Color(241, 245, 249)); // Slate 100
+        m_table.setGridColor(new Color(241, 245, 249));
         m_table.setBackground(Color.WHITE);
-        m_table.setSelectionBackground(new Color(239, 246, 255)); // Blue 50 selection tint
-        m_table.setSelectionForeground(new Color(30, 41, 59)); // Slate 800 selection text
-        m_table.setFocusable(false); // Clean focus outline
+        m_table.setSelectionBackground(new Color(239, 246, 255));
+        m_table.setSelectionForeground(new Color(30, 41, 59));
+        m_table.setFocusable(false);
         
         m_table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        m_table.getTableHeader().setBackground(new Color(248, 250, 252)); // Slate 50
-        m_table.getTableHeader().setForeground(new Color(71, 85, 105)); // Slate 600
+        m_table.getTableHeader().setBackground(new Color(248, 250, 252));
+        m_table.getTableHeader().setForeground(new Color(71, 85, 105));
         m_table.getTableHeader().setReorderingAllowed(false);
-        m_table.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)));
         
         m_table.getColumnModel().getColumn(7).setMinWidth(0);
         m_table.getColumnModel().getColumn(7).setMaxWidth(0);
@@ -436,6 +392,28 @@ public class JPanelPromotions extends JPanel implements JPanelView, BeanFactoryA
         
         tableCard.add(scrollPane, BorderLayout.CENTER);
         mainContent.add(tableCard, BorderLayout.CENTER);
+
+        // Apply modern design styling recursively
+        com.openbravo.pos.util.ModernLookAndFeel.estilizarComponentes(this);
+
+        // Restyle delete button to be red
+        btnDelete.setBackground(new Color(220, 38, 38));
+        btnDelete.setForeground(Color.WHITE);
+        btnDelete.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(185, 28, 28), 1),
+            BorderFactory.createEmptyBorder(6, 16, 6, 16)
+        ));
+
+        // Reset date picker buttons to transparent icon buttons
+        btnFrom.setContentAreaFilled(false);
+        btnFrom.setBorderPainted(false);
+        btnFrom.setOpaque(false);
+        btnFrom.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
+
+        btnTo.setContentAreaFilled(false);
+        btnTo.setBorderPainted(false);
+        btnTo.setOpaque(false);
+        btnTo.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
     }
 
     private void searchProduct() {
@@ -473,7 +451,7 @@ public class JPanelPromotions extends JPanel implements JPanelView, BeanFactoryA
 
     private JButton createDateButton(final JTextField text) {
         JButton btn = new JButton();
-        btn.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/date.png")));
+        btn.setIcon(new ModernActionIcon(ModernActionIcon.Type.CALENDAR, 18));
         btn.addActionListener(e -> {
             Date date;
             try {

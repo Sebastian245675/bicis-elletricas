@@ -20,6 +20,7 @@ import com.openbravo.pos.forms.DataLogicSystem;
 import com.openbravo.pos.forms.AppView;
 import com.openbravo.pos.forms.AppLocal;
 import com.openbravo.basic.BasicException;
+import com.openbravo.pos.catalog.CatalogSelector;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.Connection;
@@ -70,6 +71,7 @@ import com.openbravo.pos.util.InactivityListener;
 import com.openbravo.pos.reports.JRPrinterAWT300;
 import com.openbravo.pos.util.ReportUtils;
 import com.openbravo.beans.JCalendarDialog;
+import com.openbravo.pos.util.ModernLookAndFeel;
 import com.openbravo.data.loader.QBFCompareEnum;
 import com.openbravo.data.user.ListProviderCreator;
 import com.openbravo.data.user.EditorCreator;
@@ -128,6 +130,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     private static Integer lastTicketType = null;
 
     protected JTicketLines m_ticketlines;
+    protected CatalogSelector m_cat;
+    private long lastEnterTimestamp = 0;
     protected JPanelButtons m_jbtnconfig;
     protected AppView m_App;
     protected DataLogicSystem dlSystem;
@@ -176,12 +180,14 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
      */
     public JPanelTicket(AppView app) {
 
+        // initComponents builds controls whose visibility depends on the active
+        // user's permissions, so the application context must already be set.
+        m_App = app;
         initComponents();
 
         LOGGER.log(java.util.logging.Level.FINE, "JPanelTicket.init");
         m_config = app.getProperties();
 
-        m_App = app;
         restDB = new RestaurantDBUtils(m_App);
 
         dlSystem = (DataLogicSystem) m_App.getBean("com.openbravo.pos.forms.DataLogicSystem");
@@ -303,17 +309,13 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         javax.swing.InputMap inputMap = this.getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW);
         javax.swing.ActionMap actionMap = this.getActionMap();
 
-        // Tecla C: Reimprimir último ticket
-        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_C, 0), "reimprimirTicket");
+        // F11: Reimprimir último ticket
+        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F11, 0), "reimprimirTicket");
         actionMap.put("reimprimirTicket", new javax.swing.AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-                if (m_sBarcode.length() == 0) {
-                    LOGGER.log(java.util.logging.Level.FINE, "Tecla C â†’ Reimprimir Ticket");
-                    reprintLastTicket();
-                    // Limpiar la 'c' que se haya podido escribir en la barra de búsqueda
-                    javax.swing.SwingUtilities.invokeLater(() -> stateToZero());
-                }
+                LOGGER.log(java.util.logging.Level.FINE, "F11 → Reimprimir Ticket");
+                reprintLastTicket();
             }
         });
         // F2: Corte de caja
@@ -713,7 +715,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         btnClienteCustom = new javax.swing.JButton("F5 - Cliente");
         btnClienteCustom.setPreferredSize(new java.awt.Dimension(120, 35));
         btnClienteCustom.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
-        btnClienteCustom.setBackground(new java.awt.Color(70, 130, 180));
+        btnClienteCustom.setBackground(new java.awt.Color(202, 159, 65));
         btnClienteCustom.setForeground(java.awt.Color.WHITE);
         btnClienteCustom.setFocusPainted(false);
         try {
@@ -773,6 +775,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             // elija)
             showEntradasSalidasDialog();
         });
+        boolean canManageCash = m_App.hasPermission("cash.Movement");
+        btnEntradasSalidasCustom.setVisible(canManageCash);
+        btnEntradasSalidasCustom.setEnabled(canManageCash);
 
         panelBotones.add(btnClienteCustom);
         panelBotones.add(btnHistorial);
@@ -797,7 +802,11 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // JCatalog
         // ocupe correctamente toda el área central (esto soluciona el panel blanco).
         m_jPanelCatalog.setLayout(new java.awt.BorderLayout());
-        m_jPanelCatalog.add(getSouthComponent(), BorderLayout.CENTER);
+        Component southComp = getSouthComponent();
+        if (southComp instanceof CatalogSelector) {
+            m_cat = (CatalogSelector) southComp;
+        }
+        m_jPanelCatalog.add(southComp, BorderLayout.CENTER);
     }
 
     @Override
@@ -913,7 +922,10 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             m_jaddtax.setVisible(false);
         }
 
-        m_jDelete.setEnabled(m_App.hasPermission("sales.EditLines"));
+        m_jDelete.setEnabled(m_App.hasPermission("sales.DeleteLines"));
+        m_jDelete.setVisible(m_App.hasPermission("sales.DeleteLines"));
+        m_jEditLine.setEnabled(m_App.hasPermission("sales.EditLines"));
+        m_jEditLine.setVisible(m_App.hasPermission("sales.EditLines"));
         m_jNumberKeys.setMinusEnabled(m_App.hasPermission("sales.EditLines"));
         // Sebastian - Deshabilitar permanentemente el botón '=' porque usamos el
         // botón
@@ -3141,6 +3153,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                                 // Sebastian - Actualizar visualización de puntos después de procesarlos
                                 updateCustomerPointsDisplay();
 
+                                // Sincronización automática de ventas con el panel CRM-IA (Voltium Sanrey)
+                                com.openbravo.pos.sync.VoltiumSyncService.sincronizarVentaAsync(ticket, dlSales);
+
                                 /*
                                  * // Check low stock for products after the ticket is saved and notify the user
                                  * List<String> lowStockProducts = new ArrayList<>();
@@ -4279,17 +4294,17 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         m_jPanelCatalog = new javax.swing.JPanel();
 
-        setBackground(new java.awt.Color(255, 204, 153));
+        setBackground(new java.awt.Color(250, 247, 242));
         setOpaque(false);
         setLayout(new java.awt.CardLayout());
 
         m_jPanelContainer.setLayout(new java.awt.BorderLayout(0, 0)); // Sin gaps para eliminar espacios
-        m_jPanelContainer.setBackground(new java.awt.Color(0, 255, 0)); // Verde Neón corporativo
+        m_jPanelContainer.setBackground(new java.awt.Color(250, 247, 242)); // Fondo institucional
         m_jPanelContainer.setOpaque(true);
         m_jPanelContainer.setBorder(null); // Sin bordes que creen espacio
 
         m_jPanelMainToolbar.setLayout(new java.awt.BorderLayout());
-        m_jPanelMainToolbar.setBackground(new java.awt.Color(0, 255, 0)); // Verde Neón corporativo
+        m_jPanelMainToolbar.setBackground(new java.awt.Color(250, 247, 242)); // Fondo institucional
         m_jPanelMainToolbar.setOpaque(true);
 
         m_jPanelBag.setAutoscrolls(true);
@@ -4448,7 +4463,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Sebastian - Eliminar padding inferior para que el contenido llegue al límite
         m_jPanelTicket.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 5)); // Sin padding inferior
         m_jPanelTicket.setLayout(new java.awt.BorderLayout(0, 0)); // Sin gaps
-        m_jPanelTicket.setBackground(new java.awt.Color(220, 220, 220)); // Fondo gris que continÃºa desde arriba
+        m_jPanelTicket.setBackground(new java.awt.Color(250, 247, 242)); // Fondo institucional
         m_jPanelTicket.setOpaque(true);
 
         m_jPanelLinesToolbar.setFont(new java.awt.Font("Arial", 0, 18)); // NOI18N - TamaÃ±o aumentado
@@ -4794,18 +4809,13 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Panel para el total y el botón "Ventas del día y Devoluciones" (vertical,
         // alineado a la derecha)
         javax.swing.JPanel totalAndButtonPanel = new javax.swing.JPanel();
-        totalAndButtonPanel.setLayout(new java.awt.BorderLayout(0, 2)); // 2px de espacio vertical mínimo entre total y
-                                                                        // botón
+        totalAndButtonPanel.setLayout(new java.awt.BorderLayout(0, 0)); // 0px de espacio vertical mínimo
         totalAndButtonPanel.setOpaque(false);
 
-        // Total exactamente como Eleventa - número grande en azul, estilo delgado pero
-        // legible
-        // Basado en la imagen: fuente más grande, estilo regular/delgado, color azul
-        java.awt.Font totalFont = new java.awt.Font("Arial", java.awt.Font.PLAIN, 52); // TamaÃ±o como Eleventa (grande
-                                                                                       // pero no bold)
+        // Total con jerarquía financiera clara y alineado con la identidad del negocio.
+        java.awt.Font totalFont = new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 48);
         m_jTotalEuros.setFont(totalFont);
-        m_jTotalEuros.setForeground(new java.awt.Color(0, 100, 200)); // Azul más claro como en Eleventa (no tan
-                                                                      // oscuro)
+        m_jTotalEuros.setForeground(new java.awt.Color(7, 55, 43));
         m_jTotalEuros.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT); // Alineación a la DERECHA
         m_jTotalEuros.setText("$0.00");
         m_jTotalEuros.setOpaque(false); // Sin fondo
@@ -4826,17 +4836,19 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         // Botón Cobrar compacto, justo al lado del total
         m_jPayNow = new javax.swing.JButton();
-        m_jPayNow.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 20));
+        m_jPayNow.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
         m_jPayNow.setText("F12 - Cobrar");
         m_jPayNow.setFocusPainted(false);
-        m_jPayNow.setBackground(new java.awt.Color(92, 184, 92)); // Verde
+        m_jPayNow.setBackground(new java.awt.Color(7, 55, 43));
         m_jPayNow.setForeground(java.awt.Color.WHITE);
         m_jPayNow.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-                new javax.swing.border.LineBorder(new java.awt.Color(76, 174, 76), 1),
+                new javax.swing.border.LineBorder(new java.awt.Color(5, 43, 34), 1),
                 javax.swing.BorderFactory.createEmptyBorder(8, 16, 8, 4) // Padding derecho reducido para acercarlo al
                                                                          // total
         ));
         m_jPayNow.setOpaque(true);
+        m_jPayNow.putClientProperty("JButton.buttonType", "roundRect");
+        m_jPayNow.putClientProperty("JButton.arc", 14);
 
         // Botón Reimprimir Ticket (Azul/Gris, al lado de Cobrar)
         javax.swing.JButton m_jReprint = new javax.swing.JButton();
@@ -4844,13 +4856,14 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jReprint.setText("Reimprimir");
         m_jReprint.setToolTipText("Reimprimir último ticket (Impr Pnt)");
         m_jReprint.setFocusPainted(false);
-        m_jReprint.setBackground(new java.awt.Color(52, 152, 219)); // Azul
+        m_jReprint.setBackground(new java.awt.Color(214, 169, 61));
         m_jReprint.setForeground(java.awt.Color.WHITE);
         m_jReprint.setPreferredSize(new java.awt.Dimension(140, 40));
         m_jReprint.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-                new javax.swing.border.LineBorder(new java.awt.Color(41, 128, 185), 1),
+                new javax.swing.border.LineBorder(new java.awt.Color(181, 137, 37), 1),
                 javax.swing.BorderFactory.createEmptyBorder(8, 10, 8, 10)));
         m_jReprint.setOpaque(true);
+        m_jReprint.putClientProperty("JButton.buttonType", "roundRect");
         m_jReprint.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 reprintLastTicket();
@@ -4949,33 +4962,33 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Sebastian - Botón Apartar Vehículo (Morado) junto al botón Pagar
         btnApartar = new javax.swing.JButton("F10 - Apartar");
         btnApartar.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 16));
-        btnApartar.setBackground(new java.awt.Color(138, 43, 226)); // Purple
+        btnApartar.setBackground(new java.awt.Color(202, 159, 65)); // Oro institucional
         btnApartar.setForeground(java.awt.Color.WHITE);
         btnApartar.setFocusPainted(false);
         btnApartar.setPreferredSize(new java.awt.Dimension(140, 40));
         btnApartar.setOpaque(true);
+        btnApartar.putClientProperty("JButton.buttonType", "roundRect");
+        boolean canCreateLayaway = m_App.hasPermission("layaway.Create");
+        btnApartar.setVisible(canCreateLayaway);
+        btnApartar.setEnabled(canCreateLayaway);
         btnApartar.addActionListener(e -> showApartarDialog());
         totalPanel.add(btnApartar);
 
-        totalPanel.add(javax.swing.Box.createHorizontalStrut(5));
-        totalPanel.add(m_jPayNow); // Botón cobrar primero (quedará a la izquierda del
-                                   // total)Panel.add(javax.swing.Box.createHorizontalStrut(5)); // Gap pequeÃ±o
-                                   // (5px) entre botón y total
-        totalPanel.add(javax.swing.Box.createHorizontalStrut(5)); // Gap pequeÃ±o (5px) entre botón y total
+        totalPanel.add(javax.swing.Box.createHorizontalStrut(120)); // Pushes Reimprimir and Apartar a bit more to the left
         totalPanel.add(m_jTotalEuros); // Total después
         totalPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 15)); // Padding derecho
 
-        // Agregar total y botón cobrar al panel (arriba)
+        // Agregar total al panel (arriba)
         totalAndButtonPanel.add(totalPanel, java.awt.BorderLayout.NORTH);
 
         // === Botón "Ventas del día y Devoluciones" directamente debajo del total ===
         javax.swing.JButton btnVentasDelDia = new javax.swing.JButton();
-        btnVentasDelDia.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 9)); // Fuente más pequeÃ±a
+        btnVentasDelDia.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12)); // Font bold 12 to match style
         btnVentasDelDia.setText("Ventas / Devoluciones");
         btnVentasDelDia.setFocusPainted(false);
-        btnVentasDelDia.setPreferredSize(new java.awt.Dimension(140, 22)); // TamaÃ±o más pequeÃ±o
-        btnVentasDelDia.setMinimumSize(new java.awt.Dimension(140, 22));
-        btnVentasDelDia.setMaximumSize(new java.awt.Dimension(140, 22));
+        btnVentasDelDia.setPreferredSize(new java.awt.Dimension(180, 40)); // Match size of m_jPayNow (180x40)
+        btnVentasDelDia.setMinimumSize(new java.awt.Dimension(180, 40));
+        btnVentasDelDia.setMaximumSize(new java.awt.Dimension(180, 40));
         btnVentasDelDia.setBackground(java.awt.Color.WHITE);
         btnVentasDelDia.setForeground(new java.awt.Color(80, 80, 80));
         btnVentasDelDia.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200), 1));
@@ -4988,19 +5001,28 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             }
         });
 
-        // Panel contenedor para el botón, alineado debajo del inicio del total
+        // Panel contenedor para el botón de Ventas/Devoluciones y el botón de Pagar/Cobrar
         javax.swing.JPanel btnVentasPanel = new javax.swing.JPanel();
         btnVentasPanel.setLayout(new javax.swing.BoxLayout(btnVentasPanel, javax.swing.BoxLayout.X_AXIS));
         btnVentasPanel.setOpaque(false);
-        // Alinearlo con el INICIO del total: 200px (strut inicial) + 160px (ancho
-        // botón
-        // cobrar) + 5px (gap) = 365px
         btnVentasPanel.add(javax.swing.Box.createHorizontalGlue()); // Espacio flexible a la izquierda
+        
+        // Ajustar tamaño del botón cobrar para la fila inferior
+        m_jPayNow.setPreferredSize(new java.awt.Dimension(180, 40));
+        m_jPayNow.setMinimumSize(new java.awt.Dimension(180, 40));
+        m_jPayNow.setMaximumSize(new java.awt.Dimension(180, 40));
+        m_jPayNow.setAlignmentY(java.awt.Component.CENTER_ALIGNMENT);
+        btnVentasPanel.add(m_jPayNow);
+        
+        btnVentasPanel.add(javax.swing.Box.createHorizontalStrut(15));
+        
+        btnVentasDelDia.setAlignmentY(java.awt.Component.CENTER_ALIGNMENT);
         btnVentasPanel.add(btnVentasDelDia);
-        btnVentasPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 15)); // Padding derecho
+        
+        btnVentasPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 15)); // Quitado top/bottom margins para subirlo
 
-        // Agregar botón al panel (debajo del total)
-        totalAndButtonPanel.add(btnVentasPanel, java.awt.BorderLayout.EAST);
+        // Agregar botones al panel (abajo del total)
+        totalAndButtonPanel.add(btnVentasPanel, java.awt.BorderLayout.SOUTH);
 
         // Agregar panel de total y botón cobrar al panel superior
         topRightPanel.add(totalAndButtonPanel, java.awt.BorderLayout.EAST);
@@ -5091,7 +5113,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Sebastian - Crear barra de pestañas sobre la tabla de ventas
         javax.swing.JPanel tabsPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 2, 2));
         tabsPanel.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(200, 200, 200)));
-        tabsPanel.setBackground(new java.awt.Color(220, 220, 220)); // Gris suave para continuar el fondo
+        tabsPanel.setBackground(new java.awt.Color(250, 247, 242)); // Fondo institucional
         tabsPanel.setPreferredSize(new java.awt.Dimension(0, 35));
         tabsPanel.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 35)); // Limitar altura máxima
         tabsPanel.setMinimumSize(new java.awt.Dimension(0, 35)); // Limitar altura mínima
@@ -5099,7 +5121,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         // Panel contenedor para la barra de pestañas y la tabla
         javax.swing.JPanel linesWithTabsPanel = new javax.swing.JPanel(new java.awt.BorderLayout(0, 0)); // Sin gaps
-        linesWithTabsPanel.setBackground(new java.awt.Color(220, 220, 220)); // Fondo gris que continÃºa desde arriba
+        linesWithTabsPanel.setBackground(new java.awt.Color(250, 247, 242)); // Fondo institucional
         linesWithTabsPanel.setOpaque(true);
         linesWithTabsPanel.setBorder(null); // Sin bordes que creen espacio
         linesWithTabsPanel.add(tabsPanel, java.awt.BorderLayout.NORTH);
@@ -5158,10 +5180,10 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         jPanelScanner.setPreferredSize(new java.awt.Dimension(800, 55));
 
         m_jPrice.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 24)); // Fuente moderna y números grandes
-        m_jPrice.setForeground(new java.awt.Color(76, 197, 237));
+        m_jPrice.setForeground(new java.awt.Color(7, 55, 43));
         m_jPrice.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         m_jPrice.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(76, 197, 237), 2),
+                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(214, 169, 61), 2),
                 javax.swing.BorderFactory.createEmptyBorder(4, 8, 4, 8)));
         m_jPrice.setOpaque(true);
         m_jPrice.setPreferredSize(new java.awt.Dimension(500, 40));
@@ -5202,7 +5224,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jKeyFactory.setMaximumSize(new java.awt.Dimension(500, 52)); // Limitar el ancho máximo - altura aumentada
                                                                        // para fuente más grande
         m_jKeyFactory.setAutoscrolls(true);
-        m_jKeyFactory.setCaretColor(new java.awt.Color(52, 152, 219));
+        m_jKeyFactory.setCaretColor(new java.awt.Color(7, 55, 43));
         m_jKeyFactory.setRequestFocusEnabled(true);
         m_jKeyFactory.setVerifyInputWhenFocusTarget(false);
         m_jKeyFactory.setScrollOffset(0);
@@ -5230,7 +5252,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
                         g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
                                 java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-                        g2.setColor(new java.awt.Color(52, 152, 219)); // Azul tema
+                        g2.setColor(new java.awt.Color(214, 169, 61));
                         g2.setStroke(new java.awt.BasicStroke(2));
                         g2.drawRoundRect(x + 1, y + 1, width - 3, height - 3, height - 2, height - 2);
                         g2.dispose();
@@ -5253,8 +5275,29 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             }
         });
         m_jKeyFactory.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                if (evt.getKeyCode() == java.awt.event.KeyEvent.VK_ESCAPE) {
+                    m_jKeyFactory.setText("");
+                }
+            }
+            @Override
             public void keyTyped(java.awt.event.KeyEvent evt) {
                 m_jKeyFactoryKeyTyped(evt);
+            }
+        });
+        m_jKeyFactory.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                onSearchFilterChanged();
+            }
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                onSearchFilterChanged();
+            }
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                onSearchFilterChanged();
             }
         });
 
@@ -5324,9 +5367,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 // Crear gradiente con desvanecido suave tipo eleventa - colores más claros
                 // Empieza desde el borde izquierdo, va más allá de la mitad y se desvanece
                 // suavemente
-                java.awt.Color colorInicio = new java.awt.Color(100, 160, 220); // Azul claro más suave
-                java.awt.Color colorMedio = new java.awt.Color(135, 190, 235); // Azul cielo claro
-                java.awt.Color colorFin = new java.awt.Color(255, 255, 255, 0); // Transparente
+                java.awt.Color colorInicio = new java.awt.Color(7, 55, 43);
+                java.awt.Color colorMedio = new java.awt.Color(18, 92, 69);
+                java.awt.Color colorFin = new java.awt.Color(246, 247, 243, 0);
 
                 java.awt.LinearGradientPaint gradient = new java.awt.LinearGradientPaint(
                         0, 0, width, 0,
@@ -5349,7 +5392,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         javax.swing.JLabel lblTicketText = new javax.swing.JLabel("VENTA - Ticket 1");
         lblTicketText.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14)); // Fuente un poco más grande
         lblTicketText.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        lblTicketText.setForeground(java.awt.Color.WHITE);
+        lblTicketText.setForeground(java.awt.Color.WHITE); // Blanco para contraste con verde oscuro
         lblTicketText.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 15, 10, 15)); // Más padding vertical
                                                                                               // para la barra más
                                                                                               // gruesa
@@ -5375,17 +5418,16 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         searchPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 10, 4, 10)); // Sin padding superior para
                                                                                           // que quede justo debajo de
                                                                                           // la barra azul
-        searchPanel.setBackground(new java.awt.Color(245, 245, 245)); // Fondo gris claro moderno
+        searchPanel.setBackground(new java.awt.Color(246, 247, 243));
         searchPanel.setOpaque(true);
 
         // Sebastian - Crear panel contenedor para la sección del escáner - ANCHO
         // COMPLETO
         javax.swing.JPanel scannerContainerPanel = new javax.swing.JPanel();
         scannerContainerPanel.setLayout(new java.awt.BorderLayout());
-        scannerContainerPanel.setBackground(java.awt.Color.WHITE); // Fondo blanco para la sección
+        scannerContainerPanel.setBackground(new java.awt.Color(246, 247, 243));
         scannerContainerPanel.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200), 1), // Borde gris delgado
-                                                                                                  // y elegante
+                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(218, 224, 220), 1),
                 javax.swing.BorderFactory.createEmptyBorder(10, 20, 8, 20) // Padding superior reducido para compactar
         ));
 
@@ -5399,7 +5441,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         btnAgregarProducto.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
         btnAgregarProducto.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ok.png")));
         btnAgregarProducto.setForeground(java.awt.Color.WHITE);
-        btnAgregarProducto.setBackground(new java.awt.Color(46, 204, 113)); // Verde atractivo
+        btnAgregarProducto.setBackground(new java.awt.Color(18, 111, 82));
         btnAgregarProducto.setFocusPainted(false);
         btnAgregarProducto.putClientProperty("JButton.buttonType", "roundRect");
         btnAgregarProducto.putClientProperty("JButton.arc", 999); // Redondeo máximo para el botón
@@ -5430,9 +5472,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         scannerInputPanel.add(searchWrapper, java.awt.BorderLayout.WEST);
 
-        // jPanelScanner debe tener fondo blanco también para estar dentro de la
-        // sección
-        jPanelScanner.setBackground(java.awt.Color.WHITE);
+        // jPanelScanner debe tener fondo crema también
+        jPanelScanner.setBackground(new java.awt.Color(246, 247, 243));
         jPanelScanner.setOpaque(true);
 
         scannerContainerPanel.add(scannerInputPanel, java.awt.BorderLayout.CENTER);
@@ -5447,15 +5488,15 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                                                                                                   // reducido para
                                                                                                   // acercar a la barra
                                                                                                   // de búsqueda
-        actionButtonsPanel.setBackground(new java.awt.Color(245, 245, 245)); // Mismo fondo que searchPanel
+        actionButtonsPanel.setBackground(new java.awt.Color(246, 247, 243));
         actionButtonsPanel.setOpaque(true);
         actionButtonsPanel.setVisible(true);
 
         // Estilo comÃºn para todos los botones
         java.awt.Color btnBg = java.awt.Color.WHITE;
-        java.awt.Color btnFg = new java.awt.Color(60, 60, 60);
-        java.awt.Color btnBorder = new java.awt.Color(220, 220, 220);
-        java.awt.Font btnFont = new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11);
+        java.awt.Color btnFg = new java.awt.Color(42, 55, 50);
+        java.awt.Color btnBorder = new java.awt.Color(213, 221, 216);
+        java.awt.Font btnFont = new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 11);
         int btnHeight = 36;
 
         // Botón Artículo ComÃºn
@@ -5562,7 +5603,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         // Crear un panel contenedor para el toolbar y la búsqueda
         javax.swing.JPanel topPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
-        topPanel.setBackground(new java.awt.Color(220, 220, 220)); // Fondo gris que continÃºa desde arriba
+        topPanel.setBackground(new java.awt.Color(250, 247, 242)); // Fondo institucional
         topPanel.setOpaque(true);
         // Sebastian - Ocultar todo el toolbar principal para interfaz ultramoderna
         m_jPanelMainToolbar.setVisible(false);
@@ -5570,7 +5611,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         // Agregar la barra de búsqueda y los botones de acción en un panel vertical
         javax.swing.JPanel searchAndActionsPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
-        searchAndActionsPanel.setBackground(new java.awt.Color(220, 220, 220)); // Fondo gris suave que continÃºa desde
+        searchAndActionsPanel.setBackground(new java.awt.Color(250, 247, 242)); // Fondo institucional
                                                                                 // arriba
         searchAndActionsPanel.setOpaque(true);
         searchAndActionsPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0)); // Sin padding para
@@ -5598,7 +5639,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Sebastian - Crear un panel contenedor completo que incluya los puntos arriba
         // de todo
         javax.swing.JPanel completeTopPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
-        completeTopPanel.setBackground(new java.awt.Color(220, 220, 220)); // Fondo gris que continÃºa desde la barra
+        completeTopPanel.setBackground(new java.awt.Color(250, 247, 242)); // Fondo institucional
                                                                            // superior
         completeTopPanel.setOpaque(true);
         // Sebastian - Sin espacio superior aquí, el espacio está en JPrincipalApp
@@ -5612,17 +5653,13 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         m_jPanelContainer.add(completeTopPanel, java.awt.BorderLayout.NORTH);
 
-        // Sebastian - El catálogo de productos en cuadros ocupa TODO el centro (el área
-        // "AQUI")
+        // El catálogo ocupa el área central completa, como en el flujo original.
         m_jPanelCatalog.setVisible(true);
         m_jPanelCatalog.setPreferredSize(null);
         m_jPanelContainer.add(m_jPanelCatalog, java.awt.BorderLayout.CENTER);
 
-        // Sebastian - Por solicitud exacta del usuario: la tabla de ventas con columnas
-        // YA NO VA.
-        // Se oculta completamente para dejar solo los productos en cuadros.
+        // La tabla técnica del ticket no reemplaza al catálogo de productos.
         m_jPanelTicket.setVisible(false);
-        // NO agregamos m_jPanelTicket al contenedor
 
         // Sebastian - Totales y botones de pago siempre visibles abajo, independientes
         // de la tabla
@@ -6080,22 +6117,63 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
     }// GEN-LAST:event_jBtnCustomerActionPerformed
 
-    private void m_jEnterActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_m_jEnterActionPerformed
-        // Sebastian - Procesar el texto del campo de búsqueda cuando se presiona el
-        // botón
+    private void onSearchFilterChanged() {
+        if (m_cat != null && m_jKeyFactory != null) {
+            m_cat.filterProducts(m_jKeyFactory.getText());
+        }
+    }
+
+    private void processSearchEnter() {
+        long now = System.currentTimeMillis();
+        if (now - lastEnterTimestamp < 250) {
+            return;
+        }
+        lastEnterTimestamp = now;
+
         String searchText = m_jKeyFactory.getText();
         if (searchText != null && !searchText.trim().isEmpty()) {
-            // Limpiamos m_sBarcode y agregamos el texto completo
-            m_sBarcode = new StringBuffer(searchText.trim());
-            stateTransition('\n'); // Procesar como Enter para buscar y agregar producto
+            String query = searchText.trim();
+
+            // 1. Verificar si hay coincidencia exacta por código de barras o referencia
+            try {
+                ProductInfoExt prod = dlSales.getProductInfoByCode(query);
+                if (prod == null) {
+                    prod = dlSales.getProductInfoByReference(query);
+                }
+                if (prod != null) {
+                    incProduct(prod);
+                    m_jKeyFactory.setText("");
+                    setSearchFieldFocus();
+                    return;
+                }
+            } catch (BasicException ex) {
+                LOGGER.log(java.util.logging.Level.FINE, "Error buscando producto por código exacto: " + query, ex);
+            }
+
+            // 2. Si no hay coincidencia exacta por código, usar la mejor coincidencia del catálogo
+            if (m_cat != null) {
+                ProductInfoExt matched = m_cat.getFirstMatchingProduct(query);
+                if (matched != null) {
+                    incProduct(matched);
+                    m_jKeyFactory.setText("");
+                    setSearchFieldFocus();
+                    return;
+                }
+            }
+
+            // 3. Flujo estándar (maneja códigos especiales, clientes, etc.)
+            m_sBarcode = new StringBuffer(query);
+            stateTransition('\n');
         } else {
-            // Si no hay texto, solo hacer la transición de estado normal
             stateTransition('\n');
         }
+    }
+
+    private void m_jEnterActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_m_jEnterActionPerformed
+        processSearchEnter();
     }// GEN-LAST:event_m_jEnterActionPerformed
 
     private void m_jKeyFactoryKeyTyped(java.awt.event.KeyEvent evt) {// GEN-FIRST:event_m_jKeyFactoryKeyTyped
-
         // Manejar operadores + y - para incrementar/decrementar cantidad
         if (evt.getKeyChar() == '+' || evt.getKeyChar() == '-') {
             evt.consume(); // Evitar que se escriba en el campo de texto
@@ -6103,27 +6181,15 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             return;
         }
 
-        // Permitir que el campo de texto maneje normalmente la entrada
-        // Solo llamamos a stateTransition para Enter
+        // Al presionar Enter
         if (evt.getKeyChar() == '\n') {
-            // Al presionar Enter, usamos el texto del campo como código de búsqueda
-            String searchText = m_jKeyFactory.getText();
-            if (searchText != null && !searchText.trim().isEmpty()) {
-                // Limpiamos m_sBarcode y agregamos el texto completo
-                m_sBarcode = new StringBuffer(searchText.trim());
-                stateTransition('\n'); // Procesar como Enter para buscar
-            }
+            evt.consume();
+            processSearchEnter();
         }
     }// GEN-LAST:event_m_jKeyFactoryKeyTyped
 
     private void m_jKeyFactoryActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_m_jKeyFactoryActionPerformed
-        // Manejar la búsqueda cuando se presiona Enter
-        String searchText = m_jKeyFactory.getText();
-        if (searchText != null && !searchText.trim().isEmpty()) {
-            // Limpiamos m_sBarcode y agregamos el texto completo
-            m_sBarcode = new StringBuffer(searchText.trim());
-            stateTransition('\n'); // Procesar como Enter para buscar
-        }
+        processSearchEnter();
     }// GEN-LAST:event_m_jKeyFactoryActionPerformed
 
     private void m_jaddtaxActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_m_jaddtaxActionPerformed
@@ -6256,7 +6322,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     private javax.swing.JButton m_jDelete;
     private javax.swing.JButton m_jEditLine;
     private javax.swing.JButton m_jEnter;
-    private javax.swing.JTextField m_jKeyFactory;
+    protected javax.swing.JTextField m_jKeyFactory;
     private javax.swing.JLabel m_jLblSubTotalEuros;
     private javax.swing.JLabel m_jLblTaxEuros;
     private javax.swing.JLabel m_jLblTotalEuros;
@@ -7202,41 +7268,105 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
      */
     private void mostrarVentasDelDiaYDevoluciones() {
         try {
+            final java.util.Date[] selectedDate = { new java.util.Date() };
             // Crear diálogo
             javax.swing.JDialog dialog = new javax.swing.JDialog(
                     (java.awt.Frame) javax.swing.SwingUtilities.getWindowAncestor(this),
                     "Ventas del día y Devoluciones",
                     true);
+            dialog.setUndecorated(true);
             dialog.setSize(1200, 700);
             dialog.setLocationRelativeTo(this);
 
+            // Cabecera moderna y personalizada
+            javax.swing.JPanel headerPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+            headerPanel.setBackground(new java.awt.Color(202, 159, 65)); // Oro institucional
+            headerPanel.setPreferredSize(new java.awt.Dimension(1200, 45));
+
+            // Título
+            javax.swing.JLabel lblTitle = new javax.swing.JLabel("  Ventas del día y Devoluciones");
+            lblTitle.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 18));
+            lblTitle.setForeground(java.awt.Color.WHITE);
+            headerPanel.add(lblTitle, java.awt.BorderLayout.WEST);
+
+            // Botón cerrar (X)
+            javax.swing.JButton btnClose = new javax.swing.JButton("✕");
+            btnClose.setFocusPainted(false);
+            btnClose.setBorderPainted(false);
+            btnClose.setContentAreaFilled(false);
+            btnClose.setOpaque(true);
+            btnClose.setBackground(new java.awt.Color(202, 159, 65));
+            btnClose.setForeground(java.awt.Color.WHITE);
+            btnClose.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 18));
+            btnClose.setPreferredSize(new java.awt.Dimension(50, 45));
+            btnClose.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+            btnClose.addActionListener(e -> dialog.dispose());
+
+            // Hover para botón cerrar
+            btnClose.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    btnClose.setBackground(new java.awt.Color(220, 53, 69)); // Rojo al pasar el mouse
+                }
+                @Override
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    btnClose.setBackground(new java.awt.Color(202, 159, 65));
+                }
+            });
+            headerPanel.add(btnClose, java.awt.BorderLayout.EAST);
+
+            // Dragging behavior
+            final java.awt.Point[] dragOffset = { new java.awt.Point() };
+            headerPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mousePressed(java.awt.event.MouseEvent e) {
+                    dragOffset[0] = e.getPoint();
+                }
+            });
+            headerPanel.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+                @Override
+                public void mouseDragged(java.awt.event.MouseEvent e) {
+                    java.awt.Point p = dialog.getLocation();
+                    dialog.setLocation(p.x + e.getX() - dragOffset[0].x, p.y + e.getY() - dragOffset[0].y);
+                }
+            });
+
             // Panel principal con BorderLayout
-            javax.swing.JPanel mainPanel = new javax.swing.JPanel(new java.awt.BorderLayout(10, 10));
-            mainPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10));
+            javax.swing.JPanel mainPanel = new javax.swing.JPanel(new java.awt.BorderLayout(15, 15));
+            mainPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
             // === PANEL IZQUIERDO: Lista de tickets ===
-            javax.swing.JPanel leftPanel = new javax.swing.JPanel(new java.awt.BorderLayout(5, 5));
-            leftPanel.setPreferredSize(new java.awt.Dimension(500, 0));
+            javax.swing.JPanel leftPanel = new javax.swing.JPanel(new java.awt.BorderLayout(10, 10));
+            leftPanel.setPreferredSize(new java.awt.Dimension(480, 0));
+
+            // Panel superior izquierdo (Título + Búsqueda)
+            javax.swing.JPanel northLeftPanel = new javax.swing.JPanel();
+            northLeftPanel.setLayout(new javax.swing.BoxLayout(northLeftPanel, javax.swing.BoxLayout.Y_AXIS));
 
             // Título "VENTAS DEL DIA"
             javax.swing.JLabel lblTitulo = new javax.swing.JLabel("VENTAS DEL DIA");
-            lblTitulo.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 20));
+            lblTitulo.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 22));
             lblTitulo.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 10, 0));
-            leftPanel.add(lblTitulo, java.awt.BorderLayout.NORTH);
+            lblTitulo.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+            northLeftPanel.add(lblTitulo);
 
             // Panel de búsqueda
             javax.swing.JPanel searchPanel = new javax.swing.JPanel(new java.awt.BorderLayout(5, 5));
             javax.swing.JLabel lblSearch = new javax.swing.JLabel("Puedes buscar por folio o nombre del ticket:");
             lblSearch.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
             javax.swing.JTextField txtSearch = new javax.swing.JTextField();
-            txtSearch.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
+            txtSearch.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
             searchPanel.add(lblSearch, java.awt.BorderLayout.NORTH);
             searchPanel.add(txtSearch, java.awt.BorderLayout.CENTER);
-            leftPanel.add(searchPanel, java.awt.BorderLayout.NORTH);
+            searchPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 10, 0));
+            searchPanel.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+            northLeftPanel.add(searchPanel);
+
+            leftPanel.add(northLeftPanel, java.awt.BorderLayout.NORTH);
 
             // Tabla de tickets con columna de tipo
             javax.swing.table.DefaultTableModel ticketsTableModel = new javax.swing.table.DefaultTableModel(
-                    new Object[] { "Folio", "Tipo", "Arts", "Hora", "Total" }, 0) {
+                    new Object[] { "Folio", "Tipo", "Pago", "Arts", "Hora", "Total" }, 0) {
                 @Override
                 public boolean isCellEditable(int row, int column) {
                     return false;
@@ -7280,7 +7410,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             final String COL_WIDTH_KEY = "ticketsTableColumnWidths";
 
             // CLAVE: empieza en TRUE para bloquear eventos del layout inicial de Swing.
-            // Solo se pone en false DESPUÃ‰S de restaurar (en invokeLater).
+            // Solo se pone en false DESPUÉS de restaurar (en invokeLater).
             // Esto evita que columnMarginChanged del layout pise las preferencias
             // guardadas.
             final boolean[] isRestoring = { true };
@@ -7289,7 +7419,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             final String savedOrder = colPrefs.get(COL_ORDER_KEY, null);
             final String savedWidths = colPrefs.get(COL_WIDTH_KEY, null);
 
-            // Listener para guardar orden y anchos (solo cuando el usuario interactÃºa)
+            // Listener para guardar orden y anchos (solo cuando el usuario interactúa)
             ticketsTable.getColumnModel().addColumnModelListener(new javax.swing.event.TableColumnModelListener() {
                 @Override
                 public void columnMoved(javax.swing.event.TableColumnModelEvent e) {
@@ -7336,7 +7466,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 }
             });
 
-            // Restaurar DESPUÃ‰S del layout inicial. invokeLater garantiza que Swing
+            // Restaurar DESPUÉS del layout inicial. invokeLater garantiza que Swing
             // termina
             // de pintar la tabla antes de que modifiquemos columnas.
             javax.swing.SwingUtilities.invokeLater(() -> {
@@ -7396,32 +7526,42 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             // Filtro de fecha
             gbc.gridx = 0;
             gbc.gridy = 0;
+            gbc.gridwidth = 1;
             javax.swing.JLabel lblFecha = new javax.swing.JLabel("Del día:");
             lblFecha.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
             filtersPanel.add(lblFecha, gbc);
 
             gbc.gridx = 1;
+            gbc.gridwidth = 1;
             SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy",
                     java.util.Locale.forLanguageTag("es-MX"));
-            javax.swing.JLabel lblFechaValor = new javax.swing.JLabel(dateFormat.format(new java.util.Date()));
+            javax.swing.JLabel lblFechaValor = new javax.swing.JLabel(dateFormat.format(selectedDate[0]));
             lblFechaValor.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
             filtersPanel.add(lblFechaValor, gbc);
 
             gbc.gridx = 2;
+            gbc.gridwidth = 1;
             javax.swing.JButton btnHoy = new javax.swing.JButton("Hoy");
-            btnHoy.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
-            btnHoy.setPreferredSize(new java.awt.Dimension(60, 25));
+            btnHoy.setPreferredSize(new java.awt.Dimension(80, 30));
             filtersPanel.add(btnHoy, gbc);
+
+            gbc.gridx = 3;
+            gbc.gridwidth = 1;
+            javax.swing.JButton btnCalendario = new javax.swing.JButton("📅");
+            btnCalendario.setPreferredSize(new java.awt.Dimension(45, 30));
+            btnCalendario.setToolTipText("Seleccionar fecha del calendario");
+            filtersPanel.add(btnCalendario, gbc);
 
             // Filtro de cajero
             gbc.gridx = 0;
             gbc.gridy = 1;
+            gbc.gridwidth = 1;
             javax.swing.JLabel lblCajero = new javax.swing.JLabel("Cajero:");
             lblCajero.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
             filtersPanel.add(lblCajero, gbc);
 
             gbc.gridx = 1;
-            gbc.gridwidth = 2;
+            gbc.gridwidth = 3;
             javax.swing.JLabel lblCajeroValor = new javax.swing.JLabel(m_App.getAppUserView().getUser().getName());
             lblCajeroValor.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
             filtersPanel.add(lblCajeroValor, gbc);
@@ -7429,12 +7569,17 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             // Checkbox Ventas a Credito
             gbc.gridx = 0;
             gbc.gridy = 2;
-            gbc.gridwidth = 3;
+            gbc.gridwidth = 4;
             javax.swing.JCheckBox chkVentasCredito = new javax.swing.JCheckBox("Ventas a Credito");
             chkVentasCredito.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
             filtersPanel.add(chkVentasCredito, gbc);
 
-            leftPanel.add(filtersPanel, java.awt.BorderLayout.EAST);
+            filtersPanel.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                    javax.swing.BorderFactory.createTitledBorder(
+                            javax.swing.BorderFactory.createEtchedBorder(), "Filtros de Búsqueda"),
+                    javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5)));
+
+            leftPanel.add(filtersPanel, java.awt.BorderLayout.SOUTH);
 
             // === PANEL DERECHO: Detalles del ticket ===
             // Panel con sello de CANCELADO dibujado encima de los hijos (paintChildren)
@@ -7487,115 +7632,162 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 }
             };
             rightPanel.setPreferredSize(new java.awt.Dimension(600, 0));
-            rightPanel.setBorder(javax.swing.BorderFactory.createTitledBorder("Ticket 3(1)"));
+            final javax.swing.border.TitledBorder rightPanelBorder = javax.swing.BorderFactory.createTitledBorder(
+                    javax.swing.BorderFactory.createEtchedBorder(), "Detalle del Ticket");
+            rightPanel.setBorder(rightPanelBorder);
 
             // Panel de información del ticket
             javax.swing.JPanel ticketInfoPanel = new javax.swing.JPanel();
             ticketInfoPanel.setLayout(new java.awt.GridBagLayout());
             java.awt.GridBagConstraints gbcInfo = new java.awt.GridBagConstraints();
-            gbcInfo.insets = new java.awt.Insets(5, 5, 5, 5);
+            gbcInfo.insets = new java.awt.Insets(6, 10, 6, 10);
             gbcInfo.anchor = java.awt.GridBagConstraints.WEST;
 
             javax.swing.JLabel lblFolio = new javax.swing.JLabel("Folio:");
+            lblFolio.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
             javax.swing.JLabel lblFolioValor = new javax.swing.JLabel("-");
-            javax.swing.JLabel lblCajeroDet = new javax.swing.JLabel("Cajero:");
-            javax.swing.JLabel lblCajeroDetValor = new javax.swing.JLabel("-");
-            javax.swing.JLabel lblCliente = new javax.swing.JLabel("Cliente:");
-            javax.swing.JLabel lblClienteValor = new javax.swing.JLabel("-");
-            javax.swing.JLabel lblFechaDet = new javax.swing.JLabel("-");
+            lblFolioValor.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
 
-            gbcInfo.gridx = 0;
-            gbcInfo.gridy = 0;
+            javax.swing.JLabel lblCajeroDet = new javax.swing.JLabel("Cajero:");
+            lblCajeroDet.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
+            javax.swing.JLabel lblCajeroDetValor = new javax.swing.JLabel("-");
+            lblCajeroDetValor.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
+
+            javax.swing.JLabel lblCliente = new javax.swing.JLabel("Cliente:");
+            lblCliente.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
+            javax.swing.JLabel lblClienteValor = new javax.swing.JLabel("-");
+            lblClienteValor.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
+
+            javax.swing.JLabel lblFechaDetLabel = new javax.swing.JLabel("Fecha:");
+            lblFechaDetLabel.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
+            javax.swing.JLabel lblFechaDet = new javax.swing.JLabel("-");
+            lblFechaDet.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
+
+            // Fila 0
+            gbcInfo.gridx = 0; gbcInfo.gridy = 0;
             ticketInfoPanel.add(lblFolio, gbcInfo);
             gbcInfo.gridx = 1;
             ticketInfoPanel.add(lblFolioValor, gbcInfo);
-            gbcInfo.gridx = 0;
-            gbcInfo.gridy = 1;
+
+            gbcInfo.gridx = 2; gbcInfo.gridy = 0;
+            gbcInfo.insets = new java.awt.Insets(6, 30, 6, 10);
             ticketInfoPanel.add(lblCajeroDet, gbcInfo);
-            gbcInfo.gridx = 1;
+            gbcInfo.gridx = 3;
+            gbcInfo.insets = new java.awt.Insets(6, 10, 6, 10);
             ticketInfoPanel.add(lblCajeroDetValor, gbcInfo);
-            gbcInfo.gridx = 0;
-            gbcInfo.gridy = 2;
+
+            // Fila 1
+            gbcInfo.gridx = 0; gbcInfo.gridy = 1;
             ticketInfoPanel.add(lblCliente, gbcInfo);
             gbcInfo.gridx = 1;
             ticketInfoPanel.add(lblClienteValor, gbcInfo);
-            gbcInfo.gridx = 0;
-            gbcInfo.gridy = 3;
-            gbcInfo.gridwidth = 2;
+
+            gbcInfo.gridx = 2; gbcInfo.gridy = 1;
+            gbcInfo.insets = new java.awt.Insets(6, 30, 6, 10);
+            ticketInfoPanel.add(lblFechaDetLabel, gbcInfo);
+            gbcInfo.gridx = 3;
+            gbcInfo.insets = new java.awt.Insets(6, 10, 6, 10);
             ticketInfoPanel.add(lblFechaDet, gbcInfo);
+
+            ticketInfoPanel.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                    javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, java.awt.Color.LIGHT_GRAY),
+                    javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5)));
 
             rightPanel.add(ticketInfoPanel, java.awt.BorderLayout.NORTH);
 
             // Tabla de items del ticket
             javax.swing.table.DefaultTableModel itemsTableModel = new javax.swing.table.DefaultTableModel(
-                    new Object[] { "Cant.", "Descripción", "Importe" }, 0) {
+                    new Object[] { "Cant.", "Foto", "Descripción", "Importe" }, 0) {
                 @Override
                 public boolean isCellEditable(int row, int column) {
                     return false;
                 }
+                @Override
+                public Class<?> getColumnClass(int columnIndex) {
+                    if (columnIndex == 1) return javax.swing.Icon.class;
+                    return super.getColumnClass(columnIndex);
+                }
             };
             javax.swing.JTable itemsTable = new javax.swing.JTable(itemsTableModel);
             itemsTable.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
-            itemsTable.setRowHeight(25);
+            itemsTable.setRowHeight(45);
+            itemsTable.getColumnModel().getColumn(1).setPreferredWidth(50);
             itemsTable.getTableHeader().setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
             javax.swing.JScrollPane itemsScroll = new javax.swing.JScrollPane(itemsTable);
             rightPanel.add(itemsScroll, java.awt.BorderLayout.CENTER);
 
             // Panel de totales y botones
-            javax.swing.JPanel totalsPanel = new javax.swing.JPanel(new java.awt.BorderLayout(5, 5));
+            javax.swing.JPanel totalsPanel = new javax.swing.JPanel(new java.awt.BorderLayout(10, 10));
+            totalsPanel.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                    javax.swing.BorderFactory.createMatteBorder(1, 0, 0, 0, java.awt.Color.LIGHT_GRAY),
+                    javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10)));
 
             javax.swing.JPanel totalsInfoPanel = new javax.swing.JPanel();
             totalsInfoPanel.setLayout(new java.awt.GridBagLayout());
             java.awt.GridBagConstraints gbcTotals = new java.awt.GridBagConstraints();
-            gbcTotals.insets = new java.awt.Insets(5, 5, 5, 5);
+            gbcTotals.insets = new java.awt.Insets(3, 5, 3, 5);
             gbcTotals.anchor = java.awt.GridBagConstraints.WEST;
 
             javax.swing.JLabel lblTotal = new javax.swing.JLabel("Total:");
-            lblTotal.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
+            lblTotal.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 15));
             javax.swing.JLabel lblTotalValor = new javax.swing.JLabel("$0.00");
-            lblTotalValor.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
-            javax.swing.JLabel lblPagoCon = new javax.swing.JLabel("Pago Con:");
-            javax.swing.JLabel lblPagoConValor = new javax.swing.JLabel("$0.00");
+            lblTotalValor.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 18));
+            lblTotalValor.setForeground(new java.awt.Color(0, 120, 0)); // Verde para el total
 
-            gbcTotals.gridx = 0;
-            gbcTotals.gridy = 0;
+            javax.swing.JLabel lblPagoCon = new javax.swing.JLabel("Pago Con:");
+            lblPagoCon.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
+            javax.swing.JLabel lblPagoConValor = new javax.swing.JLabel("$0.00");
+            lblPagoConValor.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
+
+            gbcTotals.gridx = 0; gbcTotals.gridy = 0;
             totalsInfoPanel.add(lblTotal, gbcTotals);
             gbcTotals.gridx = 1;
             totalsInfoPanel.add(lblTotalValor, gbcTotals);
-            gbcTotals.gridx = 0;
-            gbcTotals.gridy = 1;
+
+            gbcTotals.gridx = 0; gbcTotals.gridy = 1;
             totalsInfoPanel.add(lblPagoCon, gbcTotals);
             gbcTotals.gridx = 1;
             totalsInfoPanel.add(lblPagoConValor, gbcTotals);
 
-            totalsPanel.add(totalsInfoPanel, java.awt.BorderLayout.NORTH);
+            totalsPanel.add(totalsInfoPanel, java.awt.BorderLayout.WEST);
 
             // Botones de acción
             javax.swing.JPanel buttonsPanel = new javax.swing.JPanel(
-                    new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 5));
+                    new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 10, 10));
 
             javax.swing.JButton btnCancelar = new javax.swing.JButton("Cancelar Venta");
-            btnCancelar.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+            btnCancelar.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
             btnCancelar.setEnabled(false);
+            btnCancelar.setPreferredSize(new java.awt.Dimension(130, 35));
+
             javax.swing.JButton btnFacturar = new javax.swing.JButton("Facturar...");
-            btnFacturar.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+            btnFacturar.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
             btnFacturar.setEnabled(false);
+            btnFacturar.setPreferredSize(new java.awt.Dimension(110, 35));
+
             javax.swing.JButton btnImprimir = new javax.swing.JButton("Imprimir copia");
-            btnImprimir.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+            btnImprimir.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
             btnImprimir.setEnabled(false);
+            btnImprimir.setPreferredSize(new java.awt.Dimension(120, 35));
 
             buttonsPanel.add(btnCancelar);
             buttonsPanel.add(btnFacturar);
             buttonsPanel.add(btnImprimir);
 
             totalsPanel.add(buttonsPanel, java.awt.BorderLayout.EAST);
-            rightPanel.add(totalsPanel, java.awt.BorderLayout.EAST);
+            rightPanel.add(totalsPanel, java.awt.BorderLayout.SOUTH);
 
             // Agregar paneles al panel principal
             mainPanel.add(leftPanel, java.awt.BorderLayout.WEST);
             mainPanel.add(rightPanel, java.awt.BorderLayout.CENTER);
 
-            dialog.add(mainPanel);
+            // Contenedor principal de la ventana con borde
+            javax.swing.JPanel windowPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+            windowPanel.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(202, 159, 65), 2));
+            windowPanel.add(headerPanel, java.awt.BorderLayout.NORTH);
+            windowPanel.add(mainPanel, java.awt.BorderLayout.CENTER);
+
+            dialog.add(windowPanel);
 
             // === FUNCIONALIDAD ===
             // Variable para el checkbox (debe ser final para usar en la clase anónima)
@@ -7608,21 +7800,23 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         public Object createValue() throws BasicException {
                             Object[] afilter = new Object[14];
 
-                            // Filtrar por fecha del día actual
-                            Calendar today = Calendar.getInstance();
-                            today.set(Calendar.HOUR_OF_DAY, 0);
-                            today.set(Calendar.MINUTE, 0);
-                            today.set(Calendar.SECOND, 0);
-                            today.set(Calendar.MILLISECOND, 0);
-                            Date startDate = today.getTime();
+                            // Filtrar por fecha seleccionada
+                            Calendar calStart = Calendar.getInstance();
+                            calStart.setTime(selectedDate[0]);
+                            calStart.set(Calendar.HOUR_OF_DAY, 0);
+                            calStart.set(Calendar.MINUTE, 0);
+                            calStart.set(Calendar.SECOND, 0);
+                            calStart.set(Calendar.MILLISECOND, 0);
+                            Date startDate = calStart.getTime();
 
-                            Calendar tomorrow = Calendar.getInstance();
-                            tomorrow.set(Calendar.HOUR_OF_DAY, 0);
-                            tomorrow.set(Calendar.MINUTE, 0);
-                            tomorrow.set(Calendar.SECOND, 0);
-                            tomorrow.set(Calendar.MILLISECOND, 0);
-                            tomorrow.add(Calendar.DAY_OF_MONTH, 1);
-                            Date endDate = tomorrow.getTime();
+                            Calendar calEnd = Calendar.getInstance();
+                            calEnd.setTime(selectedDate[0]);
+                            calEnd.set(Calendar.HOUR_OF_DAY, 0);
+                            calEnd.set(Calendar.MINUTE, 0);
+                            calEnd.set(Calendar.SECOND, 0);
+                            calEnd.set(Calendar.MILLISECOND, 0);
+                            calEnd.add(Calendar.DAY_OF_MONTH, 1);
+                            Date endDate = calEnd.getTime();
 
                             afilter[0] = QBFCompareEnum.COMP_NONE; // TicketID
                             afilter[1] = null;
@@ -7686,9 +7880,25 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                                     tipoTicket = "Venta";
                                 }
 
+                                // Determinar método de pago
+                                String metodoPago = "No definido";
+                                if (ticketInfo.getPayments() != null && !ticketInfo.getPayments().isEmpty()) {
+                                    String paymentName = ticketInfo.getPayments().get(0).getName();
+                                    if ("cash".equals(paymentName)) metodoPago = "Efectivo";
+                                    else if ("magcard".equals(paymentName)) metodoPago = "Tarjeta";
+                                    else if ("debt".equals(paymentName)) metodoPago = "Crédito";
+                                    else if ("cheque".equals(paymentName)) metodoPago = "Cheque";
+                                    else if ("paperin".equals(paymentName)) metodoPago = "Vale";
+                                    else if ("free".equals(paymentName)) metodoPago = "Gratis";
+                                    else if ("slip".equals(paymentName)) metodoPago = "Comprobante";
+                                    else if ("bank".equals(paymentName)) metodoPago = "Transferencia";
+                                    else metodoPago = paymentName;
+                                }
+
                                 Object[] row = new Object[] {
                                         ticket.getTicketId(),
                                         tipoTicket,
+                                        metodoPago,
                                         ticketInfo.getLinesCount(),
                                         timeFormat.format(ticket.getDate()),
                                         Formats.CURRENCY.formatValue(ticket.getTotal())
@@ -7761,13 +7971,17 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                             // Guardar referencia al ticket seleccionado
                             selectedTicketRef.set(ticketInfo);
 
+                            // Actualizar título del panel derecho
+                            rightPanelBorder.setTitle("Detalle del Ticket: #" + ticketInfo.getTicketId());
+                            rightPanel.repaint();
+
                             // Actualizar información del ticket
                             lblFolioValor.setText(String.valueOf(ticketInfo.getTicketId()));
                             lblCajeroDetValor
                                     .setText(ticketInfo.getUser() != null ? ticketInfo.getUser().getName() : "-");
                             lblClienteValor
                                     .setText(ticketInfo.getCustomer() != null ? ticketInfo.getCustomer().getName()
-                                            : "Al contado");
+                                             : "Al contado");
                             SimpleDateFormat dateTimeFormat = new SimpleDateFormat("dd 'de' MMMM yyyy h:mm a",
                                     java.util.Locale.forLanguageTag("es-MX"));
                             lblFechaDet.setText(dateTimeFormat.format(ticketInfo.getDate()));
@@ -7776,8 +7990,28 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                             itemsTableModel.setRowCount(0);
                             for (int i = 0; i < ticketInfo.getLinesCount(); i++) {
                                 TicketLineInfo line = ticketInfo.getLine(i);
+                                
+                                javax.swing.Icon icon = null;
+                                if (line.getProductID() != null) {
+                                    try {
+                                        ProductInfoExt prodInfo = dlSales.getProductInfo(line.getProductID());
+                                        if (prodInfo != null && prodInfo.getImage() != null) {
+                                            java.awt.Image img = prodInfo.getImage().getScaledInstance(40, 40, java.awt.Image.SCALE_SMOOTH);
+                                            icon = new javax.swing.ImageIcon(img);
+                                        }
+                                    } catch (Exception ex) {
+                                        // Ignorar si no se puede cargar la imagen
+                                    }
+                                }
+                                if (icon == null) {
+                                    try {
+                                        icon = new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/box_closed.png"));
+                                    } catch (Exception ex) {}
+                                }
+
                                 itemsTableModel.addRow(new Object[] {
                                         Formats.DOUBLE.formatValue(line.getMultiply()),
+                                        icon,
                                         line.getProductName(),
                                         Formats.CURRENCY.formatValue(line.getSubValue())
                                 });
@@ -7802,15 +8036,17 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                             rightPanel.repaint();
 
                             // Habilitar botones (pero btnDevolver solo si hay un item seleccionado)
-                            // btnDevolver.setEnabled(false); // Sebastian - Eliminado
                             btnCancelar.setEnabled(!esCancelacion); // No cancelar lo ya cancelado
-                            btnFacturar.setEnabled(true);
+                            btnFacturar.setEnabled(!esCancelacion && m_App.hasPermission("invoice.Issue"));
                             btnImprimir.setEnabled(true);
                         } else {
                             selectedTicketRef.set(null);
                             ticketIsCancelled[0] = false;
+                            rightPanelBorder.setTitle("Detalle del Ticket");
                             rightPanel.repaint();
-                            // btnDevolver.setEnabled(false); // Sebastian - Eliminado
+                            btnCancelar.setEnabled(false);
+                            btnFacturar.setEnabled(false);
+                            btnImprimir.setEnabled(false);
                         }
                     }
                 }
@@ -7848,8 +8084,19 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
             // Listener para botón Hoy
             btnHoy.addActionListener(e -> {
-                lblFechaValor.setText(dateFormat.format(new java.util.Date()));
+                selectedDate[0] = new java.util.Date();
+                lblFechaValor.setText(dateFormat.format(selectedDate[0]));
                 cargarTickets.accept(null);
+            });
+
+            // Listener para botón Calendario
+            btnCalendario.addActionListener(e -> {
+                java.util.Date d = JCalendarDialog.showCalendar(dialog, selectedDate[0]);
+                if (d != null) {
+                    selectedDate[0] = d;
+                    lblFechaValor.setText(dateFormat.format(selectedDate[0]));
+                    cargarTickets.accept(null);
+                }
             });
 
             // Listener para botón Cancelar Venta
@@ -7984,6 +8231,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         // STATUS=2)
                         dlSales.saveTicket(ticketCancelacion, m_App.getInventoryLocation());
 
+                        // Sincronización automática de cancelación con el panel CRM-IA (Voltium Sanrey)
+                        com.openbravo.pos.sync.VoltiumSyncService.sincronizarCancelacionAsync(ticketCancelacion, dlSales);
+
                         // Limpiar la selección y actualizar la tabla de tickets
                         selectedTicketRef.set(null);
                         ticketsTableModel.setRowCount(0);
@@ -7994,6 +8244,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         lblFechaDet.setText("");
                         lblTotalValor.setText("");
                         lblPagoConValor.setText("");
+                        rightPanelBorder.setTitle("Detalle del Ticket");
+                        rightPanel.repaint();
                         btnCancelar.setEnabled(false);
                         btnFacturar.setEnabled(false);
                         btnImprimir.setEnabled(false);
@@ -8148,6 +8400,36 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 }
             });
 
+            // Listener para botón Facturar...
+            btnFacturar.addActionListener(e -> {
+                try {
+                    if (!m_App.hasPermission("invoice.Issue")) {
+                        javax.swing.JOptionPane.showMessageDialog(dialog,
+                                "Tu usuario no tiene permiso para emitir facturas electrónicas.",
+                                "Acceso restringido", javax.swing.JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+                    TicketInfo ticketAFacturar = selectedTicketRef.get();
+                    if (ticketAFacturar == null) {
+                        javax.swing.JOptionPane.showMessageDialog(dialog,
+                                "Por favor seleccione un ticket para facturar",
+                                "Error",
+                                javax.swing.JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+                    
+                    JDialogFactura facturacionDialog = new JDialogFactura(dialog, m_App, ticketAFacturar);
+                    facturacionDialog.setVisible(true);
+                } catch (Exception ex) {
+                    LOGGER.log(java.util.logging.Level.SEVERE, "Error al abrir facturación: " + ex.getMessage(), ex);
+                    javax.swing.JOptionPane.showMessageDialog(dialog,
+                            "Error al iniciar facturación: " + ex.getMessage(),
+                            "Error",
+                            javax.swing.JOptionPane.ERROR_MESSAGE);
+                }
+            });
+
+            ModernLookAndFeel.estilizarComponentes(mainPanel);
             dialog.setVisible(true);
 
         } catch (Exception e) {
@@ -8369,6 +8651,18 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
      * Muestra el diálogo para el sistema de apartado de vehículos
      */
     private void showApartarDialog() {
+        if (!m_App.hasPermission("layaway.Create")) {
+            javax.swing.JOptionPane.showMessageDialog(this,
+                    "Tu usuario no tiene permiso para crear apartados.",
+                    "Acceso restringido", javax.swing.JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (!m_App.hasPermission("payment.debt")) {
+            javax.swing.JOptionPane.showMessageDialog(this,
+                    "El rol necesita el permiso Crédito/Deuda para registrar el apartado.",
+                    "Permiso requerido", javax.swing.JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         if (m_oTicket == null || m_oTicket.getLinesCount() == 0) {
             javax.swing.JOptionPane.showMessageDialog(this, "No hay productos en el ticket para apartar.",
                     "Sistema de Apartado", javax.swing.JOptionPane.WARNING_MESSAGE);

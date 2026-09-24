@@ -179,22 +179,31 @@ public class JImageEditor extends javax.swing.JPanel {
      *
      */
     public void doLoad() {
-        JFileChooser fc = new JFileChooser(m_fCurrentDirectory);
+        JFileChooser fc = new JFileChooser(m_fCurrentDirectory) {
+            @Override
+            protected javax.swing.JDialog createDialog(Component parent) throws java.awt.HeadlessException {
+                javax.swing.JDialog dialog = super.createDialog(parent);
+                dialog.setMinimumSize(new Dimension(1000, 700));
+                dialog.setSize(1000, 700);
+                dialog.setLocationRelativeTo(parent);
+                return dialog;
+            }
+        };
         
         fc.addChoosableFileFilter(new ExtensionsFilter(LocalRes.getIntString("label.imagefiles"), "png", "gif", "jpg", "jpeg", "bmp"));
+        fc.setAcceptAllFileFilterUsed(false);
 
         if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {  
             try {
-                BufferedImage img = ImageIO.read(fc.getSelectedFile());
+                File selectedFile = fc.getSelectedFile();
+                BufferedImage img = ImageIO.read(selectedFile);
                 if (img != null) {
-                    // compruebo que no exceda el tamano maximo.
                     if (m_maxsize != null && (img.getHeight() > m_maxsize.height || img.getWidth() > m_maxsize.width)) {
                         if (JOptionPane.showConfirmDialog(this, 
                                 LocalRes.getIntString("message.resizeimage"), 
                                 LocalRes.getIntString("title.editor"), 
                                 JOptionPane.YES_NO_OPTION, 
                                 JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {          
-                            // Redimensionamos la imagen para que se ajuste
                             img = resizeImage(img);
                         }                        
                     }

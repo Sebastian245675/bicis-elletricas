@@ -29,7 +29,7 @@ import javax.swing.JFrame;
  *
  * @author adrianromero
  */
-public class JPeopleFinder extends javax.swing.JDialog implements EditorCreator {
+public class JPeopleFinder extends javax.swing.JDialog implements EditorCreator<Object> {
 
     private static final long serialVersionUID = 1L;
 
@@ -78,6 +78,7 @@ public class JPeopleFinder extends javax.swing.JDialog implements EditorCreator 
         return selectedPeople;
     }
 
+    @SuppressWarnings("unchecked")
     private void init(DataLogicAdmin dlPeople) {
 
         initComponents();
@@ -85,7 +86,7 @@ public class JPeopleFinder extends javax.swing.JDialog implements EditorCreator 
         jScrollPane1.getVerticalScrollBar().setPreferredSize(new Dimension(35, 35));
         m_jtxtName.addEditorKeys(m_jKeys);
         m_jtxtName.reset();
-        lpr = new ListProviderCreator(dlPeople.getPeopleList(), this);
+        lpr = new ListProviderCreator<PeopleInfo>(dlPeople.getPeopleList(), (EditorCreator<PeopleInfo>) (EditorCreator) this);
         jListPeople.setCellRenderer(new PeopleRenderer());
 
         getRootPane().setDefaultButton(jcmdOK);
@@ -105,7 +106,7 @@ public class JPeopleFinder extends javax.swing.JDialog implements EditorCreator 
     }
 
     private void cleanSearch() {
-        jListPeople.setModel(new PeopleListModel(new ArrayList()));
+        jListPeople.setModel(new PeopleListModel(new ArrayList<PeopleInfo>()));
     }
 
     public void executeSearch() {
@@ -184,7 +185,7 @@ public class JPeopleFinder extends javax.swing.JDialog implements EditorCreator 
         m_jtxtName = new com.openbravo.editor.JEditorString();
         jPanel4 = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
-        jListPeople = new javax.swing.JList();
+        jListPeople = new javax.swing.JList<PeopleInfo>();
         jPanel6 = new javax.swing.JPanel();
         jButton1 = new javax.swing.JButton();
         jButton3 = new javax.swing.JButton();
@@ -389,7 +390,7 @@ private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton3;
     private javax.swing.JLabel jLblName;
-    private javax.swing.JList jListPeople;
+    private javax.swing.JList<PeopleInfo> jListPeople;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;

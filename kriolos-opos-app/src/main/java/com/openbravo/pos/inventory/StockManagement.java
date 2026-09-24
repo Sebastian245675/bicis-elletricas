@@ -44,6 +44,7 @@ import com.openbravo.pos.scripting.ScriptFactory;
 import com.openbravo.pos.suppliers.DataLogicSuppliers;
 import com.openbravo.pos.suppliers.SupplierInfo;
 import com.openbravo.pos.ticket.ProductInfoExt;
+import com.openbravo.pos.util.ModernActionIcon;
 import java.awt.BorderLayout;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
@@ -110,12 +111,18 @@ public class StockManagement extends JPanel implements JPanelView {
     private ProductStockTableModel stockModel;
     
     private List<com.openbravo.pos.inventory.LowStockProduct> lowStockProducts;
+    private List<com.openbravo.pos.inventory.LowStockProduct> filteredLowStockProducts;
     private LowStockProductTableModel lowStockModel;
     
     private javax.swing.JPanel lowStockPanel;
     private javax.swing.JPanel lowStockCardPanel;
     private java.awt.CardLayout lowStockCardLayout;
     private javax.swing.JPanel emptyStatePanel;
+    private javax.swing.JTextField searchField;
+    private javax.swing.JLabel alertLabel;
+    private javax.swing.JPanel paginationPanel;
+    private int currentPage = 0;
+    private static final int ROWS_PER_PAGE = 10;
 
     private final static int NUMBERZERO = 0;
     private final static int NUMBERVALID = 1;
@@ -1315,7 +1322,7 @@ public class StockManagement extends JPanel implements JPanelView {
         m_jdate.setPreferredSize(new java.awt.Dimension(160, 30));
         jPanel8.add(m_jdate, new org.netbeans.lib.awtextra.AbsoluteConstraints(90, 5, -1, -1));
 
-        m_jbtndate.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/date.png"))); // NOI18N
+        m_jbtndate.setIcon(new ModernActionIcon(ModernActionIcon.Type.CALENDAR, 20));
         m_jbtndate.setToolTipText("Open Calendar");
         m_jbtndate.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -1413,7 +1420,7 @@ public class StockManagement extends JPanel implements JPanelView {
         jPanel8.add(m_jcodebar, new org.netbeans.lib.awtextra.AbsoluteConstraints(780, 270, -1, -1));
 
         m_jEnter.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        m_jEnter.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/barcode.png"))); // NOI18N
+        m_jEnter.setIcon(new ModernActionIcon(ModernActionIcon.Type.SEARCH, 20));
         m_jEnter.setFocusPainted(false);
         m_jEnter.setFocusable(false);
         m_jEnter.setPreferredSize(new java.awt.Dimension(54, 45));
@@ -1441,7 +1448,7 @@ public class StockManagement extends JPanel implements JPanelView {
         jPanel2.setPreferredSize(new java.awt.Dimension(70, 250));
         jPanel2.setLayout(new java.awt.GridLayout(0, 1, 5, 5));
 
-        m_jDelete.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/editdelete.png"))); // NOI18N
+        m_jDelete.setIcon(new ModernActionIcon(ModernActionIcon.Type.DELETE, 20));
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("pos_messages"); // NOI18N
         m_jDelete.setToolTipText(bundle.getString("tooltip.saleremoveline")); // NOI18N
         m_jDelete.setFocusPainted(false);
@@ -1458,7 +1465,7 @@ public class StockManagement extends JPanel implements JPanelView {
         });
         jPanel2.add(m_jDelete);
 
-        m_jList.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/search32.png"))); // NOI18N
+        m_jList.setIcon(new ModernActionIcon(ModernActionIcon.Type.SEARCH, 20));
         m_jList.setToolTipText(bundle.getString("tooltip.saleproductfind")); // NOI18N
         m_jList.setFocusPainted(false);
         m_jList.setFocusable(false);
@@ -1474,7 +1481,7 @@ public class StockManagement extends JPanel implements JPanelView {
         });
         jPanel2.add(m_jList);
 
-        m_jEditLine.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/sale_editline.png"))); // NOI18N
+        m_jEditLine.setIcon(new ModernActionIcon(ModernActionIcon.Type.EDIT, 20));
         m_jEditLine.setToolTipText(bundle.getString("tooltip.saleeditline")); // NOI18N
         m_jEditLine.setFocusPainted(false);
         m_jEditLine.setFocusable(false);
@@ -1490,7 +1497,7 @@ public class StockManagement extends JPanel implements JPanelView {
         });
         jPanel2.add(m_jEditLine);
 
-        m_jEditAttributes.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/attributes.png"))); // NOI18N
+        m_jEditAttributes.setIcon(new ModernActionIcon(ModernActionIcon.Type.DOCUMENT, 20));
         m_jEditAttributes.setToolTipText(bundle.getString("tooltip.saleattributes")); // NOI18N
         m_jEditAttributes.setFocusPainted(false);
         m_jEditAttributes.setFocusable(false);
@@ -1507,7 +1514,7 @@ public class StockManagement extends JPanel implements JPanelView {
         jPanel2.add(m_jEditAttributes);
 
         m_jBtnDelete.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        m_jBtnDelete.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/sale_delete.png"))); // NOI18N
+        m_jBtnDelete.setIcon(new ModernActionIcon(ModernActionIcon.Type.DELETE, 20));
         m_jBtnDelete.setText(AppLocal.getIntString("button.deleteticket")); // NOI18N
         m_jBtnDelete.setToolTipText("Delete current Ticket");
         m_jBtnDelete.setFocusPainted(false);
@@ -1584,7 +1591,7 @@ public class StockManagement extends JPanel implements JPanelView {
         jPanel8.add(jScrollPane2, new org.netbeans.lib.awtextra.AbsoluteConstraints(5, 220, 650, 70));
 
         m_jBtnShowStock.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        m_jBtnShowStock.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/pay.png"))); // NOI18N
+        m_jBtnShowStock.setIcon(new ModernActionIcon(ModernActionIcon.Type.VIEW, 20));
         m_jBtnShowStock.setToolTipText(AppLocal.getIntString("tooltip.salecheckstock")); // NOI18N
         m_jBtnShowStock.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -1621,19 +1628,19 @@ public class StockManagement extends JPanel implements JPanelView {
 
         // Panel para productos bajos - PRINCIPAL
         jLabelLowStock.setFont(new java.awt.Font("Arial", 1, 16)); // NOI18N
-        jLabelLowStock.setText("PRODUCTOS BAJOS - Requieren Reposición");
+        jLabelLowStock.setText("GESTIÓN DE STOCK");
         jLabelLowStock.setPreferredSize(new java.awt.Dimension(400, 30));
-        jLabelLowStock.setForeground(new java.awt.Color(200, 0, 0)); // Rojo para destacar
+        jLabelLowStock.setForeground(new java.awt.Color(51, 51, 51));
         
-        jTableLowStock.setFont(new java.awt.Font("Arial", 0, 13)); // NOI18N
+        jTableLowStock.setFont(new java.awt.Font("Segoe UI", 0, 13)); // NOI18N
         jTableLowStock.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
             },
             new String [] {
-                "Producto", "Código", "Ubicación", "Actual", "Mínimo", "Máximo"
+                "Producto", "Código/SKU", "Ubicación", "Stock Actual", "Mínimo", "Máximo", "Estado", "Acciones"
             }
         ));
-        jTableLowStock.setRowHeight(25);
+        jTableLowStock.setRowHeight(48);
         jTableLowStock.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
         jTableLowStock.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
@@ -1645,7 +1652,7 @@ public class StockManagement extends JPanel implements JPanelView {
         // Panel contenedor para productos bajos - OCUPA LA MAYOR PARTE
         lowStockPanel = new RoundedPanel(16, java.awt.Color.WHITE);
         lowStockPanel.setLayout(new java.awt.BorderLayout());
-        lowStockPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        lowStockPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
         
         lowStockCardLayout = new java.awt.CardLayout();
         lowStockCardPanel = new javax.swing.JPanel(lowStockCardLayout);
@@ -1656,9 +1663,24 @@ public class StockManagement extends JPanel implements JPanelView {
         lowStockCardPanel.add(jScrollPaneLowStock, "TABLE");
         lowStockCardPanel.add(emptyStatePanel, "EMPTY");
         
-        lowStockPanel.add(new LowStockHeaderPanel(jLabelLowStock), java.awt.BorderLayout.NORTH);
+        // Build the header area (title + search bar)
+        javax.swing.JPanel headerArea = buildHeaderArea();
+        // Build the alert banner
+        alertLabel = new javax.swing.JLabel();
+        javax.swing.JPanel alertBanner = buildAlertBanner();
+        // Build pagination
+        paginationPanel = buildPaginationPanel();
+
+        // Combine header + alert into a top wrapper
+        javax.swing.JPanel topWrapper = new javax.swing.JPanel();
+        topWrapper.setLayout(new BoxLayout(topWrapper, BoxLayout.Y_AXIS));
+        topWrapper.setOpaque(false);
+        topWrapper.add(headerArea);
+        topWrapper.add(alertBanner);
+        
+        lowStockPanel.add(topWrapper, java.awt.BorderLayout.NORTH);
         lowStockPanel.add(lowStockCardPanel, java.awt.BorderLayout.CENTER);
-        lowStockPanel.setPreferredSize(new java.awt.Dimension(0, 400));
+        lowStockPanel.add(paginationPanel, java.awt.BorderLayout.SOUTH);
         
         // Ocultar el catálogo de categorías para dar más espacio
         catcontainer.setVisible(false);
@@ -1668,6 +1690,8 @@ public class StockManagement extends JPanel implements JPanelView {
         
         // Panel principal - productos bajos ocupan todo el espacio
         javax.swing.JPanel mainPanel = new javax.swing.JPanel();
+        mainPanel.setBackground(new java.awt.Color(250, 247, 242));
+        mainPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(18, 18, 18, 18));
         mainPanel.setLayout(new java.awt.BorderLayout());
         mainPanel.add(lowStockPanel, java.awt.BorderLayout.CENTER);
         
@@ -1869,9 +1893,10 @@ public class StockManagement extends JPanel implements JPanelView {
                     try {
                         m_App.getAppUserView().showTask("com.openbravo.pos.inventory.ProductsPanel");
                         Object bean = m_App.getBean("com.openbravo.pos.inventory.ProductsPanel");
-                        if (bean instanceof com.openbravo.pos.panels.JPanelTable) {
-                            com.openbravo.pos.panels.JPanelTable productsPanel = (com.openbravo.pos.panels.JPanelTable) bean;
+                        if (bean instanceof com.openbravo.pos.inventory.ProductsPanel) {
+                            com.openbravo.pos.inventory.ProductsPanel productsPanel = (com.openbravo.pos.inventory.ProductsPanel) bean;
                             productsPanel.selectRecordById(lowStockProduct.getProductId());
+                            productsPanel.showDetailCard();
                         }
                     } catch (Exception ex) {
                         Logger.getLogger(StockManagement.class.getName()).log(Level.WARNING, "Error navigating to product", ex);
@@ -1889,9 +1914,10 @@ public class StockManagement extends JPanel implements JPanelView {
             lowStockProducts = m_dlSales.getLowStockProducts();
             
             if (lowStockProducts == null || lowStockProducts.isEmpty()) {
-                if (lowStockCardLayout != null && lowStockCardPanel != null) {
-                    lowStockCardLayout.show(lowStockCardPanel, "EMPTY");
-                }
+                lowStockProducts = new java.util.ArrayList<>();
+                filteredLowStockProducts = new java.util.ArrayList<>();
+                currentPage = 0;
+                updateLowStockTable();
                 return;
             }
             
@@ -1899,94 +1925,9 @@ public class StockManagement extends JPanel implements JPanelView {
                 lowStockCardLayout.show(lowStockCardPanel, "TABLE");
             }
             
-            lowStockModel = new LowStockProductTableModel(lowStockProducts);
-            jTableLowStock.setModel(lowStockModel);
-            
-            // Modern styling for table header
-            jTableLowStock.getTableHeader().setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
-            jTableLowStock.getTableHeader().setBackground(new java.awt.Color(241, 245, 249)); // Slate 100
-            jTableLowStock.getTableHeader().setForeground(new java.awt.Color(71, 85, 105)); // Slate 600
-            jTableLowStock.getTableHeader().setReorderingAllowed(false);
-            
-            // Modern grid styling
-            jTableLowStock.setShowGrid(true);
-            jTableLowStock.setGridColor(new java.awt.Color(241, 245, 249)); // Slate 100
-            jTableLowStock.setRowHeight(32); // Thicker rows for premium feel
-            
-            // Configurar anchos de columna
-            jTableLowStock.getColumnModel().getColumn(0).setPreferredWidth(250); // Producto
-            jTableLowStock.getColumnModel().getColumn(1).setPreferredWidth(120); // Código
-            jTableLowStock.getColumnModel().getColumn(2).setPreferredWidth(150); // Ubicación
-            jTableLowStock.getColumnModel().getColumn(3).setPreferredWidth(100);  // Actual
-            jTableLowStock.getColumnModel().getColumn(4).setPreferredWidth(100);  // Mínimo
-            jTableLowStock.getColumnModel().getColumn(5).setPreferredWidth(100);  // Máximo
-            
-            // Custom single cell renderer to handle colors, alignments, and padding properly
-            class LowStockCellRenderer extends javax.swing.table.DefaultTableCellRenderer {
-                @Override
-                public java.awt.Component getTableCellRendererComponent(
-                        javax.swing.JTable table, Object value, boolean isSelected,
-                        boolean hasFocus, int row, int column) {
-                    javax.swing.JLabel lbl = (javax.swing.JLabel) super.getTableCellRendererComponent(
-                            table, value, isSelected, hasFocus, row, column);
-                    
-                    // Default Row Colors
-                    java.awt.Color bg = java.awt.Color.WHITE;
-                    java.awt.Color fg = new java.awt.Color(51, 65, 85); // Slate 700
-                    
-                    if (lowStockModel != null && row < lowStockModel.getRowCount()) {
-                        com.openbravo.pos.inventory.LowStockProduct product = lowStockModel.getLowStockProduct(row);
-                        if (product != null) {
-                            Double units = product.getUnits();
-                            Double minimum = product.getMinimum();
-                            
-                            if (units != null && minimum != null) {
-                                if (units < minimum) {
-                                    // Crítico (Rojo pastel suave)
-                                    if (row % 2 == 0) {
-                                        bg = new java.awt.Color(254, 242, 242); // Red 50
-                                    } else {
-                                        bg = new java.awt.Color(254, 226, 226); // Red 100
-                                    }
-                                    fg = new java.awt.Color(153, 27, 27); // Red 800
-                                } else {
-                                    // Advertencia / Cerca del mínimo (Amarillo/Ámbar pastel suave)
-                                    if (row % 2 == 0) {
-                                        bg = new java.awt.Color(255, 251, 235); // Amber 50
-                                    } else {
-                                        bg = new java.awt.Color(254, 243, 199); // Amber 100
-                                    }
-                                    fg = new java.awt.Color(146, 64, 14); // Amber 800
-                                }
-                            }
-                        }
-                    }
-                    
-                    if (isSelected) {
-                        lbl.setBackground(new java.awt.Color(224, 242, 254)); // Sky 100
-                        lbl.setForeground(new java.awt.Color(3, 105, 161)); // Sky 700
-                    } else {
-                        lbl.setBackground(bg);
-                        lbl.setForeground(fg);
-                    }
-                    
-                    // Text alignment & border padding
-                    if (column >= 3 && column <= 5) {
-                        lbl.setHorizontalAlignment(javax.swing.JLabel.RIGHT);
-                        lbl.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 12));
-                    } else {
-                        lbl.setHorizontalAlignment(javax.swing.JLabel.LEFT);
-                        lbl.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 12, 0, 0));
-                    }
-                    
-                    return lbl;
-                }
-            }
-            
-            LowStockCellRenderer cellRenderer = new LowStockCellRenderer();
-            for (int i = 0; i < jTableLowStock.getColumnCount(); i++) {
-                jTableLowStock.getColumnModel().getColumn(i).setCellRenderer(cellRenderer);
-            }
+            filteredLowStockProducts = new java.util.ArrayList<>(lowStockProducts);
+            currentPage = 0;
+            updateLowStockTable();
             
         } catch (BasicException e) {
             Logger.getLogger(StockManagement.class.getName()).log(Level.SEVERE, "Error al cargar productos con stock bajo", e);
@@ -2005,7 +1946,7 @@ public class StockManagement extends JPanel implements JPanelView {
 
         private List<com.openbravo.pos.inventory.LowStockProduct> lowStockList;
         private String[] columnNames = {
-            "Producto", "Código", "Ubicación", "Actual", "Mínimo", "Máximo"
+            "Producto", "Código/SKU", "Ubicación", "Stock Actual", "Mínimo", "Máximo", "Estado", "Acciones"
         };
 
         public LowStockProductTableModel(List<com.openbravo.pos.inventory.LowStockProduct> list) {
@@ -2019,7 +1960,7 @@ public class StockManagement extends JPanel implements JPanelView {
 
         @Override
         public int getColumnCount() {
-            return 6;
+            return 8;
         }
 
         @Override
@@ -2048,6 +1989,17 @@ public class StockManagement extends JPanel implements JPanelView {
                     return product.getMinimum() != null ? product.getMinimum() : 0.0;
                 case 5:
                     return product.getMaximum() != null ? product.getMaximum() : 0.0;
+                case 6: {
+                    // Estado: check if units >= minimum
+                    Double units = product.getUnits();
+                    Double minimum = product.getMinimum();
+                    if (units != null && minimum != null && units >= minimum) {
+                        return "OK";
+                    }
+                    return "BAJO";
+                }
+                case 7:
+                    return "ACCIONES";
                 default:
                     return "";
             }
@@ -2055,32 +2007,12 @@ public class StockManagement extends JPanel implements JPanelView {
 
         @Override
         public boolean isCellEditable(int row, int column) {
-            // Permitir editar Mínimo (4) y Máximo (5)
-            return column == 4 || column == 5;
+            return column == 7; // Acciones column is editable for button clicks
         }
 
         @Override
         public void setValueAt(Object aValue, int row, int column) {
-            if (row >= lowStockList.size()) {
-                return;
-            }
-            
-            com.openbravo.pos.inventory.LowStockProduct product = lowStockList.get(row);
-            Double val = (Double) aValue;
-            
-            try {
-                if (column == 4) {
-                    product.setMinimum(val);
-                    updateStockLevelInDatabase(product.getProductId(), product.getLocationName(), val, product.getMaximum());
-                } else if (column == 5) {
-                    product.setMaximum(val);
-                    updateStockLevelInDatabase(product.getProductId(), product.getLocationName(), product.getMinimum(), val);
-                }
-                fireTableCellUpdated(row, column);
-            } catch (BasicException ex) {
-                Logger.getLogger(StockManagement.class.getName()).log(Level.SEVERE, "Error updating stock level", ex);
-                JOptionPane.showMessageDialog(null, "Error al actualizar el nivel de stock: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            }
+            // No editable directly
         }
 
         public com.openbravo.pos.inventory.LowStockProduct getLowStockProduct(int row) {
@@ -2213,8 +2145,19 @@ public class StockManagement extends JPanel implements JPanelView {
         styleStatusLabel(webLblValue, lbTotalValue, "VALOR INVENTARIO", accentBlue);
 
         // --- Estilizar Panel de Stock Bajo ---
+        this.setBackground(new java.awt.Color(250, 247, 242));
         if (lowStockPanel != null) {
             lowStockPanel.setBackground(java.awt.Color.WHITE);
+        }
+        for (java.awt.Component child : this.getComponents()) {
+            if (child instanceof javax.swing.JPanel) {
+                javax.swing.JPanel jp = (javax.swing.JPanel) child;
+                if (this.getLayout() instanceof java.awt.BorderLayout && 
+                    ((java.awt.BorderLayout)this.getLayout()).getLayoutComponent(java.awt.BorderLayout.CENTER) == jp) {
+                    jp.setBackground(new java.awt.Color(250, 247, 242));
+                    jp.setBorder(javax.swing.BorderFactory.createEmptyBorder(18, 18, 18, 18));
+                }
+            }
         }
 
         // --- Estilizar Tablas ---
@@ -2249,8 +2192,8 @@ public class StockManagement extends JPanel implements JPanelView {
         table.setRowHeight(38); // Altura de fila aumentada para legibilidad y modernidad
         table.setShowVerticalLines(false);
         table.setGridColor(new java.awt.Color(241, 245, 249)); // Slate 100
-        table.setSelectionBackground(new java.awt.Color(224, 242, 254)); // Sky 100
-        table.setSelectionForeground(new java.awt.Color(3, 105, 161)); // Sky 700
+        table.setSelectionBackground(new java.awt.Color(254, 243, 199)); // Amber 100
+        table.setSelectionForeground(new java.awt.Color(146, 64, 14)); // Amber 800
         
         scroll.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(226, 232, 240))); // Slate 200
         scroll.getViewport().setBackground(java.awt.Color.WHITE);
@@ -2395,118 +2338,641 @@ public class StockManagement extends JPanel implements JPanelView {
         }
     }
 
-    private class LowStockHeaderPanel extends JPanel {
-        public LowStockHeaderPanel(JLabel titleLabel) {
-            setLayout(new java.awt.BorderLayout(15, 0));
-            setOpaque(false);
-            setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 15, 0));
-            
-            JPanel badgePanel = new JPanel() {
+    // ========================== NEW REDESIGNED METHODS ==========================
+
+    /**
+     * Builds the header area: Title row + Search/Filter bar
+     */
+    private javax.swing.JPanel buildHeaderArea() {
+        javax.swing.JPanel wrapper = new javax.swing.JPanel();
+        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
+        wrapper.setOpaque(false);
+        wrapper.setBorder(javax.swing.BorderFactory.createEmptyBorder(20, 24, 10, 24));
+
+        // === Title Row ===
+        javax.swing.JPanel titleRow = new javax.swing.JPanel(new java.awt.BorderLayout());
+        titleRow.setOpaque(false);
+        titleRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
+
+        javax.swing.JPanel titleTextPanel = new javax.swing.JPanel();
+        titleTextPanel.setLayout(new BoxLayout(titleTextPanel, BoxLayout.Y_AXIS));
+        titleTextPanel.setOpaque(false);
+
+        javax.swing.JLabel mainTitle = new javax.swing.JLabel("GESTIÓN DE STOCK");
+        mainTitle.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 22));
+        mainTitle.setForeground(new java.awt.Color(51, 51, 51));
+        mainTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        titleTextPanel.add(mainTitle);
+
+        javax.swing.JLabel subtitle = new javax.swing.JLabel("Gestión / Almacén Principal");
+        subtitle.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        subtitle.setForeground(new java.awt.Color(120, 120, 120));
+        subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        titleTextPanel.add(subtitle);
+
+        titleRow.add(titleTextPanel, java.awt.BorderLayout.WEST);
+        wrapper.add(titleRow);
+        wrapper.add(Box.createRigidArea(new Dimension(0, 14)));
+
+        // === Search / Filter Bar ===
+        javax.swing.JPanel searchBar = new javax.swing.JPanel(new java.awt.BorderLayout(10, 0));
+        searchBar.setOpaque(false);
+        searchBar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+
+        // Left side: search + filter
+        javax.swing.JPanel searchLeft = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 0));
+        searchLeft.setOpaque(false);
+
+        searchField = new javax.swing.JTextField(18);
+        searchField.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        searchField.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(206, 212, 218)),
+            javax.swing.BorderFactory.createEmptyBorder(6, 10, 6, 10)
+        ));
+        searchField.setToolTipText("Buscar por producto, SKU o ubicación");
+        searchField.putClientProperty("JTextField.placeholderText", "Buscar por producto, SKU o ubicación");
+        searchField.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyReleased(java.awt.event.KeyEvent e) {
+                filterLowStockProducts();
+            }
+        });
+        searchLeft.add(searchField);
+
+        javax.swing.JButton btnRefresh = createStyledButton("Actualizar", java.awt.Color.WHITE,
+                new java.awt.Color(51, 65, 85));
+        btnRefresh.setIcon(new ModernActionIcon(ModernActionIcon.Type.REFRESH, 18));
+        btnRefresh.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(203, 213, 225)),
+                javax.swing.BorderFactory.createEmptyBorder(6, 12, 6, 12)));
+        btnRefresh.addActionListener(event -> loadLowStockProducts());
+        searchLeft.add(btnRefresh);
+
+        searchBar.add(searchLeft, java.awt.BorderLayout.WEST);
+
+        // Right side: Export + Nuevo Producto buttons
+        javax.swing.JPanel searchRight = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 8, 0));
+        searchRight.setOpaque(false);
+
+        javax.swing.JButton btnExport = createStyledButton("Exportar Excel", new java.awt.Color(53, 122, 56), java.awt.Color.WHITE);
+        btnExport.setIcon(new ModernActionIcon(ModernActionIcon.Type.EXPORT, 18, java.awt.Color.WHITE));
+        btnExport.addActionListener(evt -> btnExportLowStockExcelActionPerformed(evt));
+        searchRight.add(btnExport);
+
+        javax.swing.JButton btnNewProduct = createStyledButton("Nuevo Producto", new java.awt.Color(62, 62, 62), java.awt.Color.WHITE);
+        btnNewProduct.setIcon(new ModernActionIcon(ModernActionIcon.Type.ADD, 18, java.awt.Color.WHITE));
+        btnNewProduct.addActionListener(evt -> {
+            try {
+                m_App.getAppUserView().showTask("com.openbravo.pos.inventory.ProductsPanel");
+            } catch (Exception ex) {
+                Logger.getLogger(StockManagement.class.getName()).log(Level.WARNING, "Error navigating to products", ex);
+            }
+        });
+        searchRight.add(btnNewProduct);
+
+        searchBar.add(searchRight, java.awt.BorderLayout.EAST);
+        wrapper.add(searchBar);
+
+        return wrapper;
+    }
+
+    /**
+     * Builds the amber/yellow alert banner
+     */
+    private javax.swing.JPanel buildAlertBanner() {
+        javax.swing.JPanel banner = new javax.swing.JPanel(new java.awt.BorderLayout(12, 0));
+        banner.setBackground(new java.awt.Color(255, 248, 230));
+        banner.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createMatteBorder(1, 1, 1, 1, new java.awt.Color(230, 210, 160)),
+            javax.swing.BorderFactory.createEmptyBorder(12, 20, 12, 20)
+        ));
+        banner.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
+
+        // Warning icon panel
+        javax.swing.JPanel iconPanel = new javax.swing.JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                int size = 36;
+                int x = (getWidth() - size) / 2;
+                int y = (getHeight() - size) / 2;
+
+                // Draw rounded square background
+                g2.setColor(new java.awt.Color(180, 140, 50));
+                g2.fillRoundRect(x, y, size, size, 8, 8);
+
+                // Draw clipboard icon in white
+                g2.setColor(java.awt.Color.WHITE);
+                g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                // Clipboard body
+                g2.drawRoundRect(x + 8, y + 6, 20, 24, 3, 3);
+                // Clipboard clip
+                g2.drawLine(x + 14, y + 4, x + 22, y + 4);
+                // Lines on clipboard
+                g2.drawLine(x + 13, y + 14, x + 23, y + 14);
+                g2.drawLine(x + 13, y + 19, x + 23, y + 19);
+                g2.drawLine(x + 13, y + 24, x + 20, y + 24);
+
+                g2.dispose();
+            }
+        };
+        iconPanel.setPreferredSize(new Dimension(44, 44));
+        iconPanel.setOpaque(false);
+        banner.add(iconPanel, java.awt.BorderLayout.WEST);
+
+        javax.swing.JPanel textPanel = new javax.swing.JPanel();
+        textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
+        textPanel.setOpaque(false);
+
+        alertLabel = new javax.swing.JLabel("¡AVISO DE BAJO STOCK - Requieren Reposición: 0 Ítems");
+        alertLabel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
+        alertLabel.setForeground(new java.awt.Color(100, 70, 20));
+        alertLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        textPanel.add(alertLabel);
+
+        javax.swing.JLabel alertSub = new javax.swing.JLabel("Verifique y gestione los niveles de existencias inferiores al mínimo de seguridad.");
+        alertSub.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        alertSub.setForeground(new java.awt.Color(130, 100, 40));
+        alertSub.setAlignmentX(Component.LEFT_ALIGNMENT);
+        textPanel.add(alertSub);
+
+        banner.add(textPanel, java.awt.BorderLayout.CENTER);
+
+        // Wrap to add margin
+        javax.swing.JPanel bannerWrapper = new javax.swing.JPanel(new java.awt.BorderLayout());
+        bannerWrapper.setOpaque(false);
+        bannerWrapper.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 24, 6, 24));
+        bannerWrapper.add(banner, java.awt.BorderLayout.CENTER);
+        bannerWrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+        return bannerWrapper;
+    }
+
+    /**
+     * Builds the pagination panel at the bottom
+     */
+    private javax.swing.JPanel buildPaginationPanel() {
+        javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 4, 8));
+        panel.setOpaque(false);
+        panel.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 0, 10, 0));
+        return panel;
+    }
+
+    /**
+     * Creates a styled button with rounded appearance
+     */
+    private javax.swing.JButton createStyledButton(String text, java.awt.Color bg, java.awt.Color fg) {
+        javax.swing.JButton btn = new javax.swing.JButton(text);
+        btn.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        btn.setBackground(bg);
+        btn.setForeground(fg);
+        btn.setFocusPainted(false);
+        btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btn.setPreferredSize(new java.awt.Dimension(140, 34));
+        btn.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 16, 6, 16));
+        btn.setOpaque(true);
+        return btn;
+    }
+
+    /**
+     * Filters the low stock products based on search text
+     */
+    private void filterLowStockProducts() {
+        if (lowStockProducts == null) return;
+
+        String query = searchField.getText().trim().toLowerCase();
+        if (query.isEmpty()) {
+            filteredLowStockProducts = new java.util.ArrayList<>(lowStockProducts);
+        } else {
+            filteredLowStockProducts = new java.util.ArrayList<>();
+            for (com.openbravo.pos.inventory.LowStockProduct p : lowStockProducts) {
+                if ((p.getProductName() != null && p.getProductName().toLowerCase().contains(query)) ||
+                    (p.getProductCode() != null && p.getProductCode().toLowerCase().contains(query)) ||
+                    (p.getLocationName() != null && p.getLocationName().toLowerCase().contains(query))) {
+                    filteredLowStockProducts.add(p);
+                }
+            }
+        }
+        currentPage = 0;
+        updateLowStockTable();
+    }
+
+    /**
+     * Updates the low stock table with current filtered data and page
+     */
+    private void updateLowStockTable() {
+        if (filteredLowStockProducts == null || filteredLowStockProducts.isEmpty()) {
+            if (lowStockCardLayout != null && lowStockCardPanel != null) {
+                lowStockCardLayout.show(lowStockCardPanel, "EMPTY");
+            }
+            if (alertLabel != null) {
+                alertLabel.setText("¡AVISO DE BAJO STOCK - Requieren Reposición: 0 Ítems");
+            }
+            updatePaginationPanel(0);
+            return;
+        }
+
+        if (lowStockCardLayout != null && lowStockCardPanel != null) {
+            lowStockCardLayout.show(lowStockCardPanel, "TABLE");
+        }
+
+        // Update alert label
+        int totalCount = lowStockProducts != null ? lowStockProducts.size() : 0;
+        if (alertLabel != null) {
+            alertLabel.setText("¡AVISO DE BAJO STOCK - Requieren Reposición: " + totalCount + " Ítems");
+        }
+
+        // Paginate
+        int totalFiltered = filteredLowStockProducts.size();
+        int totalPages = (int) Math.ceil((double) totalFiltered / ROWS_PER_PAGE);
+        if (currentPage >= totalPages) currentPage = totalPages - 1;
+        if (currentPage < 0) currentPage = 0;
+
+        int fromIndex = currentPage * ROWS_PER_PAGE;
+        int toIndex = Math.min(fromIndex + ROWS_PER_PAGE, totalFiltered);
+        List<com.openbravo.pos.inventory.LowStockProduct> pageList = filteredLowStockProducts.subList(fromIndex, toIndex);
+
+        lowStockModel = new LowStockProductTableModel(new java.util.ArrayList<>(pageList));
+        jTableLowStock.setModel(lowStockModel);
+
+        // Style header
+        jTableLowStock.getTableHeader().setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        jTableLowStock.getTableHeader().setBackground(new java.awt.Color(250, 250, 250));
+        jTableLowStock.getTableHeader().setForeground(new java.awt.Color(80, 80, 80));
+        jTableLowStock.getTableHeader().setReorderingAllowed(false);
+        jTableLowStock.getTableHeader().setBorder(
+            javax.swing.BorderFactory.createMatteBorder(0, 0, 2, 0, new java.awt.Color(226, 226, 226))
+        );
+
+        jTableLowStock.setShowGrid(false);
+        jTableLowStock.setShowHorizontalLines(true);
+        jTableLowStock.setGridColor(new java.awt.Color(240, 240, 240));
+        jTableLowStock.setRowHeight(52);
+        jTableLowStock.setIntercellSpacing(new Dimension(0, 1));
+
+        // Column widths
+        jTableLowStock.getColumnModel().getColumn(0).setPreferredWidth(160); // Producto
+        jTableLowStock.getColumnModel().getColumn(1).setPreferredWidth(100); // Código/SKU
+        jTableLowStock.getColumnModel().getColumn(2).setPreferredWidth(200); // Ubicación
+        jTableLowStock.getColumnModel().getColumn(3).setPreferredWidth(100); // Stock Actual
+        jTableLowStock.getColumnModel().getColumn(4).setPreferredWidth(70);  // Mínimo
+        jTableLowStock.getColumnModel().getColumn(5).setPreferredWidth(70);  // Máximo
+        jTableLowStock.getColumnModel().getColumn(6).setPreferredWidth(60);  // Estado
+        jTableLowStock.getColumnModel().getColumn(7).setPreferredWidth(200); // Acciones
+
+        // Apply custom renderers
+        for (int i = 0; i <= 5; i++) {
+            jTableLowStock.getColumnModel().getColumn(i).setCellRenderer(new StockTextCellRenderer());
+        }
+        jTableLowStock.getColumnModel().getColumn(3).setCellRenderer(new StockBadgeCellRenderer());
+        jTableLowStock.getColumnModel().getColumn(6).setCellRenderer(new StockStatusCellRenderer());
+        jTableLowStock.getColumnModel().getColumn(7).setCellRenderer(new StockActionsCellRenderer());
+        jTableLowStock.getColumnModel().getColumn(7).setCellEditor(new StockActionsEditor());
+
+        // Make acciones column editable for button clicks
+        jTableLowStock.getColumnModel().getColumn(7).setMinWidth(200);
+
+        updatePaginationPanel(totalPages);
+    }
+
+    /**
+     * Updates pagination buttons
+     */
+    private void updatePaginationPanel(int totalPages) {
+        if (paginationPanel == null) return;
+        paginationPanel.removeAll();
+
+        if (totalPages <= 1) {
+            paginationPanel.revalidate();
+            paginationPanel.repaint();
+            return;
+        }
+
+        java.awt.Color btnBg = java.awt.Color.WHITE;
+        java.awt.Color btnFg = new java.awt.Color(80, 80, 80);
+        java.awt.Color activeBg = new java.awt.Color(53, 122, 56);
+
+        // Previous
+        javax.swing.JButton btnPrev = new javax.swing.JButton("«");
+        stylePaginationBtn(btnPrev, btnBg, btnFg);
+        btnPrev.addActionListener(e -> { if (currentPage > 0) { currentPage--; updateLowStockTable(); } });
+        paginationPanel.add(btnPrev);
+
+        for (int i = 0; i < totalPages; i++) {
+            final int page = i;
+            javax.swing.JButton btn = new javax.swing.JButton(String.valueOf(i + 1));
+            if (i == currentPage) {
+                stylePaginationBtn(btn, activeBg, java.awt.Color.WHITE);
+            } else {
+                stylePaginationBtn(btn, btnBg, btnFg);
+            }
+            btn.addActionListener(e -> { currentPage = page; updateLowStockTable(); });
+            paginationPanel.add(btn);
+        }
+
+        // Next
+        javax.swing.JButton btnNext = new javax.swing.JButton("»");
+        stylePaginationBtn(btnNext, btnBg, btnFg);
+        btnNext.addActionListener(e -> { if (currentPage < totalPages - 1) { currentPage++; updateLowStockTable(); } });
+        paginationPanel.add(btnNext);
+
+        paginationPanel.revalidate();
+        paginationPanel.repaint();
+    }
+
+    private void stylePaginationBtn(javax.swing.JButton btn, java.awt.Color bg, java.awt.Color fg) {
+        btn.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        btn.setBackground(bg);
+        btn.setForeground(fg);
+        btn.setFocusPainted(false);
+        btn.setPreferredSize(new Dimension(34, 30));
+        btn.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(220, 220, 220)));
+        btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btn.setOpaque(true);
+    }
+
+    // ========================== CELL RENDERERS ==========================
+
+    /**
+     * Default text cell renderer - clean white rows with subtle separator
+     */
+    private class StockTextCellRenderer extends javax.swing.table.DefaultTableCellRenderer {
+        @Override
+        public java.awt.Component getTableCellRendererComponent(
+                javax.swing.JTable table, Object value, boolean isSelected,
+                boolean hasFocus, int row, int column) {
+            javax.swing.JLabel lbl = (javax.swing.JLabel) super.getTableCellRendererComponent(
+                    table, value, isSelected, hasFocus, row, column);
+
+            lbl.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+            lbl.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 14, 0, 8));
+
+            if (isSelected) {
+                lbl.setBackground(new java.awt.Color(245, 240, 230));
+                lbl.setForeground(new java.awt.Color(60, 60, 60));
+            } else {
+                lbl.setBackground(java.awt.Color.WHITE);
+                lbl.setForeground(new java.awt.Color(60, 60, 60));
+            }
+
+            // Right-align numeric columns (4=Mínimo, 5=Máximo)
+            if (column >= 4 && column <= 5) {
+                lbl.setHorizontalAlignment(javax.swing.JLabel.CENTER);
+            } else {
+                lbl.setHorizontalAlignment(javax.swing.JLabel.LEFT);
+            }
+
+            return lbl;
+        }
+    }
+
+    /**
+     * Stock Actual column - renders colored badge with arrow
+     */
+    private class StockBadgeCellRenderer extends javax.swing.table.DefaultTableCellRenderer {
+        @Override
+        public java.awt.Component getTableCellRendererComponent(
+                javax.swing.JTable table, Object value, boolean isSelected,
+                boolean hasFocus, int row, int column) {
+
+            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 4, 8));
+            panel.setBackground(isSelected ? new java.awt.Color(245, 240, 230) : java.awt.Color.WHITE);
+
+            Double units = 0.0;
+            boolean isLow = true;
+            if (lowStockModel != null && row < lowStockModel.getRowCount()) {
+                com.openbravo.pos.inventory.LowStockProduct p = lowStockModel.getLowStockProduct(row);
+                if (p != null) {
+                    units = p.getUnits() != null ? p.getUnits() : 0.0;
+                    Double min = p.getMinimum() != null ? p.getMinimum() : 0.0;
+                    isLow = units < min;
+                }
+            }
+
+            // Badge label
+            javax.swing.JLabel badge = new javax.swing.JLabel(String.valueOf(units));
+            badge.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+            badge.setOpaque(true);
+            badge.setHorizontalAlignment(javax.swing.JLabel.CENTER);
+            badge.setBorder(javax.swing.BorderFactory.createEmptyBorder(3, 10, 3, 10));
+
+            if (isLow) {
+                badge.setBackground(new java.awt.Color(220, 53, 69)); // Red
+                badge.setForeground(java.awt.Color.WHITE);
+            } else {
+                badge.setBackground(new java.awt.Color(40, 167, 69)); // Green
+                badge.setForeground(java.awt.Color.WHITE);
+            }
+
+            panel.add(badge);
+
+            // Arrow indicator
+            javax.swing.JLabel arrow = new javax.swing.JLabel(isLow ? "↓" : "✓");
+            arrow.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
+            arrow.setForeground(isLow ? new java.awt.Color(220, 53, 69) : new java.awt.Color(40, 167, 69));
+            panel.add(arrow);
+
+            return panel;
+        }
+    }
+
+    /**
+     * Estado column - renders warning triangle or green checkmark
+     */
+    private class StockStatusCellRenderer extends javax.swing.table.DefaultTableCellRenderer {
+        @Override
+        public java.awt.Component getTableCellRendererComponent(
+                javax.swing.JTable table, Object value, boolean isSelected,
+                boolean hasFocus, int row, int column) {
+
+            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.GridBagLayout());
+            panel.setBackground(isSelected ? new java.awt.Color(245, 240, 230) : java.awt.Color.WHITE);
+
+            boolean isOk = "OK".equals(value);
+
+            // Custom painted icon
+            javax.swing.JPanel icon = new javax.swing.JPanel() {
                 @Override
                 protected void paintComponent(Graphics g) {
                     super.paintComponent(g);
                     Graphics2D g2 = (Graphics2D) g.create();
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    
-                    int size = 44;
-                    int x = (getWidth() - size) / 2;
-                    int y = (getHeight() - size) / 2;
-                    
-                    g2.setColor(new java.awt.Color(254, 226, 226)); // Red 100
-                    g2.fillOval(x, y, size, size);
-                    
-                    g2.setColor(new java.awt.Color(220, 38, 38)); // Red 600
-                    int cx = x + size / 2;
-                    int cy = y + size / 2;
-                    
-                    g2.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, 0));
-                    g2.drawLine(cx, cy - 8, cx, cy + 2);
-                    g2.fillOval(cx - 2, cy + 6, 4, 4);
-                    
+
+                    int cx = getWidth() / 2;
+                    int cy = getHeight() / 2;
+
+                    if (isOk) {
+                        // Green circle with checkmark
+                        g2.setColor(new java.awt.Color(40, 167, 69));
+                        g2.fillOval(cx - 12, cy - 12, 24, 24);
+                        g2.setColor(java.awt.Color.WHITE);
+                        g2.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                        g2.drawLine(cx - 5, cy, cx - 1, cy + 4);
+                        g2.drawLine(cx - 1, cy + 4, cx + 6, cy - 4);
+                    } else {
+                        // Amber warning triangle
+                        g2.setColor(new java.awt.Color(200, 150, 30));
+                        int[] xPoints = {cx, cx - 12, cx + 12};
+                        int[] yPoints = {cy - 11, cy + 9, cy + 9};
+                        g2.fillPolygon(xPoints, yPoints, 3);
+                        g2.setColor(java.awt.Color.WHITE);
+                        g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, 0));
+                        g2.drawLine(cx, cy - 5, cx, cy + 2);
+                        g2.fillOval(cx - 2, cy + 4, 4, 4);
+                    }
                     g2.dispose();
                 }
             };
-            badgePanel.setPreferredSize(new Dimension(50, 50));
-            badgePanel.setOpaque(false);
-            add(badgePanel, java.awt.BorderLayout.WEST);
-            
-            JPanel textContainer = new JPanel();
-            textContainer.setLayout(new BoxLayout(textContainer, BoxLayout.Y_AXIS));
-            textContainer.setOpaque(false);
-            
-            titleLabel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
-            titleLabel.setForeground(new java.awt.Color(220, 38, 38)); // Warning Red
-            titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-            textContainer.add(titleLabel);
-            
-            JLabel subtitle = new JLabel("Productos con stock por debajo del mínimo. Edita los valores de seguridad directamente en la tabla.");
-            subtitle.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
-            subtitle.setForeground(new java.awt.Color(100, 116, 139)); // Slate 500
-            subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-            textContainer.add(subtitle);
-            
-            add(textContainer, java.awt.BorderLayout.CENTER);
+            icon.setPreferredSize(new Dimension(30, 30));
+            icon.setOpaque(false);
+            panel.add(icon);
 
-            // Container for both action buttons aligned to East
-            JPanel buttonPanel = new JPanel();
-            buttonPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 10, 0));
-            buttonPanel.setOpaque(false);
+            return panel;
+        }
+    }
 
-            // Export to Excel Button (Green)
-            javax.swing.JButton btnExportExcel = new javax.swing.JButton("Exportar Excel");
-            btnExportExcel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
-            btnExportExcel.setBackground(new java.awt.Color(40, 167, 69));
-            btnExportExcel.setForeground(java.awt.Color.WHITE);
-            btnExportExcel.setFocusPainted(false);
-            btnExportExcel.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-            btnExportExcel.setPreferredSize(new java.awt.Dimension(140, 32));
-            btnExportExcel.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 15, 5, 15));
-            btnExportExcel.addActionListener(new java.awt.event.ActionListener() {
-                @Override
-                public void actionPerformed(java.awt.event.ActionEvent evt) {
-                    btnExportLowStockExcelActionPerformed(evt);
-                }
-            });
+    /**
+     * Acciones column - renders Editar and Reabastecer buttons
+     */
+    private class StockActionsCellRenderer implements javax.swing.table.TableCellRenderer {
+        @Override
+        public java.awt.Component getTableCellRendererComponent(
+                javax.swing.JTable table, Object value, boolean isSelected,
+                boolean hasFocus, int row, int column) {
 
-            // Edit Product Button (Blue)
-            javax.swing.JButton btnEditProduct = new javax.swing.JButton("Editar Producto");
-            btnEditProduct.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
-            btnEditProduct.setBackground(new java.awt.Color(0, 123, 255));
-            btnEditProduct.setForeground(java.awt.Color.WHITE);
-            btnEditProduct.setFocusPainted(false);
-            btnEditProduct.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-            btnEditProduct.setPreferredSize(new java.awt.Dimension(140, 32));
-            btnEditProduct.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 15, 5, 15));
-            btnEditProduct.addActionListener(new java.awt.event.ActionListener() {
-                @Override
-                public void actionPerformed(java.awt.event.ActionEvent evt) {
-                    int row = jTableLowStock.getSelectedRow();
-                    if (row >= 0 && lowStockModel != null) {
-                        com.openbravo.pos.inventory.LowStockProduct lowStockProduct = lowStockModel.getLowStockProduct(row);
-                        if (lowStockProduct != null) {
-                            try {
-                                m_App.getAppUserView().showTask("com.openbravo.pos.inventory.ProductsPanel");
-                                Object bean = m_App.getBean("com.openbravo.pos.inventory.ProductsPanel");
-                                if (bean instanceof com.openbravo.pos.panels.JPanelTable) {
-                                    com.openbravo.pos.panels.JPanelTable productsPanel = (com.openbravo.pos.panels.JPanelTable) bean;
-                                    productsPanel.selectRecordById(lowStockProduct.getProductId());
-                                }
-                            } catch (Exception ex) {
-                                Logger.getLogger(StockManagement.class.getName()).log(Level.WARNING, "Error navigating to product", ex);
+            javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 6, 8));
+            panel.setBackground(isSelected ? new java.awt.Color(245, 240, 230) : java.awt.Color.WHITE);
+
+            javax.swing.JButton btnEdit = new javax.swing.JButton("Editar",
+                    new ModernActionIcon(ModernActionIcon.Type.EDIT, 16));
+            btnEdit.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+            btnEdit.setBackground(java.awt.Color.WHITE);
+            btnEdit.setForeground(new java.awt.Color(80, 80, 80));
+            btnEdit.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200)),
+                javax.swing.BorderFactory.createEmptyBorder(4, 10, 4, 10)
+            ));
+            btnEdit.setFocusPainted(false);
+            btnEdit.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+            panel.add(btnEdit);
+
+            javax.swing.JButton btnRestock = new javax.swing.JButton("Reabastecer",
+                    new ModernActionIcon(ModernActionIcon.Type.BOX, 16, java.awt.Color.WHITE));
+            btnRestock.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+            btnRestock.setBackground(new java.awt.Color(62, 62, 62));
+            btnRestock.setForeground(java.awt.Color.WHITE);
+            btnRestock.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 10, 4, 10));
+            btnRestock.setFocusPainted(false);
+            btnRestock.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+            btnRestock.setOpaque(true);
+            panel.add(btnRestock);
+
+            return panel;
+        }
+    }
+
+    /**
+     * Cell editor for Acciones column to handle button clicks
+     */
+    private class StockActionsEditor extends javax.swing.AbstractCellEditor implements javax.swing.table.TableCellEditor {
+        private javax.swing.JPanel panel;
+        private int editingRow = -1;
+
+        @Override
+        public java.awt.Component getTableCellEditorComponent(
+                javax.swing.JTable table, Object value, boolean isSelected, int row, int column) {
+
+            editingRow = row;
+            panel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 6, 8));
+            panel.setBackground(new java.awt.Color(245, 240, 230));
+
+            javax.swing.JButton btnEdit = new javax.swing.JButton("Editar",
+                    new ModernActionIcon(ModernActionIcon.Type.EDIT, 16));
+            btnEdit.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+            btnEdit.setBackground(java.awt.Color.WHITE);
+            btnEdit.setForeground(new java.awt.Color(80, 80, 80));
+            btnEdit.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200)),
+                javax.swing.BorderFactory.createEmptyBorder(4, 10, 4, 10)
+            ));
+            btnEdit.setFocusPainted(false);
+            btnEdit.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+            btnEdit.addActionListener(e -> {
+                if (lowStockModel != null && editingRow >= 0) {
+                    com.openbravo.pos.inventory.LowStockProduct p = lowStockModel.getLowStockProduct(editingRow);
+                    if (p != null) {
+                        try {
+                            m_App.getAppUserView().showTask("com.openbravo.pos.inventory.ProductsPanel");
+                            Object bean = m_App.getBean("com.openbravo.pos.inventory.ProductsPanel");
+                            if (bean instanceof com.openbravo.pos.inventory.ProductsPanel) {
+                                com.openbravo.pos.inventory.ProductsPanel productsPanel = (com.openbravo.pos.inventory.ProductsPanel) bean;
+                                productsPanel.selectRecordById(p.getProductId());
+                                productsPanel.showDetailCard();
                             }
+                        } catch (Exception ex) {
+                            Logger.getLogger(StockManagement.class.getName()).log(Level.WARNING, "Error navigating to product", ex);
                         }
-                    } else {
-                        JOptionPane.showMessageDialog(StockManagement.this,
-                                "Por favor, seleccione un producto de la tabla primero.",
-                                "Ningún producto seleccionado",
-                                JOptionPane.INFORMATION_MESSAGE);
                     }
                 }
+                fireEditingStopped();
             });
+            panel.add(btnEdit);
 
-            buttonPanel.add(btnExportExcel);
-            buttonPanel.add(btnEditProduct);
-            add(buttonPanel, java.awt.BorderLayout.EAST);
+            javax.swing.JButton btnRestock = new javax.swing.JButton("Reabastecer",
+                    new ModernActionIcon(ModernActionIcon.Type.BOX, 16, java.awt.Color.WHITE));
+            btnRestock.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+            btnRestock.setBackground(new java.awt.Color(62, 62, 62));
+            btnRestock.setForeground(java.awt.Color.WHITE);
+            btnRestock.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 10, 4, 10));
+            btnRestock.setFocusPainted(false);
+            btnRestock.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+            btnRestock.setOpaque(true);
+            btnRestock.addActionListener(e -> {
+                // Reabastecer: just select the product so user can add stock
+                if (lowStockModel != null && editingRow >= 0) {
+                    com.openbravo.pos.inventory.LowStockProduct p = lowStockModel.getLowStockProduct(editingRow);
+                    if (p != null) {
+                        // Switch to the stock movement form and select the product
+                        selectProductForRestock(p);
+                    }
+                }
+                fireEditingStopped();
+            });
+            panel.add(btnRestock);
+
+            return panel;
+        }
+
+        @Override
+        public Object getCellEditorValue() {
+            return "ACCIONES";
+        }
+
+        @Override
+        public boolean isCellEditable(java.util.EventObject e) {
+            return true;
+        }
+    }
+
+    /**
+     * Handles restock action - selects product in the stock entry form
+     */
+    private void selectProductForRestock(com.openbravo.pos.inventory.LowStockProduct product) {
+        if (product != null && product.getProductId() != null) {
+            try {
+                // Try to find the product and add it to the movement lines
+                ProductInfoExt prodInfo = m_dlSales.getProductInfo(product.getProductId());
+                if (prodInfo != null) {
+                    // Set reason to "Entrada" (IN_PURCHASE)
+                    m_ReasonModel.setSelectedKey(MovementReason.IN_PURCHASE);
+                    buttonTransition(prodInfo);
+                }
+            } catch (BasicException ex) {
+                Logger.getLogger(StockManagement.class.getName()).log(Level.WARNING, "Error finding product for restock", ex);
+                JOptionPane.showMessageDialog(this, "Error al buscar el producto: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 }

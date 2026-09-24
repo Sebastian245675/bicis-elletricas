@@ -35,7 +35,6 @@ import java.util.logging.Level;
 public class JPanelTicketSales extends JPanelTicket {
 
     private static final long serialVersionUID = 1L;
-    private CatalogSelector m_cat;
 
     public JPanelTicketSales(AppView app) {
         super(app);
@@ -54,7 +53,7 @@ public class JPanelTicketSales extends JPanelTicket {
     @Override
     protected void refreshCatalogView() {
         if (m_cat != null) {
-            m_cat.showTicketView();
+            m_cat.showCategoriesView();
         }
     }
     
@@ -73,7 +72,9 @@ public class JPanelTicketSales extends JPanelTicket {
 
     @Override
     protected void resetSouthComponent() {
-        m_cat.showCatalogPanel(null);
+        if (m_cat != null) {
+            m_cat.showCatalogPanel(null);
+        }
     }
 
     @Override
@@ -94,7 +95,9 @@ public class JPanelTicketSales extends JPanelTicket {
 
     public void reLoadCatalog() {
         try {
-            m_cat.loadCatalog();
+            if (m_cat != null) {
+                m_cat.loadCatalog();
+            }
         } catch (BasicException ex) {
             LOGGER.log(Level.SEVERE, "Exception on : ", ex);
         }
@@ -105,6 +108,10 @@ public class JPanelTicketSales extends JPanelTicket {
         @Override
         public void actionPerformed(ActionEvent e) {
             buttonTransition((ProductInfoExt) e.getSource());
+            if (m_jKeyFactory != null && !m_jKeyFactory.getText().isEmpty()) {
+                m_jKeyFactory.setText("");
+            }
+            setSearchFieldFocus();
         }
     }
 
@@ -123,10 +130,12 @@ public class JPanelTicketSales extends JPanelTicket {
                     }
 
                     // Show the accurate catalog panel...
-                    if (i >= 0) {
-                        m_cat.showCatalogPanel(m_oTicket.getLine(i).getProductID());
-                    } else {
-                        m_cat.showCatalogPanel(null);
+                    if (m_cat != null) {
+                        if (i >= 0) {
+                            m_cat.showCatalogPanel(m_oTicket.getLine(i).getProductID());
+                        } else {
+                            m_cat.showCatalogPanel(null);
+                        }
                     }
                 }
             }

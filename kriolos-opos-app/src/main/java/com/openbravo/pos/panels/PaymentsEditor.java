@@ -51,7 +51,7 @@ public final class PaymentsEditor extends javax.swing.JPanel implements EditorRe
         m_App = oApp;
         
         initComponents();
-       
+        
         m_ReasonModel = new ComboBoxValModel();
         m_ReasonModel.add(new PaymentReasonPositive("cashin", AppLocal.getIntString("transpayment.cashin")));
         m_ReasonModel.add(new PaymentReasonNegative("cashout", AppLocal.getIntString("transpayment.cashout")));              
@@ -61,8 +61,120 @@ public final class PaymentsEditor extends javax.swing.JPanel implements EditorRe
         
         m_jreason.addActionListener(dirty);
         jTotal.addPropertyChangeListener("Text", dirty);
-        m_jNotes.addPropertyChangeListener("Text", dirty);
-        m_jNotes.addEditorKeys(m_jKeys);        
+        m_jNotes.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { dirty.setDirty(true); }
+            @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { dirty.setDirty(true); }
+            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { dirty.setDirty(true); }
+        });        
+        
+        m_jNotes.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusGained(java.awt.event.FocusEvent e) {
+                if (m_jKeys != null) {
+                    m_jKeys.setInactive(jTotal);
+                }
+            }
+        });
+        m_jNotes.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                m_jNotes.requestFocusInWindow();
+            }
+        });
+        
+        // Rediseño moderno de la vista sin teclado y con ancho controlado
+        // En lugar de remover jPanel2, ocultamos todos sus botones para que m_txtKeys
+        // siga en el árbol de componentes activos y pueda capturar el foco del teclado.
+        for (java.awt.Component comp : m_jKeys.getComponents()) {
+            if (!(comp instanceof javax.swing.JTextField)) {
+                comp.setVisible(false);
+            }
+        }
+        m_jKeys.setPreferredSize(new java.awt.Dimension(0, 0));
+        m_jKeys.setMinimumSize(new java.awt.Dimension(0, 0));
+        m_jKeys.setMaximumSize(new java.awt.Dimension(0, 0));
+        
+        jPanel2.setPreferredSize(new java.awt.Dimension(0, 0));
+        jPanel2.setMinimumSize(new java.awt.Dimension(0, 0));
+        jPanel2.setMaximumSize(new java.awt.Dimension(0, 0));
+        
+        setBackground(java.awt.Color.WHITE);
+        
+        jPanel3.removeAll();
+        jPanel3.setLayout(new java.awt.GridBagLayout());
+        jPanel3.setOpaque(true);
+        jPanel3.setBackground(java.awt.Color.WHITE);
+        jPanel3.setBorder(javax.swing.BorderFactory.createEmptyBorder(24, 32, 24, 32));
+        
+        // Centered form container
+        javax.swing.JPanel formContainer = new javax.swing.JPanel(new java.awt.GridBagLayout());
+        formContainer.setOpaque(false);
+        
+        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gbc.anchor = java.awt.GridBagConstraints.WEST;
+        gbc.weightx = 1.0;
+        
+        // 1. Título del Movimiento (Fila 0)
+        javax.swing.JLabel jLabelNotes = new javax.swing.JLabel("Título del Movimiento");
+        jLabelNotes.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 15));
+        jLabelNotes.setForeground(new java.awt.Color(71, 85, 105));
+        gbc.insets = new java.awt.Insets(0, 0, 8, 0);
+        formContainer.add(jLabelNotes, gbc);
+        
+        // Campo Notas (Fila 1)
+        gbc.gridy = 1;
+        m_jNotes.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 16));
+        m_jNotes.setPreferredSize(new java.awt.Dimension(550, 45));
+        m_jNotes.setFocusable(true);
+        m_jNotes.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(203, 213, 225), 1), // slate-300
+            javax.swing.BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
+        gbc.insets = new java.awt.Insets(0, 0, 24, 0);
+        formContainer.add(m_jNotes, gbc);
+        
+        // 2. Tipo de Movimiento (Fila 2)
+        gbc.gridy = 2;
+        jLabel5.setText("Tipo de Movimiento");
+        jLabel5.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 15));
+        jLabel5.setForeground(new java.awt.Color(71, 85, 105)); // slate-600
+        gbc.insets = new java.awt.Insets(0, 0, 8, 0);
+        formContainer.add(jLabel5, gbc);
+        
+        // Combobox (Fila 3)
+        gbc.gridy = 3;
+        m_jreason.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 16));
+        m_jreason.setPreferredSize(new java.awt.Dimension(550, 45));
+        m_jreason.setBackground(java.awt.Color.WHITE);
+        gbc.insets = new java.awt.Insets(0, 0, 24, 0);
+        formContainer.add(m_jreason, gbc);
+        
+        // 3. Cantidad / Monto (Fila 4)
+        gbc.gridy = 4;
+        jLabel3.setText("Cantidad / Monto ($)");
+        jLabel3.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 15));
+        jLabel3.setForeground(new java.awt.Color(71, 85, 105));
+        gbc.insets = new java.awt.Insets(0, 0, 8, 0);
+        formContainer.add(jLabel3, gbc);
+        
+        // Campo Cantidad (Fila 5)
+        gbc.gridy = 5;
+        jTotal.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
+        jTotal.setPreferredSize(new java.awt.Dimension(550, 45));
+        gbc.insets = new java.awt.Insets(0, 0, 24, 0);
+        formContainer.add(jTotal, gbc);
+        
+        // Add formContainer to jPanel3 at the top-center
+        java.awt.GridBagConstraints centerGbc = new java.awt.GridBagConstraints();
+        centerGbc.gridx = 0;
+        centerGbc.gridy = 0;
+        centerGbc.anchor = java.awt.GridBagConstraints.NORTH;
+        centerGbc.insets = new java.awt.Insets(40, 0, 0, 0);
+        centerGbc.weighty = 1.0;
+        jPanel3.add(formContainer, centerGbc);
         
         writeValueEOF();
     }
@@ -81,6 +193,7 @@ public final class PaymentsEditor extends javax.swing.JPanel implements EditorRe
 // JG Added July 2011
         m_sNotes = null;
         m_jNotes.setEnabled(false);
+        m_jNotes.setEditable(false);
 
     }
 
@@ -100,6 +213,7 @@ public final class PaymentsEditor extends javax.swing.JPanel implements EditorRe
 // JG Added July 2011
         m_sNotes = null;
         m_jNotes.setEnabled(true);
+        m_jNotes.setEditable(true);
         m_jNotes.setText(m_sNotes);
     }
     
@@ -119,6 +233,7 @@ public final class PaymentsEditor extends javax.swing.JPanel implements EditorRe
 // JG Added July 2011
         m_sNotes = (String) payment[6];
         m_jNotes.setEnabled(false);
+        m_jNotes.setEditable(false);
     }
     
     /**
@@ -138,6 +253,7 @@ public final class PaymentsEditor extends javax.swing.JPanel implements EditorRe
 // JG Added July 2011
         m_sNotes = (String) payment[6];
         m_jNotes.setEnabled(false);
+        m_jNotes.setEditable(false);
     }
     
     /**
@@ -179,6 +295,54 @@ public final class PaymentsEditor extends javax.swing.JPanel implements EditorRe
     @Override
     public void refresh() {
     }  
+
+    public void setMovementData(String reasonKey, Double signedTotal, String notes) {
+        setReasonTotal(reasonKey, signedTotal);
+        m_jNotes.setText(notes == null ? "" : notes);
+    }
+
+    public String getNotes() {
+        return m_jNotes.getText();
+    }
+
+    public void setNotes(String notes) {
+        m_jNotes.setText(notes);
+    }
+
+    public String getReasonKey() {
+        return (String) m_ReasonModel.getSelectedKey();
+    }
+
+    public void setReasonKey(String key) {
+        m_ReasonModel.setSelectedKey(key);
+        PaymentReason reason = (PaymentReason) m_ReasonModel.getSelectedItem();     
+        if (reason == null) {
+            jTotal.setDoubleValue(jTotal.getValue());
+        } else {
+            jTotal.setDoubleValue(reason.positivize(jTotal.getValue()));
+        }
+    }
+
+    public Double getAmountValue() {
+        return jTotal.getValue();
+    }
+
+    public void setAmountValue(Double val) {
+        jTotal.setDoubleValue(val);
+    }
+
+    public Double getSignedTotal() {
+        PaymentReason reason = (PaymentReason) m_ReasonModel.getSelectedItem();
+        Double dtotal = jTotal.getValue();
+        return reason == null ? dtotal : reason.addSignum(dtotal);
+    }
+
+    public void setFieldsEnabled(boolean enabled) {
+        m_jNotes.setEnabled(enabled);
+        m_jNotes.setEditable(enabled);
+        m_jreason.setEnabled(enabled);
+        jTotal.setEnabled(enabled);
+    }
     
     private void setReasonTotal(Object reasonfield, Object totalfield) {
         
@@ -265,7 +429,7 @@ public final class PaymentsEditor extends javax.swing.JPanel implements EditorRe
         m_jreason = new javax.swing.JComboBox();
         jLabel3 = new javax.swing.JLabel();
         jTotal = new com.openbravo.editor.JEditorCurrency();
-        m_jNotes = new com.openbravo.editor.JEditorString();
+        m_jNotes = new javax.swing.JTextField();
         jPanel2 = new javax.swing.JPanel();
         m_jKeys = new com.openbravo.editor.JEditorKeys();
 
@@ -347,7 +511,7 @@ public final class PaymentsEditor extends javax.swing.JPanel implements EditorRe
     private javax.swing.JPanel jPanel3;
     private com.openbravo.editor.JEditorCurrency jTotal;
     private com.openbravo.editor.JEditorKeys m_jKeys;
-    private com.openbravo.editor.JEditorString m_jNotes;
+    private javax.swing.JTextField m_jNotes;
     private javax.swing.JComboBox m_jreason;
     // End of variables declaration//GEN-END:variables
     

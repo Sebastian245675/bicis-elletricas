@@ -16,6 +16,8 @@
 
 package com.openbravo.pos.panels;
 
+import com.openbravo.pos.util.ModernActionIcon;
+
 import com.openbravo.basic.BasicException;
 import com.openbravo.beans.JCalendarDialog;
 import com.openbravo.data.gui.ComboBoxValModel;
@@ -412,7 +414,7 @@ public class JTicketsFinder extends javax.swing.JDialog implements EditorCreator
         jTxtEndDate.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         jTxtEndDate.setPreferredSize(new java.awt.Dimension(150, 30));
 
-        btnDateStart.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/date.png"))); // NOI18N
+        btnDateStart.setIcon(new ModernActionIcon(ModernActionIcon.Type.CALENDAR, 18));
         btnDateStart.setToolTipText("Open Calendar");
         btnDateStart.setPreferredSize(new java.awt.Dimension(100, 30));
         btnDateStart.addActionListener(new java.awt.event.ActionListener() {
@@ -421,7 +423,7 @@ public class JTicketsFinder extends javax.swing.JDialog implements EditorCreator
             }
         });
 
-        btnDateEnd.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/date.png"))); // NOI18N
+        btnDateEnd.setIcon(new ModernActionIcon(ModernActionIcon.Type.CALENDAR, 18));
         btnDateEnd.setToolTipText("Open Calendar");
         btnDateEnd.setPreferredSize(new java.awt.Dimension(100, 30));
         btnDateEnd.addActionListener(new java.awt.event.ActionListener() {
@@ -433,7 +435,7 @@ public class JTicketsFinder extends javax.swing.JDialog implements EditorCreator
         jtxtCustomer.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         jtxtCustomer.setPreferredSize(new java.awt.Dimension(150, 30));
 
-        btnCustomer.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/customer_sml.png"))); // NOI18N
+        btnCustomer.setIcon(new ModernActionIcon(ModernActionIcon.Type.SEARCH, 18));
         btnCustomer.setToolTipText("Open Customers");
         btnCustomer.setFocusPainted(false);
         btnCustomer.setFocusable(false);
@@ -549,7 +551,7 @@ public class JTicketsFinder extends javax.swing.JDialog implements EditorCreator
         jPanel4.add(jScrollPane1, java.awt.BorderLayout.CENTER);
 
         jbtnReset.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jbtnReset.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/reload.png"))); // NOI18N
+        jbtnReset.setIcon(new ModernActionIcon(ModernActionIcon.Type.REFRESH, 18));
         jbtnReset.setText(AppLocal.getIntString("button.clean")); // NOI18N
         jbtnReset.setToolTipText("Clear Filter");
         jbtnReset.setPreferredSize(new java.awt.Dimension(110, 45));
@@ -561,7 +563,7 @@ public class JTicketsFinder extends javax.swing.JDialog implements EditorCreator
         jPanel6.add(jbtnReset);
 
         jbtnExecute.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jbtnExecute.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ok.png"))); // NOI18N
+        jbtnExecute.setIcon(new ModernActionIcon(ModernActionIcon.Type.SEARCH, 18));
         jbtnExecute.setText(AppLocal.getIntString("button.executefilter")); // NOI18N
         jbtnExecute.setToolTipText("Execute Filter");
         jbtnExecute.setFocusPainted(false);
@@ -586,7 +588,7 @@ public class JTicketsFinder extends javax.swing.JDialog implements EditorCreator
         jPanel1.setPreferredSize(new java.awt.Dimension(290, 55));
 
         jcmdCancel.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jcmdCancel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/cancel.png"))); // NOI18N
+        jcmdCancel.setIcon(new ModernActionIcon(ModernActionIcon.Type.DELETE, 18));
         jcmdCancel.setText(AppLocal.getIntString("button.cancel")); // NOI18N
         jcmdCancel.setFocusPainted(false);
         jcmdCancel.setFocusable(false);
@@ -601,7 +603,7 @@ public class JTicketsFinder extends javax.swing.JDialog implements EditorCreator
         jPanel1.add(jcmdCancel);
 
         jcmdOK.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jcmdOK.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ok.png"))); // NOI18N
+        jcmdOK.setIcon(new ModernActionIcon(ModernActionIcon.Type.SAVE, 18));
         jcmdOK.setText(AppLocal.getIntString("button.ok")); // NOI18N
         jcmdOK.setEnabled(false);
         jcmdOK.setFocusPainted(false);

@@ -31,6 +31,8 @@
     <class name="com.openbravo.pos.sales.JPanelTicketEdits"/>
     <class name="com.openbravo.pos.customers.CustomersPayment"/>
     <class name="com.openbravo.pos.panels.JPanelPayments"/>
+    <class name="com.openbravo.pos.sales.JPanelApartados"/>
+    <class name="invoice.Issue"/>
     <class name="com.openbravo.pos.panels.JPanelCloseMoney"/>
     <class name="com.openbravo.pos.panels.JPanelCloseMoneyReprint"/>    
 
@@ -87,7 +89,6 @@
             
     <class name="com.openbravo.pos.forms.MenuSuppliers"/>
     <class name="com.openbravo.pos.suppliers.SuppliersPanel"/>
-    <class name="/com/openbravo/reports/suppliers.bs"/>
     <class name="/com/openbravo/reports/suppliers_b.bs"/>
     <class name="/com/openbravo/reports/suppliers_creditors.bs"/>
     <class name="/com/openbravo/reports/suppliers_diary.bs"/>
@@ -129,6 +130,7 @@
 
     <class name="com.openbravo.pos.forms.MenuSalesManagement"/>
     <class name="com.openbravo.pos.inventory.JPanelProductVariation"/>
+    <class name="com.openbravo.pos.sales.JPanelFacturadas"/>
     <class name="/com/openbravo/reports/sales_cashflow.bs"/>            
     <class name="/com/openbravo/reports/sales_cashregisterlog.bs"/>
     <class name="/com/openbravo/reports/sales_categorysales.bs"/> 
@@ -155,8 +157,6 @@
     <class name="com.openbravo.pos.admin.PeoplePanel"/>
     <class name="com.openbravo.pos.admin.ResourcesPanel"/>
     <class name="com.openbravo.pos.inventory.LocationsPanel"/>
-    <class name="com.openbravo.pos.sales.restaurant.JPanelFloors"/>
-    <class name="com.openbravo.pos.sales.restaurant.JPanelPlaces"/>
     <class name="com.openbravo.pos.voucher.VoucherPanel"/>
     <class name="com.openbravo.pos.branches.JPanelBranchesTest"/>
     <class name="com.openbravo.pos.branches.JPanelBranchesManagement"/>
@@ -166,8 +166,7 @@
     <class name="/com/openbravo/reports/users.bs"/>
     <class name="/com/openbravo/reports/usersales.bs"/>
     <class name="/com/openbravo/reports/usernosales.bs"/>
-    <class name="/com/openbravo/reports/uservoids.bs"/>
-    <class name="/com/openbravo/reports/customers_vouchers.bs"/>                                                                                     
+    <class name="/com/openbravo/reports/uservoids.bs"/>                                                                                     
 
     <class name="com.openbravo.pos.imports.JPanelCSV"/>
     <class name="com.openbravo.pos.imports.JPanelCSVImport"/>
@@ -188,6 +187,8 @@
     <class name="com.openbravo.pos.epm.BreaksPanel" /> 
     <class name="com.openbravo.pos.epm.LeavesPanel" />
     <class name="com.openbravo.pos.epm.JPanelEmployeePresence" />
+    <class name="hr.ViewAllAttendance" />
+    <class name="hr.DeletePayroll" />
     <class name="/com/openbravo/reports/epm_dailypresence.bs" />
     <class name="/com/openbravo/reports/epm_dailyschedule.bs" />
     <class name="/com/openbravo/reports/epm_performance.bs" />
@@ -195,6 +196,5 @@
     <class name="Menu.ChangePassword"/>
     <class name="com.openbravo.pos.panels.JPanelPrinter"/>
     <class name="com.openbravo.pos.config.JPanelConfiguration"/>
-    <class name="com.openbravo.pos.panels.JPanelDocuments"/>
 
 </permissions>

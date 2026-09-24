@@ -22,25 +22,52 @@ public class ModernLookAndFeel {
         try {
             // Preferir FlatLightLaf para el tema Blanco Institucional
             try {
-                if (UIManager.getLookAndFeel() == null || !UIManager.getLookAndFeel().getClass().getName().contains("FlatLaf")) {
-                    // Definir colores corporativos - Restaurando Tema Blanco Institucional
-                    Color whiteBg = Color.WHITE;                // Fondo principal
-                    Color formalBlue = new Color(51, 98, 140);   // Acentos (Azul institucional)
-                    Color softGrey = new Color(245, 245, 245);  // Botones/Hover
-                    
-                    UIManager.put("Panel.background", whiteBg);
-                    UIManager.put("Button.background", softGrey);
-                    UIManager.put("Button.foreground", new Color(33, 33, 33));
-                    UIManager.put("Label.foreground", new Color(50, 50, 50));
-                    UIManager.put("Component.accentColor", formalBlue);
-                    UIManager.put("Component.focusColor", formalBlue);
-                    
-                    // Configurar FlatLightLaf
-                    FlatLightLaf.setup();
-                }
+                // Paleta empresarial del PDV: neutros claros, verde profundo y acento dorado.
+                Color creamBg = new Color(246, 247, 243);
+                Color surface = Color.WHITE;
+                Color brandGreen = new Color(7, 55, 43);
+                Color brandGreenHover = new Color(12, 79, 61);
+                Color corporateGold = new Color(214, 169, 61);
+                Color text = new Color(31, 41, 38);
+                Color muted = new Color(104, 116, 111);
+                Color line = new Color(218, 224, 220);
+                
+                UIManager.put("control", creamBg);
+                UIManager.put("Panel.background", creamBg);
+                UIManager.put("Button.background", brandGreen);
+                UIManager.put("Button.foreground", Color.WHITE);
+                UIManager.put("Button.hoverBackground", brandGreenHover);
+                UIManager.put("Button.pressedBackground", new Color(5, 43, 34));
+                UIManager.put("Button.focusedBorderColor", corporateGold);
+                UIManager.put("Button.focusWidth", 2);
+                UIManager.put("Label.foreground", text);
+                UIManager.put("Component.accentColor", corporateGold);
+                UIManager.put("Component.focusColor", corporateGold);
+                UIManager.put("Component.borderColor", line);
+                UIManager.put("TextField.background", surface);
+                UIManager.put("TextField.foreground", text);
+                UIManager.put("TextField.placeholderForeground", muted);
+                UIManager.put("Table.background", surface);
+                UIManager.put("Table.alternateRowColor", new Color(249, 250, 248));
+                UIManager.put("Table.gridColor", line);
+                UIManager.put("Table.selectionBackground", new Color(220, 239, 231));
+                UIManager.put("Table.selectionForeground", brandGreen);
+                UIManager.put("TableHeader.background", new Color(239, 243, 240));
+                UIManager.put("TableHeader.foreground", brandGreen);
+                UIManager.put("List.selectionBackground", new Color(220, 239, 231));
+                UIManager.put("List.selectionForeground", brandGreen);
+                UIManager.put("TabbedPane.selectedBackground", creamBg);
+                UIManager.put("TabbedPane.selectedForeground", brandGreen);
+                UIManager.put("TabbedPane.underlineColor", corporateGold);
+                UIManager.put("TabbedPane.showTabSeparators", Boolean.FALSE);
+                UIManager.put("ScrollPane.background", creamBg);
+                UIManager.put("Viewport.background", surface);
+                
+                // Configurar FlatLightLaf
+                FlatLightLaf.setup();
                 
                 aplicarPropiedadesModernas();
-                aplicarFuenteGlobal(new Font("Segoe UI", Font.PLAIN, 18));
+                aplicarFuenteGlobal(getPreferredFont("Segoe UI", Font.PLAIN, 14));
                 return;
             } catch (Throwable t) {
                 // Fallback si FlatLaf no está disponible
@@ -56,14 +83,14 @@ public class ModernLookAndFeel {
 
                     // Aplicar propiedades globales modernas
                     aplicarPropiedadesModernas();
-                    aplicarFuenteGlobal(new Font("Segoe UI", Font.PLAIN, 18));
+                    aplicarFuenteGlobal(getPreferredFont("Segoe UI", Font.PLAIN, 14));
                     return; // Éxito, salir
                 }
             }
 
             // Si no se encuentra Nimbus, aplicar propiedades básicas al LAF actual
             aplicarPropiedadesModernas();
-            aplicarFuenteGlobal(new Font("Segoe UI", Font.PLAIN, 13));
+            aplicarFuenteGlobal(getPreferredFont("Segoe UI", Font.PLAIN, 14));
             
         } catch (Exception e) {
             System.err.println("Error aplicando Look and Feel moderno: " + e.getMessage());
@@ -89,25 +116,25 @@ public class ModernLookAndFeel {
      * Personaliza el tema Nimbus con colores modernos
      */
     private static void personalizarNimbus() {
-        // Colores modernos inspirados en Material Design
-        UIManager.put("control", new Color(250, 250, 250));                    // Fondo general
-        UIManager.put("nimbusBase", new Color(51, 98, 140));                  // Azul principal
-        UIManager.put("nimbusBlueGrey", new Color(169, 184, 196));            // Gris azulado
-        UIManager.put("nimbusFocus", new Color(63, 81, 181));                 // Color de foco (Material Indigo)
+        // Respaldo Nimbus con la misma identidad visual del tema principal.
+        UIManager.put("control", new Color(246, 247, 243));
+        UIManager.put("nimbusBase", new Color(7, 55, 43));
+        UIManager.put("nimbusBlueGrey", new Color(218, 224, 220));
+        UIManager.put("nimbusFocus", new Color(214, 169, 61));
         UIManager.put("nimbusSelectedText", Color.WHITE);                      // Texto seleccionado
-        UIManager.put("nimbusSelectionBackground", new Color(63, 81, 181));   // Fondo de selección
+        UIManager.put("nimbusSelectionBackground", new Color(12, 79, 61));
         
         // Botones más modernos
-        UIManager.put("Button.background", new Color(33, 150, 243));          // Azul Material
+        UIManager.put("Button.background", new Color(7, 55, 43));
         UIManager.put("Button.foreground", Color.WHITE);
-        UIManager.put("Button[Default].backgroundPainter", new Color(33, 150, 243));
+        UIManager.put("Button[Default].backgroundPainter", new Color(7, 55, 43));
         
         // Campos de texto más limpios
         UIManager.put("TextField.background", Color.WHITE);
         UIManager.put("TextField.border", BorderFactory.createLineBorder(new Color(224, 224, 224), 1));
         
         // Paneles más modernos
-        UIManager.put("Panel.background", new Color(250, 250, 250));
+        UIManager.put("Panel.background", new Color(246, 247, 243));
         
         // Tablas más elegantes
         UIManager.put("Table.background", Color.WHITE);
@@ -145,11 +172,11 @@ public class ModernLookAndFeel {
         UIManager.put("swing.boldMetal", Boolean.FALSE);
         
         // Bordes más modernos para todos los componentes
-        UIManager.put("TitledBorder.font", new Font("Arial", Font.BOLD, 17));
-        UIManager.put("TitledBorder.titleColor", new Color(66, 66, 66));
+        UIManager.put("TitledBorder.font", getPreferredFont("Segoe UI", Font.BOLD, 14));
+        UIManager.put("TitledBorder.titleColor", new Color(7, 55, 43));
         
         // Tooltips más elegantes
-        UIManager.put("ToolTip.background", new Color(97, 97, 97));
+        UIManager.put("ToolTip.background", new Color(7, 55, 43));
         UIManager.put("ToolTip.foreground", Color.WHITE);
         UIManager.put("ToolTip.border", BorderFactory.createLineBorder(new Color(128, 128, 128), 1));
         
@@ -159,41 +186,63 @@ public class ModernLookAndFeel {
         UIManager.put("ScrollBar.track", new Color(245, 245, 245));
 
         // Bordes redondeados y apariencia general para FlatLaf/Nimbus
-        UIManager.put("Button.arc", 12);
-        UIManager.put("Component.arc", 8);
-        UIManager.put("TextComponent.arc", 8);
-        UIManager.put("ProgressBar.arc", 8);
-        UIManager.put("ScrollBar.thumbArc", 8);
+        UIManager.put("Button.arc", 14);
+        UIManager.put("Component.arc", 12);
+        UIManager.put("TextComponent.arc", 12);
+        UIManager.put("ProgressBar.arc", 12);
+        UIManager.put("ScrollBar.thumbArc", 999);
+        UIManager.put("ScrollBar.width", 10);
         UIManager.put("TabbedPane.contentBorderInsets", new Insets(8, 8, 8, 8));
 
         // Mejoras adicionales para tablas, menús y barras de herramientas
-        UIManager.put("Table.rowHeight", 28);
+        UIManager.put("Table.rowHeight", 34);
         UIManager.put("Table.showGrid", Boolean.FALSE);
-        UIManager.put("Table.selectionBackground", new Color(63, 81, 181));
-        UIManager.put("Table.selectionForeground", Color.WHITE);
-        UIManager.put("TableHeader.background", new Color(245, 245, 245));
-        UIManager.put("TableHeader.font", new Font("Segoe UI", Font.BOLD, 18));
+        UIManager.put("Table.selectionBackground", new Color(220, 239, 231));
+        UIManager.put("Table.selectionForeground", new Color(7, 55, 43));
+        UIManager.put("TableHeader.background", new Color(239, 243, 240));
+        UIManager.put("TableHeader.foreground", new Color(7, 55, 43));
+        UIManager.put("TableHeader.font", getPreferredFont("Segoe UI", Font.BOLD, 13));
 
-        UIManager.put("ToolBar.background", new Color(250, 250, 250));
-        UIManager.put("Menu.background", new Color(250, 250, 250));
-        UIManager.put("Menu.selectionBackground", new Color(230, 230, 230));
+        UIManager.put("ToolBar.background", new Color(246, 247, 243));
+        UIManager.put("Menu.background", Color.WHITE);
+        UIManager.put("Menu.selectionBackground", new Color(231, 241, 236));
 
         // Mejorar aspecto de popups y tooltips
         UIManager.put("PopupMenu.border", BorderFactory.createLineBorder(new Color(200, 200, 200)));
         UIManager.put("ScrollPane.viewportBorder", BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
         // --- PERSONALIZACIÓN PARA JOPTIONPANE Y BOTONES DEL DIÁLOGO (SEBASTIAN) ---
-        Color formalBlue = new Color(51, 98, 140);
-        UIManager.put("Button.defaultButtonBackground", formalBlue);
-        UIManager.put("Button.defaultButtonForeground", Color.WHITE);
-        UIManager.put("Button.hoverBackground", new Color(226, 232, 240)); // Slate 200
-        UIManager.put("Button.focusedBorderColor", formalBlue);
+        Color brandGreen = new Color(7, 55, 43);
+        Color hoverGreen = new Color(12, 79, 61);
+        Color corporateGold = new Color(214, 169, 61);
+        
+        // Configuración para el Botón por Defecto (Default Button)
+        UIManager.put("Button.default.background", brandGreen);
+        UIManager.put("Button.default.foreground", Color.WHITE);
+        UIManager.put("Button.default.hoverBackground", hoverGreen);
+        UIManager.put("Button.default.hoverForeground", Color.WHITE);
+        UIManager.put("Button.default.focusedBackground", brandGreen);
+        UIManager.put("Button.default.focusedForeground", Color.WHITE);
+        UIManager.put("Button.default.pressedBackground", new Color(5, 43, 34));
+        UIManager.put("Button.default.pressedForeground", Color.WHITE);
+        UIManager.put("Button.default.focusColor", corporateGold);
+        UIManager.put("Button.default.focusedBorderColor", corporateGold);
+        UIManager.put("Button.default.focusWidth", 2);
+
+        // Configuración para los Botones Regulares (Regular Buttons)
+        UIManager.put("Button.hoverBackground", hoverGreen);
+        UIManager.put("Button.hoverForeground", Color.WHITE);
+        UIManager.put("Button.focusedBackground", brandGreen);
+        UIManager.put("Button.focusedForeground", Color.WHITE);
+        UIManager.put("Button.pressedBackground", new Color(5, 43, 34));
+        UIManager.put("Button.pressedForeground", Color.WHITE);
+        UIManager.put("Button.focusedBorderColor", corporateGold);
         UIManager.put("Button.focusWidth", 2);
 
         UIManager.put("OptionPane.background", Color.WHITE);
         UIManager.put("OptionPane.messageForeground", new Color(51, 65, 85)); // Slate 700
-        UIManager.put("OptionPane.messageFont", new Font("Segoe UI", Font.PLAIN, 18));
-        UIManager.put("OptionPane.buttonFont", new Font("Segoe UI", Font.BOLD, 17));
+        UIManager.put("OptionPane.messageFont", getPreferredFont("Segoe UI", Font.PLAIN, 14));
+        UIManager.put("OptionPane.buttonFont", getPreferredFont("Segoe UI", Font.BOLD, 13));
         UIManager.put("OptionPane.border", BorderFactory.createEmptyBorder(24, 24, 24, 24));
         UIManager.put("OptionPane.messageAreaBorder", BorderFactory.createEmptyBorder(0, 0, 16, 0));
         UIManager.put("OptionPane.buttonAreaBorder", BorderFactory.createEmptyBorder(8, 0, 0, 0));
@@ -203,6 +252,33 @@ public class ModernLookAndFeel {
         UIManager.put("OptionPane.questionIcon", new ModernVectorIcon(ModernVectorIcon.QUESTION, 42));
         UIManager.put("OptionPane.warningIcon", new ModernVectorIcon(ModernVectorIcon.WARNING, 42));
         UIManager.put("OptionPane.errorIcon", new ModernVectorIcon(ModernVectorIcon.ERROR, 42));
+    }
+
+    /**
+     * Retorna la mejor fuente geométrica disponible en el sistema.
+     * Busca "Baradig", "Century Gothic", "Segoe UI" en ese orden.
+     */
+    public static Font getPreferredFont(String name, int style, int size) {
+        try {
+            String[] families = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
+            for (String f : families) {
+                if (f.equalsIgnoreCase(name)) {
+                    return new Font(f, style, size);
+                }
+            }
+            // Fallbacks
+            String[] fallbacks = {"Century Gothic", "Segoe UI", "Arial"};
+            for (String fb : fallbacks) {
+                for (String f : families) {
+                    if (f.equalsIgnoreCase(fb)) {
+                        return new Font(f, style, size);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Ignorar y retornar fuente por defecto
+        }
+        return new Font("Dialog", style, size);
     }
 
     /**
@@ -223,16 +299,16 @@ public class ModernLookAndFeel {
 
         // Force some common keys as well
         UIManager.put("defaultFont", font);
-        UIManager.put("Button.font", font.deriveFont(Font.BOLD, 18f));
-        UIManager.put("Label.font", font.deriveFont(17f));
-        UIManager.put("TextField.font", font.deriveFont(18f));
-        UIManager.put("TextArea.font", font.deriveFont(18f));
-        UIManager.put("Table.font", font.deriveFont(17f));
-        UIManager.put("TableHeader.font", font.deriveFont(Font.BOLD, 18f));
+        UIManager.put("Button.font", font.deriveFont(Font.BOLD, 14f));
+        UIManager.put("Label.font", font.deriveFont(14f));
+        UIManager.put("TextField.font", font.deriveFont(14f));
+        UIManager.put("TextArea.font", font.deriveFont(14f));
+        UIManager.put("Table.font", font.deriveFont(14f));
+        UIManager.put("TableHeader.font", font.deriveFont(Font.BOLD, 13f));
 
         // Improve option panes and dialogs
-        UIManager.put("OptionPane.messageFont", font.deriveFont(18f));
-        UIManager.put("OptionPane.buttonFont", font.deriveFont(Font.BOLD, 17f));
+        UIManager.put("OptionPane.messageFont", font.deriveFont(14f));
+        UIManager.put("OptionPane.buttonFont", font.deriveFont(Font.BOLD, 13f));
     }
     
     /**
@@ -242,7 +318,7 @@ public class ModernLookAndFeel {
         if (dialog == null) return;
         
         // Fondo moderno
-        dialog.getContentPane().setBackground(new Color(250, 250, 250));
+        dialog.getContentPane().setBackground(new Color(246, 247, 243));
         
         // Aplicar estilos a todos los componentes del diálogo
         aplicarEstilosRecursivamente(dialog.getContentPane());
@@ -301,16 +377,17 @@ public class ModernLookAndFeel {
      */
     private static void aplicarEstiloBotonModerno(JButton button) {
         button.setFocusPainted(false);
-        button.setBorderPainted(false);
-        button.setBackground(new Color(33, 150, 243));  // Material Blue
+        button.setBorderPainted(true);
+        button.setBackground(new Color(7, 55, 43));
         button.setForeground(Color.WHITE);
-        button.setFont(new Font("Arial", Font.BOLD, 17));
+        button.setFont(getPreferredFont("Segoe UI", Font.BOLD, 14));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.putClientProperty("JButton.buttonType", "roundRect");
         
         // Bordes redondeados (efecto visual)
         button.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(30, 136, 220), 1),
-            BorderFactory.createEmptyBorder(8, 16, 8, 16)
+            BorderFactory.createLineBorder(new Color(7, 55, 43), 1),
+            BorderFactory.createEmptyBorder(7, 14, 7, 14)
         ));
         
         // Efectos hover si es posible
@@ -319,7 +396,7 @@ public class ModernLookAndFeel {
             
             @Override
             public void mouseEntered(java.awt.event.MouseEvent evt) {
-                button.setBackground(colorOriginal.brighter());
+                button.setBackground(new Color(12, 79, 61));
             }
             
             @Override
@@ -333,10 +410,11 @@ public class ModernLookAndFeel {
      * Aplica estilo moderno a un campo de texto
      */
     private static void aplicarEstiloCampoModerno(JTextField field) {
-        field.setFont(new Font("Arial", Font.PLAIN, 19));
+        field.setFont(getPreferredFont("Segoe UI", Font.PLAIN, 14));
+        field.putClientProperty("JTextField.roundRect", Boolean.TRUE);
         field.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(224, 224, 224), 2),
-            BorderFactory.createEmptyBorder(8, 12, 8, 12)
+            BorderFactory.createLineBorder(new Color(218, 224, 220), 1),
+            BorderFactory.createEmptyBorder(6, 10, 6, 10)
         ));
         field.setBackground(Color.WHITE);
         
@@ -345,16 +423,16 @@ public class ModernLookAndFeel {
             @Override
             public void focusGained(java.awt.event.FocusEvent evt) {
                 field.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(new Color(63, 81, 181), 2),
-                    BorderFactory.createEmptyBorder(8, 12, 8, 12)
+                    BorderFactory.createLineBorder(new Color(214, 169, 61), 1),
+                    BorderFactory.createEmptyBorder(6, 10, 6, 10)
                 ));
             }
             
             @Override
             public void focusLost(java.awt.event.FocusEvent evt) {
                 field.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(new Color(224, 224, 224), 2),
-                    BorderFactory.createEmptyBorder(8, 12, 8, 12)
+                    BorderFactory.createLineBorder(new Color(218, 224, 220), 1),
+                    BorderFactory.createEmptyBorder(6, 10, 6, 10)
                 ));
             }
         });
@@ -364,22 +442,22 @@ public class ModernLookAndFeel {
      * Aplica estilo moderno a una etiqueta
      */
     private static void aplicarEstiloEtiquetaModerna(JLabel label) {
-        label.setFont(new Font("Arial", Font.PLAIN, 17));
-        label.setForeground(new Color(66, 66, 66));
+        label.setFont(getPreferredFont("Segoe UI", Font.PLAIN, 14));
+        label.setForeground(new Color(31, 41, 38));
     }
     
     /**
      * Aplica estilo moderno a un panel
      */
     private static void aplicarEstiloPanelModerno(JPanel panel) {
-        panel.setBackground(new Color(250, 250, 250));
+        panel.setBackground(new Color(246, 247, 243));
         
         // Si tiene borde de título, modernizarlo
         if (panel.getBorder() instanceof javax.swing.border.TitledBorder) {
             javax.swing.border.TitledBorder titleBorder = 
                 (javax.swing.border.TitledBorder) panel.getBorder();
-            titleBorder.setTitleFont(new Font("Arial", Font.BOLD, 17));
-            titleBorder.setTitleColor(new Color(66, 66, 66));
+            titleBorder.setTitleFont(getPreferredFont("Segoe UI", Font.BOLD, 14));
+            titleBorder.setTitleColor(new Color(7, 55, 43));
         }
     }
     
@@ -388,20 +466,21 @@ public class ModernLookAndFeel {
      */
     private static void aplicarEstiloToggleModerno(JToggleButton toggle) {
         toggle.setFocusPainted(false);
-        toggle.setBorderPainted(false);
-        toggle.setFont(new Font("Arial", Font.BOLD, 16));
+        toggle.setBorderPainted(true);
+        toggle.setFont(getPreferredFont("Segoe UI", Font.BOLD, 14));
         toggle.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        toggle.putClientProperty("JButton.buttonType", "roundRect");
         
-        Color colorNormal = new Color(224, 224, 224);
-        Color colorSeleccionado = new Color(76, 175, 80); // Material Green
+        Color colorNormal = new Color(239, 243, 240);
+        Color colorSeleccionado = new Color(7, 55, 43);
         
         toggle.setBackground(toggle.isSelected() ? colorSeleccionado : colorNormal);
-        toggle.setForeground(toggle.isSelected() ? Color.WHITE : new Color(66, 66, 66));
+        toggle.setForeground(toggle.isSelected() ? Color.WHITE : new Color(31, 41, 38));
         
         // Cambiar colores al seleccionar/deseleccionar
         toggle.addActionListener(e -> {
             toggle.setBackground(toggle.isSelected() ? colorSeleccionado : colorNormal);
-            toggle.setForeground(toggle.isSelected() ? Color.WHITE : new Color(66, 66, 66));
+            toggle.setForeground(toggle.isSelected() ? Color.WHITE : new Color(31, 41, 38));
         });
     }
 
@@ -445,7 +524,7 @@ public class ModernLookAndFeel {
                     symbol = "i";
                     break;
                 case QUESTION:
-                    circleColor = new Color(99, 102, 241); // Indigo #6366F1
+                    circleColor = new Color(202, 159, 65); // Oro corporativo #CA9F41
                     symbol = "?";
                     break;
                 case WARNING:

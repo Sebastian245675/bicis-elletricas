@@ -516,9 +516,11 @@ public class JAuthPanel extends javax.swing.JPanel {
             // Verificar si el usuario necesita contraseña
             if (user.authenticate()) {
                 // Usuario sin contraseña, permitir acceso directo
-                LOGGER.log(Level.INFO, "Usuario sin contraseña - Login exitoso: " + username);
-                saveUserToHistory(user.getName()); // Guardar en historial
-                authListener.onSucess(user);
+                if (check2FA(user)) {
+                    LOGGER.log(Level.INFO, "Usuario sin contraseña - Login exitoso: " + username);
+                    saveUserToHistory(user.getName()); // Guardar en historial
+                    authListener.onSucess(user);
+                }
             } else {
                 // Usuario con contraseña, validar
                 if (password.isEmpty()) {
@@ -530,9 +532,11 @@ public class JAuthPanel extends javax.swing.JPanel {
                 }
 
                 if (user.authenticate(password)) {
-                    LOGGER.log(Level.INFO, "Login exitoso: " + username);
-                    saveUserToHistory(user.getName()); // Guardar en historial
-                    authListener.onSucess(user);
+                    if (check2FA(user)) {
+                        LOGGER.log(Level.INFO, "Login exitoso: " + username);
+                        saveUserToHistory(user.getName()); // Guardar en historial
+                        authListener.onSucess(user);
+                    }
                 } else {
                     LOGGER.log(Level.INFO, "Contraseña incorrecta para: " + username);
                     MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
@@ -578,8 +582,10 @@ public class JAuthPanel extends javax.swing.JPanel {
 
             try {
                 if (m_actionuser.authenticate()) {
-                    LOGGER.log(Level.INFO, "IS Logged");
-                    authListener.onSucess(m_actionuser);
+                    if (check2FA(m_actionuser)) {
+                        LOGGER.log(Level.INFO, "IS Logged");
+                        authListener.onSucess(m_actionuser);
+                    }
                 } else {
                     String sPassword = JPasswordDialog.showEditor(JAuthPanel.this,
                             AppLocal.getIntString("label.Password"),
@@ -588,8 +594,10 @@ public class JAuthPanel extends javax.swing.JPanel {
                     if (sPassword != null) {
 
                         if (m_actionuser.authenticate(sPassword)) {
-                            LOGGER.log(Level.INFO, "Login Success");
-                            authListener.onSucess(m_actionuser);
+                            if (check2FA(m_actionuser)) {
+                                LOGGER.log(Level.INFO, "Login Success");
+                                authListener.onSucess(m_actionuser);
+                            }
                         } else {
                             LOGGER.log(Level.INFO, "Login failed");
                             MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
@@ -606,6 +614,111 @@ public class JAuthPanel extends javax.swing.JPanel {
 
     public interface AuthListener {
         public void onSucess(AppUser user);
+    }
+
+    private boolean check2FA(AppUser user) {
+        if (!com.openbravo.pos.forms.AppConfig.getInstance().getBoolean("system.enable2fa")) {
+            return true; // 2FA is globally disabled in system settings
+        }
+        String secret = user.getTotpSecret();
+        if (secret == null || secret.isEmpty()) {
+            // Primer inicio de sesión con 2FA activado: forzar configuración
+            try {
+                com.warrenstrange.googleauth.GoogleAuthenticator gAuth = new com.warrenstrange.googleauth.GoogleAuthenticator();
+                final com.warrenstrange.googleauth.GoogleAuthenticatorKey key = gAuth.createCredentials();
+                String newSecret = key.getKey();
+
+                String appName = "KriolOS";
+                String userName = user.getName() != null ? user.getName().replaceAll(" ", "") : "User";
+                String otpAuthUrl = String.format("otpauth://totp/%s:%s?secret=%s&issuer=%s", appName, userName, newSecret, appName);
+
+                com.google.zxing.qrcode.QRCodeWriter qrCodeWriter = new com.google.zxing.qrcode.QRCodeWriter();
+                com.google.zxing.common.BitMatrix bitMatrix = qrCodeWriter.encode(otpAuthUrl, com.google.zxing.BarcodeFormat.QR_CODE, 200, 200);
+                java.awt.image.BufferedImage qrImage = com.google.zxing.client.j2se.MatrixToImageWriter.toBufferedImage(bitMatrix);
+
+                javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.BorderLayout(10, 10));
+                javax.swing.JLabel lblQr = new javax.swing.JLabel(new javax.swing.ImageIcon(qrImage));
+                lblQr.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+                panel.add(lblQr, java.awt.BorderLayout.CENTER);
+
+                javax.swing.JPanel bottom = new javax.swing.JPanel(new java.awt.BorderLayout(5, 5));
+                bottom.add(new javax.swing.JLabel("<html>Para continuar, configure la autenticación de dos factores.<br>Escanee el código y escriba el PIN de 6 dígitos:</html>"), java.awt.BorderLayout.NORTH);
+                javax.swing.JTextField txtCode = new javax.swing.JTextField();
+                txtCode.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 18));
+                txtCode.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+                bottom.add(txtCode, java.awt.BorderLayout.CENTER);
+                panel.add(bottom, java.awt.BorderLayout.SOUTH);
+
+                int option = javax.swing.JOptionPane.showConfirmDialog(this, panel, "Configurar Autenticación 2FA", javax.swing.JOptionPane.OK_CANCEL_OPTION, javax.swing.JOptionPane.PLAIN_MESSAGE);
+                if (option == javax.swing.JOptionPane.OK_OPTION) {
+                    String codeStr = txtCode.getText().trim();
+                    try {
+                        int pin = Integer.parseInt(codeStr);
+                        if (gAuth.authorize(newSecret, pin)) {
+                            // Guardar en la base de datos con commit forzado
+                            try {
+                                java.sql.Connection conn = m_session.getConnection();
+                                boolean autoCommit = conn.getAutoCommit();
+                                if (autoCommit) {
+                                    conn.setAutoCommit(false);
+                                }
+                                new com.openbravo.data.loader.StaticSentence(m_session,
+                                        "UPDATE people SET TOTP_SECRET = ? WHERE ID = ?",
+                                        new com.openbravo.data.loader.SerializerWriteBasic(
+                                                new com.openbravo.data.loader.Datas[] {
+                                                        com.openbravo.data.loader.Datas.STRING,
+                                                        com.openbravo.data.loader.Datas.STRING }))
+                                        .exec(new Object[] { newSecret, user.getId() });
+                                conn.commit();
+                                if (autoCommit) {
+                                    conn.setAutoCommit(true);
+                                }
+                            } catch (Exception sqlEx) {
+                                LOGGER.log(java.util.logging.Level.SEVERE, "Error forzando commit de 2FA", sqlEx);
+                            }
+                            
+                            user.setTotpSecret(newSecret);
+                            javax.swing.JOptionPane.showMessageDialog(this, "2FA configurado exitosamente. Puede continuar.");
+                            return true;
+                        } else {
+                            MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, "Código PIN incorrecto. No se configuró el 2FA.");
+                            msg.show(this);
+                            return false;
+                        }
+                    } catch (NumberFormatException e) {
+                        MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, "Formato de código inválido.");
+                        msg.show(this);
+                        return false;
+                    }
+                } else {
+                    return false; // El usuario canceló
+                }
+            } catch (Exception e) {
+                LOGGER.log(java.util.logging.Level.WARNING, "Error configurando 2FA durante login", e);
+                MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, "Error al generar código QR para 2FA.");
+                msg.show(this);
+                return false;
+            }
+        }
+        
+        String code = javax.swing.JOptionPane.showInputDialog(this, "Ingrese el código de Google Authenticator de 6 dígitos:", "Autenticación 2FA", javax.swing.JOptionPane.QUESTION_MESSAGE);
+        if (code == null || code.trim().isEmpty()) {
+            return false;
+        }
+        try {
+            int pin = Integer.parseInt(code.trim());
+            com.warrenstrange.googleauth.GoogleAuthenticator gAuth = new com.warrenstrange.googleauth.GoogleAuthenticator();
+            boolean isCodeValid = gAuth.authorize(secret, pin);
+            if (!isCodeValid) {
+                MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, "Código 2FA incorrecto");
+                msg.show(this);
+            }
+            return isCodeValid;
+        } catch (Exception e) {
+            MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, "Código 2FA inválido");
+            msg.show(this);
+            return false;
+        }
     }
 
     /**

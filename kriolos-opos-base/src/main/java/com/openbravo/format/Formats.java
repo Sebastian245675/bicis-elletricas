@@ -61,6 +61,12 @@ public abstract class Formats<T> {
      */
     private static NumberFormat createCurrencyFormat() {
         NumberFormat format = NumberFormat.getCurrencyInstance();
+        if (format instanceof java.text.DecimalFormat) {
+            java.text.DecimalFormat df = (java.text.DecimalFormat) format;
+            java.text.DecimalFormatSymbols symbols = df.getDecimalFormatSymbols();
+            symbols.setCurrencySymbol("$");
+            df.setDecimalFormatSymbols(symbols);
+        }
         format.setMinimumFractionDigits(2);
         format.setMaximumFractionDigits(2);
         return format;
@@ -121,11 +127,23 @@ public abstract class Formats<T> {
     public static void setCurrencyPattern(String pattern) {
         if (pattern == null || pattern.equals("")) {
             m_currencyformat = NumberFormat.getCurrencyInstance();
+            if (m_currencyformat instanceof DecimalFormat) {
+                DecimalFormat df = (DecimalFormat) m_currencyformat;
+                java.text.DecimalFormatSymbols symbols = df.getDecimalFormatSymbols();
+                symbols.setCurrencySymbol("$");
+                df.setDecimalFormatSymbols(symbols);
+            }
             // Asegurar que siempre muestre exactamente 2 decimales
             m_currencyformat.setMinimumFractionDigits(2);
             m_currencyformat.setMaximumFractionDigits(2);
         } else {
             m_currencyformat = new DecimalFormat(pattern);
+            if (m_currencyformat instanceof DecimalFormat) {
+                DecimalFormat df = (DecimalFormat) m_currencyformat;
+                java.text.DecimalFormatSymbols symbols = df.getDecimalFormatSymbols();
+                symbols.setCurrencySymbol("$");
+                df.setDecimalFormatSymbols(symbols);
+            }
             // Asegurar que siempre muestre exactamente 2 decimales
             m_currencyformat.setMinimumFractionDigits(2);
             m_currencyformat.setMaximumFractionDigits(2);

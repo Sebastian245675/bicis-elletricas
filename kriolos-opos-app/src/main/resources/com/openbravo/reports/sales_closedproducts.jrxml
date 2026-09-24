@@ -87,8 +87,8 @@ GROUP BY products.REFERENCE]]></query>
 	<group name="byhost">
 		<expression><![CDATA[$F{HOST}]]></expression>
 		<groupHeader>
-			<band height="40">
-				<element kind="textField" uuid="09694696-c1f7-4345-8455-b929528c815b" key="textField-1" mode="Opaque" x="1" y="5" width="99" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Top">
+			<band height="44">
+				<element kind="textField" uuid="09694696-c1f7-4345-8455-b929528c815b" key="textField-1" mode="Transparent" x="1" y="5" width="200" height="15" forecolor="#0F172A" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="11.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Middle">
 					<paragraph lineSpacing="Single"/>
 					<expression><![CDATA[$F{HOST}]]></expression>
 					<box>
@@ -98,7 +98,8 @@ GROUP BY products.REFERENCE]]></query>
 						<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 					</box>
 				</element>
-				<element kind="textField" uuid="effc420a-a375-4dc3-aabc-f4cd2f6a961f" key="textField-11" mode="Opaque" x="1" y="22" width="100" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Bottom">
+				<element kind="rectangle" uuid="f5e4d3c2-b1a0-9e8d-7c6b-5a4b3c2d1e0f" mode="Opaque" x="0" y="22" width="535" height="18" forecolor="#F1F5F9" backcolor="#F1F5F9" radius="2"/>
+				<element kind="textField" uuid="effc420a-a375-4dc3-aabc-f4cd2f6a961f" key="textField-11" mode="Transparent" x="1" y="24" width="100" height="14" forecolor="#334155" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="9.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Middle">
 					<paragraph lineSpacing="Single"/>
 					<expression><![CDATA[$R{label.reference}]]></expression>
 					<box>
@@ -108,7 +109,7 @@ GROUP BY products.REFERENCE]]></query>
 						<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 					</box>
 				</element>
-				<element kind="textField" uuid="21afadc4-d722-4d53-b24c-2ffd230270e0" key="textField-11" mode="Opaque" x="101" y="22" width="120" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Bottom">
+				<element kind="textField" uuid="21afadc4-d722-4d53-b24c-2ffd230270e0" key="textField-11" mode="Transparent" x="101" y="24" width="120" height="14" forecolor="#334155" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="9.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Middle">
 					<paragraph lineSpacing="Single"/>
 					<expression><![CDATA[$R{label.closeddate}]]></expression>
 					<box>
@@ -118,7 +119,7 @@ GROUP BY products.REFERENCE]]></query>
 						<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 					</box>
 				</element>
-				<element kind="textField" uuid="75f72fc8-ef30-45cd-9fb2-98cb0fddc7f9" key="textField-14" mode="Opaque" x="242" y="22" width="51" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Bottom">
+				<element kind="textField" uuid="75f72fc8-ef30-45cd-9fb2-98cb0fddc7f9" key="textField-14" mode="Transparent" x="242" y="24" width="51" height="14" forecolor="#334155" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="9.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Middle">
 					<paragraph lineSpacing="Single"/>
 					<expression><![CDATA[$R{label.price}]]></expression>
 					<box>
@@ -128,7 +129,7 @@ GROUP BY products.REFERENCE]]></query>
 						<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 					</box>
 				</element>
-				<element kind="textField" uuid="6f38a7cb-90d2-4a5b-80c0-e51beb881fa0" key="textField-14" mode="Opaque" x="293" y="22" width="51" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Bottom">
+				<element kind="textField" uuid="6f38a7cb-90d2-4a5b-80c0-e51beb881fa0" key="textField-14" mode="Transparent" x="293" y="24" width="51" height="14" forecolor="#334155" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="9.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Middle">
 					<paragraph lineSpacing="Single"/>
 					<expression><![CDATA[$R{label.units}]]></expression>
 					<box>
@@ -138,7 +139,7 @@ GROUP BY products.REFERENCE]]></query>
 						<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 					</box>
 				</element>
-				<element kind="textField" uuid="9c395675-97df-4973-8eee-102e73e880c2" key="textField-14" mode="Opaque" x="344" y="22" width="51" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Bottom">
+				<element kind="textField" uuid="9c395675-97df-4973-8eee-102e73e880c2" key="textField-14" mode="Transparent" x="344" y="24" width="51" height="14" forecolor="#334155" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="9.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Middle">
 					<paragraph lineSpacing="Single"/>
 					<expression><![CDATA[$R{label.value}]]></expression>
 					<box>
@@ -148,7 +149,7 @@ GROUP BY products.REFERENCE]]></query>
 						<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 					</box>
 				</element>
-				<element kind="textField" uuid="331824a6-cba0-4af0-b4f1-b538de8a48ec" key="textField-14" mode="Opaque" x="401" y="22" width="61" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Bottom">
+				<element kind="textField" uuid="331824a6-cba0-4af0-b4f1-b538de8a48ec" key="textField-14" mode="Transparent" x="401" y="24" width="61" height="14" forecolor="#334155" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="9.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Middle">
 					<paragraph lineSpacing="Single"/>
 					<expression><![CDATA[$R{label.discount}]]></expression>
 					<box>
@@ -158,7 +159,7 @@ GROUP BY products.REFERENCE]]></query>
 						<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 					</box>
 				</element>
-				<element kind="textField" uuid="f5f50674-6357-4a9f-8470-a24ffb2e31e7" key="textField-14" mode="Opaque" x="462" y="22" width="72" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Bottom">
+				<element kind="textField" uuid="f5f50674-6357-4a9f-8470-a24ffb2e31e7" key="textField-14" mode="Transparent" x="462" y="24" width="72" height="14" forecolor="#334155" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="9.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Middle">
 					<paragraph lineSpacing="Single"/>
 					<expression><![CDATA[$R{label.partialtotal}]]></expression>
 					<box>
@@ -168,17 +169,14 @@ GROUP BY products.REFERENCE]]></query>
 						<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 					</box>
 				</element>
-				<element kind="line" uuid="e8552b47-cec5-4d07-be85-a60e5f9e9d27" key="line-4" mode="Opaque" x="1" y="37" width="535" height="1" forecolor="#000000" backcolor="#FFFFFF">
-					<pen lineWidth="0.25" lineStyle="Solid"/>
-				</element>
 			</band>
 		</groupHeader>
 		<groupFooter>
-			<band height="20">
-				<element kind="line" uuid="1c0b26f0-72e9-4daf-a903-3958eda2813a" key="line-3" mode="Opaque" x="326" y="2" width="209" height="1" forecolor="#000000" backcolor="#FFFFFF">
-					<pen lineWidth="0.5" lineStyle="Dashed"/>
+			<band height="22">
+				<element kind="line" uuid="1c0b26f0-72e9-4daf-a903-3958eda2813a" key="line-3" mode="Opaque" x="292" y="2" width="243" height="1" forecolor="#CBD5E1" backcolor="#FFFFFF">
+					<pen lineWidth="0.5" lineStyle="Solid"/>
 				</element>
-				<element kind="textField" uuid="183518c3-2236-4442-b649-e28492b6c142" key="textField-16" mode="Opaque" x="170" y="5" width="122" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Top">
+				<element kind="textField" uuid="183518c3-2236-4442-b649-e28492b6c142" key="textField-16" mode="Transparent" x="170" y="5" width="122" height="15" forecolor="#475569" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Top">
 					<paragraph lineSpacing="Single"/>
 					<expression><![CDATA[$R{label.ttotal}]]></expression>
 					<box>
@@ -188,7 +186,7 @@ GROUP BY products.REFERENCE]]></query>
 						<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 					</box>
 				</element>
-				<element kind="textField" uuid="343ed347-42b1-45cf-8a6b-4bf7e486ac0c" key="textField-5" mode="Opaque" x="461" y="5" width="72" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Top">
+				<element kind="textField" uuid="343ed347-42b1-45cf-8a6b-4bf7e486ac0c" key="textField-5" mode="Transparent" x="461" y="5" width="72" height="15" forecolor="#0F172A" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Top">
 					<paragraph lineSpacing="Single"/>
 					<expression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($V{PARTIALTOTAL})]]></expression>
 					<box>
@@ -198,7 +196,7 @@ GROUP BY products.REFERENCE]]></query>
 						<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 					</box>
 				</element>
-				<element kind="textField" uuid="4d2289ae-3624-4137-935e-8ea6ca5ea4b9" key="textField-24" mode="Opaque" x="292" y="5" width="51" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Top">
+				<element kind="textField" uuid="4d2289ae-3624-4137-935e-8ea6ca5ea4b9" key="textField-24" mode="Transparent" x="292" y="5" width="51" height="15" forecolor="#0F172A" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Top">
 					<paragraph lineSpacing="Single"/>
 					<expression><![CDATA[com.openbravo.format.Formats.DOUBLE.formatValue($V{PARTIALUNITS})]]></expression>
 					<box>
@@ -208,10 +206,10 @@ GROUP BY products.REFERENCE]]></query>
 						<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 					</box>
 				</element>
-				<element kind="textField" uuid="8f6026b8-77af-4ad8-b0bd-ac7a5e9051f8" x="343" y="5" width="57" height="15" bold="true" hTextAlign="Right">
+				<element kind="textField" uuid="8f6026b8-77af-4ad8-b0bd-ac7a5e9051f8" x="343" y="5" width="57" height="15" bold="true" hTextAlign="Right" forecolor="#0F172A">
 					<expression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($V{VALUE_1})]]></expression>
 				</element>
-				<element kind="textField" uuid="db961df6-8a8c-4839-9daf-9d9ac79a5157" x="400" y="5" width="61" height="15" bold="true" hTextAlign="Right">
+				<element kind="textField" uuid="db961df6-8a8c-4839-9daf-9d9ac79a5157" x="400" y="5" width="61" height="15" bold="true" hTextAlign="Right" forecolor="#0F172A">
 					<expression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($V{DISCOUNT_1})]]></expression>
 				</element>
 			</band>
@@ -221,7 +219,7 @@ GROUP BY products.REFERENCE]]></query>
 		<expression><![CDATA[$F{REFERENCE}]]></expression>
 		<groupHeader>
 			<band height="17">
-				<element kind="textField" uuid="888cdebb-8fcb-4b9b-903c-0c0ffa28602c" key="textField-18" mode="Opaque" x="1" y="2" width="100" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Middle">
+				<element kind="textField" uuid="888cdebb-8fcb-4b9b-903c-0c0ffa28602c" key="textField-18" mode="Transparent" x="1" y="2" width="100" height="15" forecolor="#1E3A8A" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Middle">
 					<paragraph lineSpacing="Single"/>
 					<expression><![CDATA[$F{REFERENCE} == null ? $R{label.noreference} : $F{REFERENCE}]]></expression>
 					<box>
@@ -231,7 +229,7 @@ GROUP BY products.REFERENCE]]></query>
 						<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 					</box>
 				</element>
-				<element kind="textField" uuid="d50579e9-a7e7-4746-911f-6bdd81a1f8d0" key="textField-17" mode="Opaque" x="100" y="2" width="180" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Middle">
+				<element kind="textField" uuid="d50579e9-a7e7-4746-911f-6bdd81a1f8d0" key="textField-17" mode="Transparent" x="100" y="2" width="180" height="15" forecolor="#1E3A8A" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Middle">
 					<paragraph lineSpacing="Single"/>
 					<expression><![CDATA[$F{NAME} == null ? $R{label.noproduct} : $F{NAME}]]></expression>
 					<box>
@@ -245,7 +243,7 @@ GROUP BY products.REFERENCE]]></query>
 		</groupHeader>
 		<groupFooter>
 			<band height="20">
-				<element kind="textField" uuid="15c09daf-62c3-4689-94bd-b5d211bf560b" key="textField-23" mode="Opaque" x="292" y="5" width="51" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Top">
+				<element kind="textField" uuid="15c09daf-62c3-4689-94bd-b5d211bf560b" key="textField-23" mode="Transparent" x="292" y="5" width="51" height="15" forecolor="#1E293B" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Top">
 					<paragraph lineSpacing="Single"/>
 					<expression><![CDATA[com.openbravo.format.Formats.DOUBLE.formatValue($V{BIGUNITS})]]></expression>
 					<box>
@@ -255,7 +253,7 @@ GROUP BY products.REFERENCE]]></query>
 						<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 					</box>
 				</element>
-				<element kind="textField" uuid="9b1e605b-46a7-4b6b-9ccd-b9f7af57c1f1" key="textField-16" mode="Opaque" x="170" y="5" width="122" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Top">
+				<element kind="textField" uuid="9b1e605b-46a7-4b6b-9ccd-b9f7af57c1f1" key="textField-16" mode="Transparent" x="170" y="5" width="122" height="15" forecolor="#64748B" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Top">
 					<paragraph lineSpacing="Single"/>
 					<expression><![CDATA[$R{label.ptotal}]]></expression>
 					<box>
@@ -265,7 +263,7 @@ GROUP BY products.REFERENCE]]></query>
 						<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 					</box>
 				</element>
-				<element kind="textField" uuid="cc3ac0fe-3437-40e2-9484-1aa0338e6467" key="textField-5" mode="Opaque" x="461" y="5" width="72" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Top">
+				<element kind="textField" uuid="cc3ac0fe-3437-40e2-9484-1aa0338e6467" key="textField-5" mode="Transparent" x="461" y="5" width="72" height="15" forecolor="#1E293B" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Top">
 					<paragraph lineSpacing="Single"/>
 					<expression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($V{BIGTOTAL})]]></expression>
 					<box>
@@ -275,13 +273,13 @@ GROUP BY products.REFERENCE]]></query>
 						<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 					</box>
 				</element>
-				<element kind="line" uuid="8641a417-49ae-4a66-b153-04462320efa5" key="line-3" mode="Opaque" x="326" y="2" width="209" height="1" forecolor="#000000" backcolor="#FFFFFF">
-					<pen lineWidth="0.25" lineStyle="Solid"/>
+				<element kind="line" uuid="8641a417-49ae-4a66-b153-04462320efa5" key="line-3" mode="Opaque" x="292" y="2" width="243" height="1" forecolor="#E2E8F0" backcolor="#FFFFFF">
+					<pen lineWidth="0.5" lineStyle="Solid"/>
 				</element>
-				<element kind="textField" uuid="2a5c00d8-d978-429a-9d37-161a65b8b989" x="343" y="5" width="57" height="15" bold="true" hTextAlign="Right" vTextAlign="Top">
+				<element kind="textField" uuid="2a5c00d8-d978-429a-9d37-161a65b8b989" x="343" y="5" width="57" height="15" bold="true" hTextAlign="Right" vTextAlign="Top" forecolor="#1E293B">
 					<expression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($V{VALUE_2})]]></expression>
 				</element>
-				<element kind="textField" uuid="c3f4d45d-8703-4497-96cd-58c29f4986a8" x="400" y="5" width="61" height="15" bold="true" hTextAlign="Right">
+				<element kind="textField" uuid="c3f4d45d-8703-4497-96cd-58c29f4986a8" x="400" y="5" width="61" height="15" bold="true" hTextAlign="Right" forecolor="#1E293B">
 					<expression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($V{DISCOUNT_2})]]></expression>
 				</element>
 			</band>
@@ -289,7 +287,7 @@ GROUP BY products.REFERENCE]]></query>
 	</group>
 	<background/>
 	<title height="52">
-		<element kind="textField" uuid="5f4a13e7-32d5-4eb6-a606-83140bf1f1f5" key="textField-8" mode="Transparent" x="50" y="33" width="110" height="15" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="true" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Middle">
+		<element kind="textField" uuid="5f4a13e7-32d5-4eb6-a606-83140bf1f1f5" key="textField-8" mode="Transparent" x="50" y="33" width="110" height="15" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="true" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Middle" forecolor="#475569">
 			<paragraph lineSpacing="Single"/>
 			<expression><![CDATA[com.openbravo.format.Formats.TIMESTAMP.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[1])]]></expression>
 			<box>
@@ -299,7 +297,7 @@ GROUP BY products.REFERENCE]]></query>
 				<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 			</box>
 		</element>
-		<element kind="textField" uuid="0d8f1ad0-0016-4828-b40d-f1c4cd942307" key="textField-9" mode="Transparent" x="170" y="33" width="110" height="15" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="true" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Middle">
+		<element kind="textField" uuid="0d8f1ad0-0016-4828-b40d-f1c4cd942307" key="textField-9" mode="Transparent" x="170" y="33" width="110" height="15" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="true" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Middle" forecolor="#475569">
 			<paragraph lineSpacing="Single"/>
 			<expression><![CDATA[com.openbravo.format.Formats.TIMESTAMP.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[3])]]></expression>
 			<box>
@@ -309,7 +307,7 @@ GROUP BY products.REFERENCE]]></query>
 				<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 			</box>
 		</element>
-		<element kind="staticText" uuid="0eb52e56-c347-4c77-bc4b-22a882868542" key="staticText-6" mode="Transparent" x="160" y="33" width="10" height="15" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Center" vTextAlign="Middle">
+		<element kind="staticText" uuid="0eb52e56-c347-4c77-bc4b-22a882868542" key="staticText-6" mode="Transparent" x="160" y="33" width="10" height="15" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Center" vTextAlign="Middle" forecolor="#475569">
 			<paragraph lineSpacing="Single"/>
 			<text><![CDATA[-
 ]]></text>
@@ -320,10 +318,10 @@ GROUP BY products.REFERENCE]]></query>
 				<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 			</box>
 		</element>
-		<element kind="rectangle" uuid="0f541dcf-140b-451e-b541-6715fe8becdd" key="rectangle-1" mode="Opaque" x="0" y="50" width="535" height="2" forecolor="#33CCFF" backcolor="#33CCFF" radius="5">
-			<pen lineWidth="0.25" lineStyle="Solid"/>
+		<element kind="rectangle" uuid="0f541dcf-140b-451e-b541-6715fe8becdd" key="rectangle-1" mode="Opaque" x="0" y="48" width="535" height="3" forecolor="#1E3A8A" backcolor="#1E3A8A" radius="2">
+			<pen lineWidth="0.0" lineStyle="Solid"/>
 		</element>
-		<element kind="textField" uuid="aa93df17-9510-4df6-91d2-ae64446e865a" key="textField-25" mode="Transparent" x="0" y="0" width="375" height="30" forecolor="#33CCFF" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="14.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Top">
+		<element kind="textField" uuid="aa93df17-9510-4df6-91d2-ae64446e865a" key="textField-25" mode="Transparent" x="0" y="0" width="375" height="30" forecolor="#1E3A8A" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="16.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Top">
 			<paragraph lineSpacing="Single"/>
 			<expression><![CDATA[$R{label.title}]]></expression>
 			<box>
@@ -333,7 +331,7 @@ GROUP BY products.REFERENCE]]></query>
 				<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 			</box>
 		</element>
-		<element kind="textField" uuid="2889844a-123c-457e-ab3f-f53253f909b8" key="textField-19" mode="Opaque" x="400" y="0" width="135" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica-Bold" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Top">
+		<element kind="textField" uuid="2889844a-123c-457e-ab3f-f53253f909b8" key="textField-19" mode="Transparent" x="400" y="0" width="135" height="15" forecolor="#64748B" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="9.0" pdfFontName="Helvetica-Bold" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Top">
 			<paragraph lineSpacing="Single"/>
 			<expression><![CDATA[$R{label.printed}]]></expression>
 			<box>
@@ -343,10 +341,10 @@ GROUP BY products.REFERENCE]]></query>
 				<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 			</box>
 		</element>
-		<element kind="textField" uuid="fc7e8ac8-dff7-4747-8f15-b36f97de7b87" key="textField" x="400" y="15" width="135" height="15" fontName="SansSerif" fontSize="10.0" evaluationTime="Report" pattern="dd/MM/yyyy h.mm a" blankWhenNull="false" hTextAlign="Right">
+		<element kind="textField" uuid="fc7e8ac8-dff7-4747-8f15-b36f97de7b87" key="textField" x="400" y="15" width="135" height="15" fontName="SansSerif" fontSize="9.0" evaluationTime="Report" pattern="dd/MM/yyyy h.mm a" blankWhenNull="false" hTextAlign="Right" forecolor="#64748B">
 			<expression><![CDATA[new java.util.Date()]]></expression>
 		</element>
-		<element kind="textField" uuid="05d96f0c-5158-4130-98ee-22873618dcd4" key="textField-10" mode="Opaque" x="0" y="33" width="50" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica-Bold" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Middle">
+		<element kind="textField" uuid="05d96f0c-5158-4130-98ee-22873618dcd4" key="textField-10" mode="Transparent" x="0" y="33" width="50" height="15" forecolor="#475569" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica-Bold" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Middle">
 			<paragraph lineSpacing="Single"/>
 			<expression><![CDATA[$R{label.period}]]></expression>
 			<box>
@@ -361,7 +359,7 @@ GROUP BY products.REFERENCE]]></query>
 	<columnHeader/>
 	<detail>
 		<band height="16">
-			<element kind="textField" uuid="b9bff549-cf68-4774-94a9-8bf5e49264d8" key="textField-20" mode="Opaque" x="100" y="1" width="120" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Top">
+			<element kind="textField" uuid="b9bff549-cf68-4774-94a9-8bf5e49264d8" key="textField-20" mode="Transparent" x="100" y="1" width="120" height="15" forecolor="#475569" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Middle">
 				<paragraph lineSpacing="Single"/>
 				<expression><![CDATA[com.openbravo.format.Formats.TIMESTAMP.formatValue($F{DATEEND})]]></expression>
 				<box>
@@ -371,10 +369,10 @@ GROUP BY products.REFERENCE]]></query>
 					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 				</box>
 			</element>
-			<element kind="textField" uuid="266b80dc-ea40-4d6d-bd6a-fb91ef6898b0" x="235" y="0" width="57" height="15" hTextAlign="Right">
+			<element kind="textField" uuid="266b80dc-ea40-4d6d-bd6a-fb91ef6898b0" x="235" y="0" width="57" height="15" hTextAlign="Right" forecolor="#475569" vTextAlign="Middle">
 				<expression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($F{PRICE})]]></expression>
 			</element>
-			<element kind="textField" uuid="c796dc00-5027-45e8-8e33-8c7430d18cc0" key="textField-19" mode="Opaque" x="292" y="0" width="51" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Top">
+			<element kind="textField" uuid="c796dc00-5027-45e8-8e33-8c7430d18cc0" key="textField-19" mode="Transparent" x="292" y="0" width="51" height="15" forecolor="#475569" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Middle">
 				<paragraph lineSpacing="Single"/>
 				<expression><![CDATA[com.openbravo.format.Formats.DOUBLE.formatValue($F{UNITS})]]></expression>
 				<box>
@@ -384,13 +382,13 @@ GROUP BY products.REFERENCE]]></query>
 					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 				</box>
 			</element>
-			<element kind="textField" uuid="f2dd4915-92f9-48b1-bf2f-fa4c6c2edde5" x="343" y="1" width="57" height="14" hTextAlign="Right">
+			<element kind="textField" uuid="f2dd4915-92f9-48b1-bf2f-fa4c6c2edde5" x="343" y="1" width="57" height="14" hTextAlign="Right" forecolor="#475569" vTextAlign="Middle">
 				<expression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($F{VALUE})]]></expression>
 			</element>
-			<element kind="textField" uuid="06dd3411-0dce-4b86-ab7a-be17d48e8a43" x="400" y="1" width="61" height="14" blankWhenNull="true" hTextAlign="Right">
+			<element kind="textField" uuid="06dd3411-0dce-4b86-ab7a-be17d48e8a43" x="400" y="1" width="61" height="14" blankWhenNull="true" hTextAlign="Right" forecolor="#475569" vTextAlign="Middle">
 				<expression><![CDATA[$F{DISCOUNT}.doubleValue() == 0.0 ? null : com.openbravo.format.Formats.CURRENCY.formatValue($F{DISCOUNT})]]></expression>
 			</element>
-			<element kind="textField" uuid="e1416f37-391a-48d0-b422-775cd5ed7c6d" key="textField-3" mode="Opaque" x="461" y="0" width="72" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Top">
+			<element kind="textField" uuid="e1416f37-391a-48d0-b422-775cd5ed7c6d" key="textField-3" mode="Transparent" x="461" y="0" width="72" height="15" forecolor="#475569" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Middle">
 				<paragraph lineSpacing="Single"/>
 				<expression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($F{TOTAL})]]></expression>
 				<box>
@@ -442,22 +440,22 @@ GROUP BY products.REFERENCE]]></query>
 		</element>
 	</pageFooter>
 	<summary height="30">
-		<element kind="line" uuid="9fb2b6d4-24c8-496d-8bcf-55bd19d046cf" key="line-3" mode="Opaque" x="292" y="3" width="243" height="1" forecolor="#000000" backcolor="#FFFFFF">
-			<pen lineWidth="0.25" lineStyle="Solid"/>
+		<element kind="line" uuid="9fb2b6d4-24c8-496d-8bcf-55bd19d046cf" key="line-3" mode="Opaque" x="292" y="3" width="243" height="1" forecolor="#1E3A8A" backcolor="#FFFFFF">
+			<pen lineWidth="1.0" lineStyle="Solid"/>
 		</element>
-		<element kind="textField" uuid="c772a051-9b94-4774-ad4c-df923c19a4cb" x="292" y="5" width="51" height="18" bold="true" hTextAlign="Right">
+		<element kind="textField" uuid="c772a051-9b94-4774-ad4c-df923c19a4cb" x="292" y="5" width="51" height="18" bold="true" hTextAlign="Right" forecolor="#1E3A8A" fontSize="11.0">
 			<expression><![CDATA[com.openbravo.format.Formats.DOUBLE.formatValue($V{UNITS_1})]]></expression>
 		</element>
-		<element kind="textField" uuid="8c165044-2f38-4d15-b003-279ccb2711c4" x="343" y="5" width="57" height="18" bold="true" hTextAlign="Right">
+		<element kind="textField" uuid="8c165044-2f38-4d15-b003-279ccb2711c4" x="343" y="5" width="57" height="18" bold="true" hTextAlign="Right" forecolor="#1E3A8A" fontSize="11.0">
 			<expression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($V{VALUE_3})]]></expression>
 		</element>
-		<element kind="textField" uuid="4f8f6b88-e85e-411c-b508-2167b0e4d56a" x="400" y="5" width="61" height="18" bold="true" hTextAlign="Right">
+		<element kind="textField" uuid="4f8f6b88-e85e-411c-b508-2167b0e4d56a" x="400" y="5" width="61" height="18" bold="true" hTextAlign="Right" forecolor="#1E3A8A" fontSize="11.0">
 			<expression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($V{DISCOUNT_3})]]></expression>
 		</element>
-		<element kind="textField" uuid="e9e5b88a-2ff4-475e-b271-6730757021f8" x="461" y="5" width="72" height="18" bold="true" hTextAlign="Right">
+		<element kind="textField" uuid="e9e5b88a-2ff4-475e-b271-6730757021f8" x="461" y="5" width="72" height="18" bold="true" hTextAlign="Right" forecolor="#1E3A8A" fontSize="11.0">
 			<expression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($V{TOTAL_1})]]></expression>
 		</element>
-		<element kind="textField" uuid="9e4552e9-4349-42a6-b1b9-0615427b0544" key="textField-16" mode="Opaque" x="160" y="5" width="132" height="20" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Top">
+		<element kind="textField" uuid="9e4552e9-4349-42a6-b1b9-0615427b0544" key="textField-16" mode="Transparent" x="160" y="5" width="132" height="20" forecolor="#1E3A8A" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="11.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Top">
 			<paragraph lineSpacing="Single"/>
 			<expression><![CDATA[$R{label.gtotal}]]></expression>
 			<box>

@@ -81,6 +81,8 @@ public class DataLogicSystem extends BeanFactoryDataSingle {
         //// <editor-fold defaultstate="collapsed" desc="START OF LOCATION AND PLACES">
         //// </editor-fold>
 
+        ensureTotpColumn();
+
     }
 
     public final TableDefinition<ResourceInfo> getTableResources() {
@@ -117,7 +119,7 @@ public class DataLogicSystem extends BeanFactoryDataSingle {
      */
     public final List<AppUser> listPeopleVisible() throws BasicException {
         final SentenceList m_peoplevisible = new StaticSentence(this.session,
-                "SELECT ID, NAME, APPPASSWORD, CARD, ROLE "
+                "SELECT ID, NAME, APPPASSWORD, CARD, ROLE, TOTP_SECRET "
                         + "FROM people "
                         + "WHERE VISIBLE = " + this.session.DB.TRUE() + " ORDER BY NAME",
                 new AppuserReader());
@@ -149,7 +151,7 @@ public class DataLogicSystem extends BeanFactoryDataSingle {
     public final AppUser findPeopleByCard(String card) throws BasicException {
 
         final SentenceFind<AppUser> m_peoplebycard = new PreparedSentence<String, AppUser>(this.session,
-                "SELECT ID, NAME, APPPASSWORD, CARD, ROLE, IMAGE "
+                "SELECT ID, NAME, APPPASSWORD, CARD, ROLE, TOTP_SECRET "
                         + "FROM people "
                         + "WHERE CARD = ? AND VISIBLE = " + this.session.DB.TRUE(),
                 SerializerWriteString.INSTANCE,
@@ -165,13 +167,54 @@ public class DataLogicSystem extends BeanFactoryDataSingle {
      * @throws BasicException
      */
     public final AppUser findPeopleByName(String username) throws BasicException {
-        final SentenceFind<AppUser> m_peoplebyname = new PreparedSentence<String, AppUser>(this.session,
-                "SELECT ID, NAME, APPPASSWORD, CARD, ROLE, IMAGE "
-                        + "FROM people "
-                        + "WHERE UPPER(NAME) = UPPER(?) AND VISIBLE = " + this.session.DB.TRUE(),
-                SerializerWriteString.INSTANCE,
-                new AppuserReader());
-        return m_peoplebyname.find(username);
+        try {
+            final SentenceFind<AppUser> m_peoplebyname = new PreparedSentence<String, AppUser>(this.session,
+                    "SELECT ID, NAME, APPPASSWORD, CARD, ROLE, TOTP_SECRET "
+                            + "FROM people "
+                            + "WHERE UPPER(NAME) = UPPER(?) AND VISIBLE = " + this.session.DB.TRUE(),
+                    SerializerWriteString.INSTANCE,
+                    new AppuserReader());
+            return m_peoplebyname.find(username);
+        } catch (BasicException e) {
+            try {
+                ensureTotpColumn();
+                final SentenceFind<AppUser> m_peoplebyname_retry = new PreparedSentence<String, AppUser>(this.session,
+                        "SELECT ID, NAME, APPPASSWORD, CARD, ROLE, TOTP_SECRET "
+                                + "FROM people "
+                                + "WHERE UPPER(NAME) = UPPER(?) AND VISIBLE = " + this.session.DB.TRUE(),
+                        SerializerWriteString.INSTANCE,
+                        new AppuserReader());
+                return m_peoplebyname_retry.find(username);
+            } catch (Exception ex) {
+                throw e; // Lanza la excepcion original si la migracion dinamica falla
+            }
+        }
+    }
+
+    private void ensureTotpColumn() {
+        java.util.logging.Logger logger = java.util.logging.Logger.getLogger(DataLogicSystem.class.getName());
+        try {
+            boolean exists = false;
+            java.sql.DatabaseMetaData metadata = session.getConnection().getMetaData();
+            try (java.sql.ResultSet columns = metadata.getColumns(null, null, null, null)) {
+                while (columns.next()) {
+                    if ("PEOPLE".equalsIgnoreCase(columns.getString("TABLE_NAME"))
+                            && "TOTP_SECRET".equalsIgnoreCase(columns.getString("COLUMN_NAME"))) {
+                        exists = true;
+                        break;
+                    }
+                }
+            }
+            if (!exists) {
+                try (java.sql.Statement statement = session.getConnection().createStatement()) {
+                    statement.execute("ALTER TABLE people ADD COLUMN TOTP_SECRET VARCHAR(255)");
+                }
+                logger.info("Columna TOTP_SECRET añadida correctamente.");
+            }
+        } catch (java.sql.SQLException ex) {
+            logger.log(java.util.logging.Level.WARNING,
+                    "No fue posible verificar la columna de autenticación 2FA.", ex);
+        }
     }
 
     /**
@@ -184,7 +227,7 @@ public class DataLogicSystem extends BeanFactoryDataSingle {
     public final boolean authenticateAdmin(String password) throws BasicException {
         // En este sistema, el rol '1' es ADMIN según DefaultRolesInitializer
         final SentenceList<AppUser> m_admins = new StaticSentence(this.session,
-                "SELECT ID, NAME, APPPASSWORD, CARD, ROLE, IMAGE "
+                "SELECT ID, NAME, APPPASSWORD, CARD, ROLE, TOTP_SECRET "
                         + "FROM people "
                         + "WHERE ROLE = '1' AND VISIBLE = " + this.session.DB.TRUE(),
                 new AppuserReader());
@@ -1117,7 +1160,8 @@ public class DataLogicSystem extends BeanFactoryDataSingle {
                     dr.getString(4),
                     dr.getString(5),
                     // new ImageIcon(tnb.getThumbNail(ImageUtils.readImage(dr.getBytes(6)))));
-                    new ImageIcon(defaultUserTN.getThumbNail()));
+                    new ImageIcon(defaultUserTN.getThumbNail()),
+                    dr.getString(6));
         }
     }
 

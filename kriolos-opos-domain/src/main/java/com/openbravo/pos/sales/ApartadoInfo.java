@@ -20,12 +20,14 @@ public class ApartadoInfo implements Serializable {
     private Date date;
     private double total;
     private double curDebt;
+    private double paid;
     private int months;
     private String products;
     private byte[] m_image;
     private String customerPhone;
     private String customerEmail;
     private Date deadline;
+    private String layawayStatus = "ACTIVO";
     private List<PaymentInfo> payments;
 
 
@@ -85,6 +87,11 @@ public class ApartadoInfo implements Serializable {
         return curDebt;
     }
 
+    public void setPaid(double paid) {
+        this.paid = Math.max(0.0, Math.min(total, paid));
+        this.curDebt = Math.max(0.0, total - this.paid);
+    }
+
     public void setCurDebt(double curDebt) {
         this.curDebt = curDebt;
     }
@@ -133,6 +140,16 @@ public class ApartadoInfo implements Serializable {
         return deadline;
     }
 
+    public String getLayawayStatus() {
+        return layawayStatus;
+    }
+
+    public void setLayawayStatus(String layawayStatus) {
+        if (layawayStatus != null && !layawayStatus.isBlank()) {
+            this.layawayStatus = layawayStatus;
+        }
+    }
+
     public void setDeadline(Date deadline) {
         this.deadline = deadline;
     }
@@ -151,15 +168,14 @@ public class ApartadoInfo implements Serializable {
     }
 
     public double getPaid() {
-
-        // En un sistema simplificado, el pagado es el total menos la deuda actual del cliente
-        // Pero idealmente debería ser el total del ticket menos lo que queda pendiente de ese ticket.
-        return total - curDebt;
+        return paid;
     }
 
     public String getStatus() {
-        if (curDebt <= 0) {
-            return "Pagado";
+        if ("ENTREGADO".equalsIgnoreCase(layawayStatus)) {
+            return "Entregado";
+        } else if (curDebt <= 0) {
+            return "Liquidado";
         } else {
             return "Pendiente";
         }

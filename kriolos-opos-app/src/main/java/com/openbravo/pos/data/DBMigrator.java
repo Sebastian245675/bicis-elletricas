@@ -65,6 +65,7 @@ public class DBMigrator {
             extractResourceFromClasspath("/pos_liquidbase/db-changelog-v5_0.xml", tempDir);
             extractResourceFromClasspath("/pos_liquidbase/db-changelog-v5_1.xml", tempDir);
             extractResourceFromClasspath("/pos_liquidbase/db-changelog-v5_2.xml", tempDir);
+            extractResourceFromClasspath("/pos_liquidbase/db-changelog-facturas.xml", tempDir);
             
             // Extraer archivos de plantillas (templates) necesarios para Liquibase
             String[] templates = {

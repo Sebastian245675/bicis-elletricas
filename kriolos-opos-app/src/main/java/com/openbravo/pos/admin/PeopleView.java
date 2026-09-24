@@ -88,6 +88,7 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         private JTextField m_jAge;
         private JLabel jLblDocument;
         private JTextField m_jDocument;
+        private JButton btn2FA;
 
         // Colores
         private static final Color PRIMARY_COLOR = new Color(41, 128, 185);
@@ -176,9 +177,10 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
                 m_jImage.setPreferredSize(new Dimension(220, 220));
                 m_jImage.addPropertyChangeListener("image", m_Dirty);
 
-                // Fondo del tab con degradado oscuro
-                imagePanel.setLayout(new GridBagLayout());
-                imagePanel.setBackground(new Color(30, 41, 59)); // slate-900
+                // Fondo del tab con degradado claro
+                imagePanel.setLayout(new BorderLayout());
+                imagePanel.setBackground(new Color(241, 245, 249)); // slate-100 en lugar del oscuro
+                imagePanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20)); // Padding alrededor de la tarjeta
 
                 // Tarjeta central blanca con sombra simulada
                 JPanel card = new JPanel(new BorderLayout(0, 0)) {
@@ -186,16 +188,16 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
                         java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
                         g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
                         // Sombra
-                        g2.setColor(new Color(0, 0, 0, 60));
-                        g2.fillRoundRect(6, 6, getWidth() - 6, getHeight() - 6, 20, 20);
+                        g2.setColor(new Color(0, 0, 0, 40));
+                        g2.fillRoundRect(6, 6, getWidth() - 12, getHeight() - 12, 20, 20);
                         // Fondo blanco
                         g2.setColor(Color.WHITE);
-                        g2.fillRoundRect(0, 0, getWidth() - 6, getHeight() - 6, 20, 20);
+                        g2.fillRoundRect(0, 0, getWidth() - 12, getHeight() - 12, 20, 20);
                         g2.dispose();
                     }
                 };
                 card.setOpaque(false);
-                card.setPreferredSize(new Dimension(750, 420));
+                // Removemos el preferredSize fijo para que se expanda en el BorderLayout
 
                 // ── Header de la tarjeta (banda de color) ──
                 JPanel cardHeader = new JPanel(new BorderLayout()) {
@@ -485,6 +487,16 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
                 cardPanel.add(webCBSecurity);
                 panel.add(cardPanel, gbc);
 
+                btn2FA = new JButton("Configurar 2FA");
+                btn2FA.setFont(new Font("Arial", Font.PLAIN, 12));
+                btn2FA.addActionListener(evt -> configure2FA());
+                
+                gbc.gridx = 4;
+                gbc.gridy = 1;
+                gbc.weightx = 1.0;
+                gbc.anchor = GridBagConstraints.WEST;
+                panel.add(btn2FA, gbc);
+
                 return panel;
         }
 
@@ -595,6 +607,7 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
                 m_jLastName.setEnabled(false);
                 m_jAge.setEnabled(false);
                 m_jDocument.setEnabled(false);
+                if (btn2FA != null) btn2FA.setEnabled(false);
                 setPermissionsEnabled(false);
                 permissionsTabbedPane.setEnabled(false);
         }
@@ -610,6 +623,7 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
                 m_jLastName.setEnabled(true);
                 m_jAge.setEnabled(true);
                 m_jDocument.setEnabled(true);
+                if (btn2FA != null) btn2FA.setEnabled(true);
                 setPermissionsEnabled(true);
                 permissionsTabbedPane.setEnabled(true);
         }
@@ -798,6 +812,8 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
          */
         private String savePermissionsToCustomRole(String userId, String userName) throws BasicException {
                 String permXml = generatePermissionsXML();
+                // We keep the rest of this method unchanged, just adding configure2FA below it
+
                 byte[] permBytes = permXml.getBytes(java.nio.charset.StandardCharsets.UTF_8);
 
                 // Determinar el roleId a usar
@@ -906,6 +922,97 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
 
                         JOptionPane.showMessageDialog(null,
                                         AppLocal.getIntString("message.uuidcopy"));
+                }
+        }
+        private void configure2FA() {
+                if (m_oId == null) {
+                        JOptionPane.showMessageDialog(this, "Debe guardar el usuario primero antes de configurar 2FA.");
+                        return;
+                }
+                try {
+                        Object rowData = new com.openbravo.data.loader.StaticSentence(dlAdmin.getSession(),
+                                        "SELECT TOTP_SECRET FROM PEOPLE WHERE ID = ?",
+                                        com.openbravo.data.loader.SerializerWriteString.INSTANCE,
+                                        new com.openbravo.data.loader.SerializerReadBasic(
+                                                        new com.openbravo.data.loader.Datas[] { com.openbravo.data.loader.Datas.STRING }))
+                                        .find(m_oId);
+
+                        String secret = null;
+                        if (rowData != null) {
+                                Object[] row = (Object[]) rowData;
+                                if (row[0] != null) {
+                                        secret = (String) row[0];
+                                }
+                        }
+
+                        if (secret != null && !secret.isEmpty()) {
+                                int res = JOptionPane.showConfirmDialog(this,
+                                                "El usuario ya tiene 2FA configurado. ¿Desea desactivarlo?", "2FA",
+                                                JOptionPane.YES_NO_OPTION);
+                                if (res == JOptionPane.YES_OPTION) {
+                                        new com.openbravo.data.loader.StaticSentence(dlAdmin.getSession(),
+                                                        "UPDATE PEOPLE SET TOTP_SECRET = NULL WHERE ID = ?",
+                                                        com.openbravo.data.loader.SerializerWriteString.INSTANCE).exec(m_oId);
+                                        JOptionPane.showMessageDialog(this, "2FA desactivado exitosamente.");
+                                }
+                                return;
+                        }
+
+                        com.warrenstrange.googleauth.GoogleAuthenticator gAuth = new com.warrenstrange.googleauth.GoogleAuthenticator();
+                        final com.warrenstrange.googleauth.GoogleAuthenticatorKey key = gAuth.createCredentials();
+                        String newSecret = key.getKey();
+
+                        String appName = "KriolOS";
+                        String userName = m_jName.getText() != null ? m_jName.getText().replaceAll(" ", "") : "User";
+                        String otpAuthUrl = String.format("otpauth://totp/%s:%s?secret=%s&issuer=%s", appName, userName,
+                                        newSecret, appName);
+
+                        com.google.zxing.qrcode.QRCodeWriter qrCodeWriter = new com.google.zxing.qrcode.QRCodeWriter();
+                        com.google.zxing.common.BitMatrix bitMatrix = qrCodeWriter.encode(otpAuthUrl,
+                                        com.google.zxing.BarcodeFormat.QR_CODE, 200, 200);
+                        BufferedImage qrImage = com.google.zxing.client.j2se.MatrixToImageWriter.toBufferedImage(bitMatrix);
+
+                        JPanel panel = new JPanel(new BorderLayout(10, 10));
+                        JLabel lblQr = new JLabel(new ImageIcon(qrImage));
+                        lblQr.setHorizontalAlignment(SwingConstants.CENTER);
+                        panel.add(lblQr, BorderLayout.CENTER);
+
+                        JPanel bottom = new JPanel(new BorderLayout(5, 5));
+                        bottom.add(new JLabel("Escanee el código y escriba el PIN de 6 dígitos:"), BorderLayout.NORTH);
+                        JTextField txtCode = new JTextField();
+                        txtCode.setFont(new Font("Arial", Font.BOLD, 18));
+                        txtCode.setHorizontalAlignment(JTextField.CENTER);
+                        bottom.add(txtCode, BorderLayout.CENTER);
+                        panel.add(bottom, BorderLayout.SOUTH);
+
+                        int option = JOptionPane.showConfirmDialog(this, panel, "Configurar Google Authenticator",
+                                        JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+                        if (option == JOptionPane.OK_OPTION) {
+                                String code = txtCode.getText().trim();
+                                try {
+                                        int pin = Integer.parseInt(code);
+                                        if (gAuth.authorize(newSecret, pin)) {
+                                                new com.openbravo.data.loader.StaticSentence(dlAdmin.getSession(),
+                                                                "UPDATE PEOPLE SET TOTP_SECRET = ? WHERE ID = ?",
+                                                                new com.openbravo.data.loader.SerializerWriteBasic(
+                                                                                new com.openbravo.data.loader.Datas[] {
+                                                                                                com.openbravo.data.loader.Datas.STRING,
+                                                                                                com.openbravo.data.loader.Datas.STRING }))
+                                                                .exec(new Object[] { newSecret, m_oId });
+                                                JOptionPane.showMessageDialog(this, "2FA Activado correctamente.");
+                                        } else {
+                                                JOptionPane.showMessageDialog(this, "Código incorrecto. No se activó el 2FA.",
+                                                                "Error", JOptionPane.ERROR_MESSAGE);
+                                        }
+                                } catch (Exception ex) {
+                                        JOptionPane.showMessageDialog(this, "Código inválido.", "Error",
+                                                        JOptionPane.ERROR_MESSAGE);
+                                }
+                        }
+                } catch (Exception e) {
+                        e.printStackTrace();
+                        JOptionPane.showMessageDialog(this, "Error al configurar 2FA: " + e.getMessage(), "Error",
+                                        JOptionPane.ERROR_MESSAGE);
                 }
         }
 }

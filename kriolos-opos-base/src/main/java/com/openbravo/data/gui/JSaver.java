@@ -22,6 +22,8 @@ import com.openbravo.basic.BasicException;
 import com.openbravo.data.loader.LocalRes;
 import com.openbravo.data.user.BrowsableEditableData;
 import com.openbravo.data.user.StateListener;
+import com.openbravo.pos.util.ModernActionIcon;
+import java.awt.Color;
 
 /**
  *
@@ -79,7 +81,7 @@ public class JSaver extends JPanel implements StateListener {
         jbtnDelete = new javax.swing.JButton();
         jbtnSave = new javax.swing.JButton();
 
-        jbtnNew.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/editnew.png"))); // NOI18N
+        jbtnNew.setIcon(new ModernActionIcon(ModernActionIcon.Type.ADD, 21, Color.WHITE));
         java.util.ResourceBundle bundle = null;
         try {
             bundle = java.util.ResourceBundle.getBundle("pos_messages"); // NOI18N
@@ -91,7 +93,7 @@ public class JSaver extends JPanel implements StateListener {
         jbtnNew.setFocusPainted(false);
         jbtnNew.setFocusable(false);
         jbtnNew.setMargin(new java.awt.Insets(2, 2, 2, 2));
-        jbtnNew.setPreferredSize(new java.awt.Dimension(32, 32));
+        styleActionButton(jbtnNew, new Color(7, 55, 43));
         jbtnNew.setRequestFocusEnabled(false);
         jbtnNew.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -99,12 +101,12 @@ public class JSaver extends JPanel implements StateListener {
             }
         });
 
-        jbtnDelete.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/sale_delete.png"))); // NOI18N
+        jbtnDelete.setIcon(new ModernActionIcon(ModernActionIcon.Type.DELETE, 21, Color.WHITE));
         jbtnDelete.setToolTipText(bundle != null ? bundle.getString("tooltip.delete") : "Delete"); // NOI18N
         jbtnDelete.setFocusPainted(false);
         jbtnDelete.setFocusable(false);
         jbtnDelete.setMargin(new java.awt.Insets(2, 2, 2, 2));
-        jbtnDelete.setPreferredSize(new java.awt.Dimension(32, 32));
+        styleActionButton(jbtnDelete, new Color(176, 55, 55));
         jbtnDelete.setRequestFocusEnabled(false);
         jbtnDelete.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -112,12 +114,12 @@ public class JSaver extends JPanel implements StateListener {
             }
         });
 
-        jbtnSave.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/filesave.png"))); // NOI18N
+        jbtnSave.setIcon(new ModernActionIcon(ModernActionIcon.Type.SAVE, 21, Color.WHITE));
         jbtnSave.setToolTipText(bundle != null ? bundle.getString("tooltip.save") : "Save"); // NOI18N
         jbtnSave.setFocusPainted(false);
         jbtnSave.setFocusable(false);
         jbtnSave.setMargin(new java.awt.Insets(2, 2, 2, 2));
-        jbtnSave.setPreferredSize(new java.awt.Dimension(32, 32));
+        styleActionButton(jbtnSave, new Color(7, 55, 43));
         jbtnSave.setRequestFocusEnabled(false);
         jbtnSave.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -145,6 +147,15 @@ public class JSaver extends JPanel implements StateListener {
             .addComponent(jbtnSave, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
         );
     }// </editor-fold>//GEN-END:initComponents
+
+    private void styleActionButton(JButton button, Color background) {
+        button.setPreferredSize(new java.awt.Dimension(38, 38));
+        button.setBackground(background);
+        button.setForeground(Color.WHITE);
+        button.setBorderPainted(false);
+        button.putClientProperty("JButton.buttonType", "roundRect");
+        button.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+    }
 
     private void jbtnSaveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbtnSaveActionPerformed
         try {

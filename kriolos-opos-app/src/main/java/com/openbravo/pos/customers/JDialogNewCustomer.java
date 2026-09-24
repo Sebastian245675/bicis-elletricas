@@ -194,6 +194,7 @@ public class JDialogNewCustomer extends javax.swing.JDialog {
                 int status = dlCustomer.getTableCustomers().getInsertSentence().exec(customer);
 
                 if (status > 0) {
+                    com.openbravo.pos.sync.VoltiumSyncService.sincronizarClientesAsync();
                     selectedCustomer = dlSales.loadCustomerExt(m_oId);
                     dispose();
                 } else {

@@ -16,6 +16,8 @@
 
 package com.openbravo.pos.inventory;
 
+import com.openbravo.pos.util.ModernActionIcon;
+
 import com.openbravo.basic.BasicException;
 import com.openbravo.data.gui.ComboBoxValModel;
 import com.openbravo.data.gui.MessageInf;
@@ -277,7 +279,7 @@ public class TaxEditor extends JPanel implements EditorRecord {
 
         jLabel2.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        jLabel2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/info.png"))); // NOI18N
+        jLabel2.setIcon(new ModernActionIcon(ModernActionIcon.Type.INFO, 18));
         jLabel2.setText(AppLocal.getIntString("label.name")); // NOI18N
         jLabel2.setPreferredSize(new java.awt.Dimension(170, 30));
         jLabel2.addMouseListener(new java.awt.event.MouseAdapter() {

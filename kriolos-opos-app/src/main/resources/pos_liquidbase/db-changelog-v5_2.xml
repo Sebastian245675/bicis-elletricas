@@ -163,4 +163,19 @@
             <column name="DOCUMENT" type="VARCHAR(100)"/>
         </addColumn>
     </changeSet>
+
+    <changeSet author="codex" id="translate-default-catalog-labels-es">
+        <update tableName="categories">
+            <column name="name" value="Categoría general"/>
+            <where>ID = '000' AND NAME = 'Category Standard'</where>
+        </update>
+        <update tableName="taxcategories">
+            <column name="name" value="Impuesto general"/>
+            <where>ID = '001' AND NAME = 'Tax Standard'</where>
+        </update>
+        <update tableName="taxes">
+            <column name="name" value="Impuesto general"/>
+            <where>ID = '001' AND NAME = 'Tax Standard'</where>
+        </update>
+    </changeSet>
 </databaseChangeLog>

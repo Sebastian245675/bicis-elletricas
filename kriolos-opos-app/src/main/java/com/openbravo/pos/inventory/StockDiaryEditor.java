@@ -38,6 +38,7 @@ import com.openbravo.pos.catalog.JCatalog;
 import com.openbravo.pos.printer.TicketParser;
 import com.openbravo.pos.sales.JProductAttEdit;
 import com.openbravo.pos.ticket.ProductInfoExt;
+import com.openbravo.pos.util.ModernActionIcon;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
@@ -786,7 +787,7 @@ public final class StockDiaryEditor extends javax.swing.JPanel implements Editor
         m_jdate.setMinimumSize(new java.awt.Dimension(40, 20));
         m_jdate.setPreferredSize(new java.awt.Dimension(170, 30));
 
-        m_jbtndate.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/date.png"))); // NOI18N
+        m_jbtndate.setIcon(new ModernActionIcon(ModernActionIcon.Type.CALENDAR, 20));
         m_jbtndate.setToolTipText("Open Calendar");
         m_jbtndate.setPreferredSize(new java.awt.Dimension(64, 45));
         m_jbtndate.addActionListener(new java.awt.event.ActionListener() {
@@ -825,7 +826,7 @@ public final class StockDiaryEditor extends javax.swing.JPanel implements Editor
             }
         });
 
-        jEditProduct.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/search24.png"))); // NOI18N
+        jEditProduct.setIcon(new ModernActionIcon(ModernActionIcon.Type.SEARCH, 20));
         jEditProduct.setToolTipText("Search Product List");
         jEditProduct.setPreferredSize(new java.awt.Dimension(64, 45));
         jEditProduct.addActionListener(new java.awt.event.ActionListener() {
@@ -856,7 +857,7 @@ public final class StockDiaryEditor extends javax.swing.JPanel implements Editor
             }
         });
 
-        m_jEnter.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/barcode.png"))); // NOI18N
+        m_jEnter.setIcon(new ModernActionIcon(ModernActionIcon.Type.SEARCH, 20));
         m_jEnter.setToolTipText("Get Barcode");
         m_jEnter.setFocusPainted(false);
         m_jEnter.setFocusable(false);
@@ -884,7 +885,7 @@ public final class StockDiaryEditor extends javax.swing.JPanel implements Editor
             }
         });
 
-        m_jEnter1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/products.png"))); // NOI18N
+        m_jEnter1.setIcon(new ModernActionIcon(ModernActionIcon.Type.BOX, 20));
         m_jEnter1.setToolTipText("Enter Product ID");
         m_jEnter1.setFocusPainted(false);
         m_jEnter1.setFocusable(false);
@@ -913,7 +914,7 @@ public final class StockDiaryEditor extends javax.swing.JPanel implements Editor
             }
         });
 
-        jEditAttributes.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/attributes.png"))); // NOI18N
+        jEditAttributes.setIcon(new ModernActionIcon(ModernActionIcon.Type.DOCUMENT, 20));
         jEditAttributes.setToolTipText("Product Attributes");
         jEditAttributes.setMaximumSize(new java.awt.Dimension(65, 33));
         jEditAttributes.setMinimumSize(new java.awt.Dimension(65, 33));

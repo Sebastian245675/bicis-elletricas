@@ -121,7 +121,7 @@ public class PanelReportBean extends JPanelReport {
      *
      * @return
      */
-    protected String getReport() {
+    public String getReport() {
         return report;
     }
 
@@ -137,7 +137,7 @@ public class PanelReportBean extends JPanelReport {
      *
      * @return
      */
-    protected String getResourceBundle() {
+    public String getResourceBundle() {
         return resourcebundle == null 
                 ? report 
                 : resourcebundle;
@@ -173,7 +173,7 @@ public class PanelReportBean extends JPanelReport {
      *
      * @return
      */
-    protected BaseSentence getSentence() {
+    public BaseSentence getSentence() {
         return new StaticSentence(m_App.getSession()
             , new QBFBuilder(sentence, paramnames.toArray(new String[paramnames.size()]))
             , qbffilter.getSerializerWrite()
@@ -184,7 +184,7 @@ public class PanelReportBean extends JPanelReport {
      *
      * @return
      */
-    protected ReportFields getReportFields() {
+    public ReportFields getReportFields() {
         return new ReportFieldsArray(fieldnames.toArray(new String[fieldnames.size()]));
     }
 

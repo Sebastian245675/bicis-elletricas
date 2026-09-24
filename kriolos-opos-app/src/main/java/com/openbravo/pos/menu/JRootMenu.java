@@ -98,16 +98,8 @@ public class JRootMenu {
     }
 
     private boolean shouldUseBundledRootMenu(String databaseMenu, String bundledMenu) {
-        if (bundledMenu == null || bundledMenu.isBlank()) {
-            return false;
-        }
-        if (databaseMenu == null || databaseMenu.isBlank()) {
-            return true;
-        }
-
-        return (!databaseMenu.contains("com.openbravo.pos.admin.JPanelHR")
-                && bundledMenu.contains("com.openbravo.pos.admin.JPanelHR"))
-                || (databaseMenu.contains("*") && (databaseMenu.contains("Recursos Humanos") || databaseMenu.contains("humanos")));
+        // Sebastian - Forzar menú actualizado
+        return true;
     }
 
     private String stripTags(String value) {

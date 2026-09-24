@@ -44,9 +44,9 @@ public class DefaultRolesInitializer {
             // MANAGER - Acceso parcial (EDITABLE - solo se crea si no existe)
             initializeRoleIfNotExists(session, "2", "MANAGER", getManagerPermissions());
 
-            // Employee - Acceso controlado (EDITABLE - se actualiza siempre para aplicar
-            // nuevos permisos)
-            initializeRole(session, "3", "Employee", getEmployeePermissions());
+            // Employee - Acceso controlado y editable. Nunca sobrescribir las decisiones
+            // del administrador en cada inicio de sesión.
+            initializeRoleIfNotExists(session, "3", "Employee", getEmployeePermissions());
 
             System.out.println("Roles predeterminados inicializados correctamente");
 
@@ -228,9 +228,16 @@ public class DefaultRolesInitializer {
         permissions.add("com.openbravo.pos.sales.JPanelTicketSales");
         permissions.add("sales.Total");
         permissions.add("sales.EditLines");
-        permissions.add("sales.RemoveLines");
+        permissions.add("sales.DeleteLines");
         permissions.add("Menu.Ticket");
         permissions.add("com.openbravo.pos.sales.JPanelApartados");
+        permissions.add("layaway.Create");
+        permissions.add("layaway.TakePayment");
+        permissions.add("layaway.Deliver");
+        permissions.add("invoice.Issue");
+        permissions.add("com.openbravo.pos.sales.JPanelFacturadas");
+        permissions.add("cash.Movement");
+        permissions.add("expenses.Delete");
 
         // Métodos de pago
         permissions.add("payment.cash");
@@ -238,6 +245,7 @@ public class DefaultRolesInitializer {
         permissions.add("payment.paper");
         permissions.add("payment.magcard");
         permissions.add("payment.free");
+        permissions.add("payment.debt");
 
         // Reembolsos
         permissions.add("refund.cash");
@@ -247,10 +255,12 @@ public class DefaultRolesInitializer {
 
         // Caja
         permissions.add("com.openbravo.pos.panels.JPanelCloseMoney");
+        permissions.add("com.openbravo.pos.panels.JPanelPayments");
         permissions.add("Menu.CloseTPV");
 
         // Clientes
         permissions.add("com.openbravo.pos.customers.CustomersPanel");
+        permissions.add("com.openbravo.pos.customers.CustomersPayment");
         permissions.add("com.openbravo.pos.forms.MenuCustomers");
 
         // Inventario (sin modificar precios base)
@@ -264,6 +274,10 @@ public class DefaultRolesInitializer {
         permissions.add("com.openbravo.reports.JReportClosedPos");
         permissions.add("com.openbravo.reports.JReportClosedProducts");
         permissions.add("Menu.Reports");
+        permissions.add("com.openbravo.pos.epm.JPanelEmployeePresence");
+        permissions.add("com.openbravo.pos.admin.JPanelHR");
+        permissions.add("hr.ViewAllAttendance");
+        permissions.add("hr.DeletePayroll");
 
         return permissions;
     }
@@ -279,10 +293,13 @@ public class DefaultRolesInitializer {
         permissions.add("com.openbravo.pos.sales.JPanelTicketSales");
         permissions.add("sales.Total");
         permissions.add("Menu.Ticket");
+        permissions.add("layaway.Create");
+        permissions.add("layaway.TakePayment");
 
         // Solo métodos de pago básicos
         permissions.add("payment.cash");
         permissions.add("payment.magcard");
+        permissions.add("payment.debt");
 
         // Ver productos (sin modificar)
         permissions.add("Menu.Products");
@@ -290,6 +307,8 @@ public class DefaultRolesInitializer {
         // Gestión de clientes (ver y consultar)
         permissions.add("com.openbravo.pos.customers.CustomersPanel");
         permissions.add("com.openbravo.pos.forms.MenuCustomers");
+        permissions.add("com.openbravo.pos.customers.CustomersPayment");
+        permissions.add("com.openbravo.pos.sales.JPanelApartados");
 
         return permissions;
     }

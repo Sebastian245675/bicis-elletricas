@@ -20,6 +20,7 @@ import com.openbravo.data.user.DirtyManager;
 import com.openbravo.pos.forms.AppConfig;
 import com.openbravo.pos.forms.AppLocal;
 import java.awt.Color;
+import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -39,14 +40,29 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
+import javax.swing.JPasswordField;
+import javax.swing.JComboBox;
 import javax.swing.border.Border;
+import com.openbravo.basic.BasicException;
+import com.openbravo.data.loader.Session;
+import com.openbravo.pos.util.AltEncrypter;
+import java.sql.SQLException;
+import javax.swing.JOptionPane;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.JSeparator;
+import javax.swing.JButton;
+import java.awt.Cursor;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
  * @author JG uniCenta & Google DeepMind Team
  */
 public class JPanelConfigCompany extends JPanel implements PanelConfig {
-    
+
+    private static final Logger LOGGER = Logger.getLogger(JPanelConfigCompany.class.getName());
     private final DirtyManager dirty = new DirtyManager();
 
     // Visual Controls
@@ -70,6 +86,18 @@ public class JPanelConfigCompany extends JPanel implements PanelConfig {
     private JLabel lblTktHeader1;
     private JCheckBox webSwtch_Logo;
 
+    private JSpinner jPickupSize;
+    private JSpinner jReceiptSize;
+    private JTextField jTextReceiptPrefix;
+    private JTextField jTicketExample;
+    private JButton jbtnReset;
+    private JCheckBox m_jReceiptPrintOff;
+    private JTextField txtFacturamaUser;
+    private JPasswordField txtFacturamaPassword;
+    private JTextField txtFacturamaPostalCode;
+    private JComboBox<String> comboFacturamaEnvironment;
+    private AppConfig config;
+
     /**
      * Creates new form JPanelConfigCompany
      */
@@ -92,6 +120,10 @@ public class JPanelConfigCompany extends JPanel implements PanelConfig {
         jtxtTktFooter4.getDocument().addDocumentListener(dirty);
         jtxtTktFooter5.getDocument().addDocumentListener(dirty);
         jtxtTktFooter6.getDocument().addDocumentListener(dirty);
+        txtFacturamaUser.getDocument().addDocumentListener(dirty);
+        txtFacturamaPassword.getDocument().addDocumentListener(dirty);
+        txtFacturamaPostalCode.getDocument().addDocumentListener(dirty);
+        comboFacturamaEnvironment.addActionListener(event -> dirty.setDirty(true));
         
         webSwtch_Logo.addActionListener(new java.awt.event.ActionListener() {
             @Override
@@ -99,6 +131,66 @@ public class JPanelConfigCompany extends JPanel implements PanelConfig {
                 webSwtch_LogoActionPerformed(evt);
             }
         });
+
+        // Ticket Setup Listeners
+        jReceiptSize.addChangeListener(e -> {
+            receiptPrefixExample();
+            dirty.setDirty(true);
+        });
+        jPickupSize.addChangeListener(e -> dirty.setDirty(true));
+        
+        jTextReceiptPrefix.getDocument().addDocumentListener(dirty);
+        jTextReceiptPrefix.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { receiptPrefixExample(); }
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { receiptPrefixExample(); }
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { receiptPrefixExample(); }
+        });
+        
+        m_jReceiptPrintOff.addActionListener(e -> dirty.setDirty(true));
+
+        jbtnReset.addActionListener(evt -> {
+            int response = JOptionPane.showOptionDialog(this,
+                    AppLocal.getIntString("message.resetpickup"),
+                    "Reset",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE,
+                    null, null, null);
+            if (response == JOptionPane.YES_OPTION) {
+                try {
+                    String db_user = (config.getProperty("db.user"));
+                    String db_url = (config.getProperty("db.URL") + config.getProperty("db.schema") + config.getProperty("db.options"));
+                    String db_password = (config.getProperty("db.password"));
+
+                    if (db_user != null && db_password != null && db_password.startsWith("crypt:")) {
+                        AltEncrypter cypher = new AltEncrypter("cypherkey" + db_user);
+                        db_password = cypher.decrypt(db_password.substring(6));
+                    }
+
+                    Session session = new Session(db_url, db_user, db_password);
+                    session.begin();
+                    session.DB.getSequenceSentence(session, "pickup_number").find();
+                    session.DB.resetSequenceSentence(session, "pickup_number");
+                    session.commit();
+
+                } catch (BasicException | SQLException ex) {
+                    LOGGER.log(Level.WARNING, null, ex);
+                }
+            }
+        });
+    }
+
+    private void receiptPrefixExample() {
+        String receipt = "";
+        int x = 1;
+        while (x < (Integer) jReceiptSize.getValue()) {
+            receipt += "0";
+            x++;
+        }
+        receipt += "1";
+        jTicketExample.setText(jTextReceiptPrefix.getText() + receipt);
     }
 
     /**
@@ -118,13 +210,15 @@ public class JPanelConfigCompany extends JPanel implements PanelConfig {
     public Component getConfigComponent() {
         return this;
     }
-   
+    
     /**
      *
      * @param config
      */
     @Override
     public void loadProperties(AppConfig config) {
+        this.config = config;
+        
         jtxtTktHeader1.setText(config.getProperty("tkt.header1"));
         jtxtTktHeader2.setText(config.getProperty("tkt.header2"));
         jtxtTktHeader3.setText(config.getProperty("tkt.header3"));  
@@ -139,9 +233,39 @@ public class JPanelConfigCompany extends JPanel implements PanelConfig {
         jtxtTktFooter5.setText(config.getProperty("tkt.footer5"));  
         jtxtTktFooter6.setText(config.getProperty("tkt.footer6"));  
         
+        // Ticket Setup properties
+        int recSize;
+        String receiptSize = (config.getProperty("till.receiptsize"));
+        try {
+            recSize = Integer.parseInt(receiptSize);
+        } catch (NumberFormatException ex) {
+            recSize = 1;
+        }
+        jReceiptSize.setModel(new SpinnerNumberModel(recSize, 0, 20, 1));
+
+        int picSize;
+        String pickupSize = (config.getProperty("till.pickupsize"));
+        try {
+            picSize = Integer.parseInt(pickupSize);
+        } catch (NumberFormatException ex) {
+            picSize = 1;
+        }
+        jPickupSize.setModel(new SpinnerNumberModel(picSize, 0, 20, 1));
+
+        jTextReceiptPrefix.setText(config.getProperty("till.receiptprefix"));
+        m_jReceiptPrintOff.setSelected(Boolean.parseBoolean(config.getProperty("till.receiptprintoff")));
+        txtFacturamaUser.setText(config.getProperty("facturama.user"));
+        txtFacturamaPassword.setText(config.getProperty("facturama.password"));
+        txtFacturamaPostalCode.setText(config.getProperty("facturama.expeditionPostalCode"));
+        String facturamaUrl = config.getProperty("facturama.url");
+        comboFacturamaEnvironment.setSelectedIndex(
+                facturamaUrl != null && facturamaUrl.contains("api.facturama.mx") ? 1 : 0);
+        
+        receiptPrefixExample();
+        
         dirty.setDirty(false);        
     }
-   
+    
     /**
      *
      * @param config
@@ -161,6 +285,18 @@ public class JPanelConfigCompany extends JPanel implements PanelConfig {
         config.setProperty("tkt.footer4", jtxtTktFooter4.getText()); 
         config.setProperty("tkt.footer5", jtxtTktFooter5.getText()); 
         config.setProperty("tkt.footer6", jtxtTktFooter6.getText());          
+
+        // Ticket Setup properties
+        config.setProperty("till.receiptprefix", jTextReceiptPrefix.getText());
+        config.setProperty("till.receiptsize", jReceiptSize.getValue().toString());
+        config.setProperty("till.pickupsize", jPickupSize.getValue().toString());
+        config.setProperty("till.receiptprintoff", Boolean.toString(m_jReceiptPrintOff.isSelected()));
+        config.setProperty("facturama.user", txtFacturamaUser.getText().trim());
+        config.setProperty("facturama.password", new String(txtFacturamaPassword.getPassword()));
+        config.setProperty("facturama.expeditionPostalCode", txtFacturamaPostalCode.getText().trim());
+        config.setProperty("facturama.url", comboFacturamaEnvironment.getSelectedIndex() == 1
+                ? "https://api.facturama.mx/3/cfdis"
+                : "https://apisandbox.facturama.mx/3/cfdis");
 
         if (jLbllogoPath != null) {
             config.setProperty("tkt.logopath", jLbllogoPath.getText());
@@ -313,15 +449,230 @@ public class JPanelConfigCompany extends JPanel implements PanelConfig {
         fgbc.insets = new Insets(0, 16, 0, 0);
         formFieldsPanel.add(footerCol, fgbc);
 
-        // Add formFieldsPanel to card
+        // Add formFieldsPanel to card (weighty = 0.0, fill = HORIZONTAL)
         cardGbc.gridy = 2;
-        cardGbc.fill = GridBagConstraints.BOTH;
-        cardGbc.weighty = 1.0;
-        cardGbc.insets = new Insets(0, 0, 0, 0);
+        cardGbc.fill = GridBagConstraints.HORIZONTAL;
+        cardGbc.weighty = 0.0;
+        cardGbc.insets = new Insets(0, 0, 20, 0);
         card.add(formFieldsPanel, cardGbc);
+
+        // --- Separator Line 2 ---
+        cardGbc.gridy = 3;
+        cardGbc.insets = new Insets(0, 0, 20, 0);
+        JPanel separator2 = new JPanel();
+        separator2.setPreferredSize(new Dimension(1, 1));
+        separator2.setBackground(new Color(226, 232, 240)); // Slate 200
+        card.add(separator2, cardGbc);
+
+        // --- Ticket Setup Fields Layout ---
+        JPanel ticketSetupPanel = new JPanel(new GridBagLayout());
+        ticketSetupPanel.setOpaque(false);
+        GridBagConstraints tgbc = new GridBagConstraints();
+        tgbc.fill = GridBagConstraints.HORIZONTAL;
+        tgbc.weightx = 1.0;
+        tgbc.gridy = 0;
+
+        // Title for ticket setup section
+        JLabel lblSetupTitle = new JLabel("Formato y Ajustes del Ticket");
+        lblSetupTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblSetupTitle.setForeground(new Color(30, 41, 59));
+        tgbc.gridx = 0;
+        tgbc.gridwidth = 3;
+        tgbc.insets = new Insets(0, 0, 15, 0);
+        ticketSetupPanel.add(lblSetupTitle, tgbc);
+
+        // Col 1: Prefijo y Ejemplo
+        JPanel col1 = new JPanel(new GridBagLayout());
+        col1.setOpaque(false);
+        GridBagConstraints gbcC1 = new GridBagConstraints();
+        gbcC1.fill = GridBagConstraints.HORIZONTAL;
+        gbcC1.weightx = 1.0;
+        gbcC1.gridx = 0;
+
+        JLabel lblPrefix = new JLabel("Prefijo de Ticket");
+        lblPrefix.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblPrefix.setForeground(new Color(100, 116, 139));
+        gbcC1.gridy = 0;
+        gbcC1.insets = new Insets(0, 0, 4, 0);
+        col1.add(lblPrefix, gbcC1);
+
+        jTextReceiptPrefix = createStyledTextField();
+        gbcC1.gridy = 1;
+        gbcC1.insets = new Insets(0, 0, 10, 0);
+        col1.add(jTextReceiptPrefix, gbcC1);
+
+        JLabel lblExample = new JLabel("Ejemplo de Ticket");
+        lblExample.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblExample.setForeground(new Color(100, 116, 139));
+        gbcC1.gridy = 2;
+        gbcC1.insets = new Insets(0, 0, 4, 0);
+        col1.add(lblExample, gbcC1);
+
+        jTicketExample = createStyledTextField();
+        jTicketExample.setEditable(false);
+        jTicketExample.setBackground(new Color(243, 244, 246));
+        gbcC1.gridy = 3;
+        gbcC1.insets = new Insets(0, 0, 0, 0);
+        col1.add(jTicketExample, gbcC1);
+
+        // Col 2: Dígitos de Ticket y Dígitos de Recogida
+        JPanel col2 = new JPanel(new GridBagLayout());
+        col2.setOpaque(false);
+        GridBagConstraints gbcC2 = new GridBagConstraints();
+        gbcC2.fill = GridBagConstraints.HORIZONTAL;
+        gbcC2.weightx = 1.0;
+        gbcC2.gridx = 0;
+
+        JLabel lblDigits = new JLabel("Nº de Dígitos de Ticket");
+        lblDigits.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblDigits.setForeground(new Color(100, 116, 139));
+        gbcC2.gridy = 0;
+        gbcC2.insets = new Insets(0, 0, 4, 0);
+        col2.add(lblDigits, gbcC2);
+
+        jReceiptSize = new JSpinner();
+        jReceiptSize.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        jReceiptSize.setPreferredSize(new Dimension(80, 36));
+        gbcC2.gridy = 1;
+        gbcC2.insets = new Insets(0, 0, 10, 0);
+        col2.add(jReceiptSize, gbcC2);
+
+        JLabel lblPickupDigits = new JLabel("Nº de Dígitos de Recogida");
+        lblPickupDigits.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblPickupDigits.setForeground(new Color(100, 116, 139));
+        gbcC2.gridy = 2;
+        gbcC2.insets = new Insets(0, 0, 4, 0);
+        col2.add(lblPickupDigits, gbcC2);
+
+        jPickupSize = new JSpinner();
+        jPickupSize.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        jPickupSize.setPreferredSize(new Dimension(80, 36));
+        gbcC2.gridy = 3;
+        gbcC2.insets = new Insets(0, 0, 0, 0);
+        col2.add(jPickupSize, gbcC2);
+
+        // Col 3: Impresión y Reset
+        JPanel col3 = new JPanel(new GridBagLayout());
+        col3.setOpaque(false);
+        GridBagConstraints gbcC3 = new GridBagConstraints();
+        gbcC3.fill = GridBagConstraints.HORIZONTAL;
+        gbcC3.weightx = 1.0;
+        gbcC3.gridx = 0;
+
+        m_jReceiptPrintOff = new JCheckBox("Desactivar Impresión de Ticket");
+        m_jReceiptPrintOff.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        m_jReceiptPrintOff.setForeground(new Color(100, 116, 139));
+        m_jReceiptPrintOff.setOpaque(false);
+        gbcC3.gridy = 0;
+        gbcC3.insets = new Insets(20, 0, 20, 0);
+        col3.add(m_jReceiptPrintOff, gbcC3);
+
+        jbtnReset = new JButton("Reiniciar Turnos");
+        jbtnReset.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        jbtnReset.setBackground(new Color(239, 68, 68));
+        jbtnReset.setForeground(Color.WHITE);
+        jbtnReset.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(239, 68, 68).darker(), 1),
+            BorderFactory.createEmptyBorder(8, 14, 8, 14)
+        ));
+        jbtnReset.setFocusPainted(false);
+        jbtnReset.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        gbcC3.gridy = 1;
+        gbcC3.insets = new Insets(0, 0, 0, 0);
+        col3.add(jbtnReset, gbcC3);
+
+        // Add 3 columns to ticketSetupPanel
+        tgbc.gridy = 1;
+        tgbc.gridwidth = 1;
+        tgbc.weightx = 0.33;
+
+        tgbc.gridx = 0;
+        tgbc.insets = new Insets(0, 0, 0, 16);
+        ticketSetupPanel.add(col1, tgbc);
+
+        tgbc.gridx = 1;
+        tgbc.insets = new Insets(0, 16, 0, 16);
+        ticketSetupPanel.add(col2, tgbc);
+
+        tgbc.gridx = 2;
+        tgbc.insets = new Insets(0, 16, 0, 0);
+        ticketSetupPanel.add(col3, tgbc);
+
+        // Add ticketSetupPanel to card
+        cardGbc.gridy = 4;
+        cardGbc.fill = GridBagConstraints.HORIZONTAL;
+        cardGbc.weighty = 0.0;
+        cardGbc.insets = new Insets(0, 0, 20, 0);
+        card.add(ticketSetupPanel, cardGbc);
+
+        // --- Facturación electrónica ---
+        JPanel fiscalPanel = new JPanel(new GridBagLayout());
+        fiscalPanel.setOpaque(false);
+        GridBagConstraints fiscalGbc = new GridBagConstraints();
+        fiscalGbc.fill = GridBagConstraints.HORIZONTAL;
+        fiscalGbc.weightx = 1.0;
+
+        JLabel fiscalTitle = new JLabel("Facturación electrónica (Facturama)");
+        fiscalTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        fiscalTitle.setForeground(new Color(30, 41, 59));
+        fiscalGbc.gridx = 0;
+        fiscalGbc.gridy = 0;
+        fiscalGbc.gridwidth = 3;
+        fiscalGbc.insets = new Insets(0, 0, 12, 0);
+        fiscalPanel.add(fiscalTitle, fiscalGbc);
+
+        txtFacturamaUser = createStyledTextField();
+        txtFacturamaPassword = new JPasswordField();
+        txtFacturamaPassword.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        txtFacturamaPassword.setPreferredSize(new Dimension(180, 36));
+        txtFacturamaPostalCode = createStyledTextField();
+        comboFacturamaEnvironment = new JComboBox<>(new String[]{
+            "Pruebas (no fiscal)", "Producción (facturas reales)"
+        });
+        comboFacturamaEnvironment.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        comboFacturamaEnvironment.setPreferredSize(new Dimension(190, 36));
+
+        fiscalGbc.gridy = 1;
+        fiscalGbc.gridwidth = 1;
+        fiscalGbc.weightx = 0.25;
+        fiscalGbc.gridx = 0;
+        fiscalGbc.insets = new Insets(0, 0, 0, 16);
+        fiscalPanel.add(createLabeledField("Usuario de API", txtFacturamaUser), fiscalGbc);
+        fiscalGbc.gridx = 1;
+        fiscalGbc.insets = new Insets(0, 16, 0, 16);
+        fiscalPanel.add(createLabeledField("Contraseña de API", txtFacturamaPassword), fiscalGbc);
+        fiscalGbc.gridx = 2;
+        fiscalGbc.insets = new Insets(0, 16, 0, 16);
+        fiscalPanel.add(createLabeledField("C.P. de expedición", txtFacturamaPostalCode), fiscalGbc);
+        fiscalGbc.gridx = 3;
+        fiscalGbc.insets = new Insets(0, 16, 0, 0);
+        fiscalPanel.add(createLabeledField("Ambiente", comboFacturamaEnvironment), fiscalGbc);
+
+        cardGbc.gridy = 5;
+        cardGbc.weighty = 0.0;
+        cardGbc.fill = GridBagConstraints.HORIZONTAL;
+        cardGbc.insets = new Insets(0, 0, 20, 0);
+        card.add(fiscalPanel, cardGbc);
+
+        // --- Push everything up with a vertical spacer ---
+        cardGbc.gridy = 6;
+        cardGbc.weighty = 1.0;
+        cardGbc.fill = GridBagConstraints.BOTH;
+        card.add(new JPanel() {{ setOpaque(false); }}, cardGbc);
 
         scrollPane.setViewportView(centerWrapper);
         add(scrollPane, java.awt.BorderLayout.CENTER);
+    }
+
+    private JPanel createLabeledField(String labelText, JComponent field) {
+        JPanel panel = new JPanel(new BorderLayout(0, 5));
+        panel.setOpaque(false);
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        label.setForeground(new Color(100, 116, 139));
+        panel.add(label, BorderLayout.NORTH);
+        panel.add(field, BorderLayout.CENTER);
+        return panel;
     }
 
     private JPanel createSectionPanel(String sectionTitle, JTextField[] fields) {

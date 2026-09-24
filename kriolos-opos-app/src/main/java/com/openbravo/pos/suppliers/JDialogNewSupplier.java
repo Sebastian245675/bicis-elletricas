@@ -181,6 +181,9 @@ public class JDialogNewSupplier extends javax.swing.JDialog {
             
             if (status > 0){
                 selectedSupplier =  dlSales.loadSupplierExt(m_oId);
+                try {
+                    com.openbravo.pos.sync.VoltiumSyncService.sincronizarProveedoresAsync();
+                } catch (Exception ignored) {}
                 dispose();
             }else{
                 MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE, 

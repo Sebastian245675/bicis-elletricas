@@ -33,7 +33,31 @@ ORDER BY NAME;]]></query>
 	<field name="POSTAL" class="java.lang.String"/>
 	<field name="PHONE" class="java.lang.String"/>
 	<field name="EMAIL" class="java.lang.String"/>
-	<background/>
+	<background height="555" splitType="Stretch">
+		<!-- Marca de agua en el centro -->
+		<element kind="image" uuid="d8e03e5c-7d9a-4c28-98e3-469b821a7ee2" x="241" y="127" width="300" height="300" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
+			<expression><![CDATA["com/openbravo/reports/logo.png"]]></expression>
+		</element>
+
+		<!-- Información de contacto (teléfono, redes, correo) -->
+		<element kind="textField" uuid="8d3c01bf-5d8f-4d92-8094-1a3b516cd45a" x="0" y="460" width="200" height="15" fontName="SansSerif" fontSize="9.0" forecolor="#5D6F82" bold="true">
+			<expression><![CDATA["📞  558 118 9644"]]></expression>
+		</element>
+		<element kind="textField" uuid="fa650742-b9cf-4a37-b6f7-c9de3bc8565a" x="0" y="475" width="200" height="15" fontName="SansSerif" fontSize="9.0" forecolor="#5D6F82" bold="true">
+			<expression><![CDATA["🌐  Voltium SanRey"]]></expression>
+		</element>
+		<element kind="textField" uuid="ab5f3d75-a8cd-4bce-93ad-71de24fcd8ba" x="0" y="490" width="250" height="15" fontName="SansSerif" fontSize="9.0" forecolor="#5D6F82" bold="true">
+			<expression><![CDATA["✉️  egerencia.voltiumsr@gmail.com"]]></expression>
+		</element>
+
+		<!-- Barra Dorada con la dirección al final de la hoja -->
+		<element kind="rectangle" uuid="ef7d81a9-b4e3-4c38-be07-a37f066d820f" x="0" y="520" width="782" height="35" forecolor="#CA9F41" backcolor="#CA9F41" radius="0">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="textField" uuid="54c9d7c0-43b7-4dda-86e7-43764b7f2837" x="20" y="530" width="742" height="15" fontName="SansSerif" fontSize="9.0" forecolor="#FFFFFF" bold="true" hTextAlign="Left" vTextAlign="Middle">
+			<expression><![CDATA["📍  San Guillermo 19 Lote 1, Pedregal de Santa Úrsula, C.P. 04600, Coyoacán, Ciudad de México, México"]]></expression>
+		</element>
+	</background>
 	<title/>
 	<pageHeader height="36">
 		<element kind="textField" uuid="c1d7be9f-8698-493a-9099-a63d4b12718e" key="textField-15" mode="Transparent" x="0" y="0" width="375" height="28" forecolor="#33CCFF" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="14.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Top">
@@ -181,13 +205,13 @@ ORDER BY NAME;]]></query>
 	</detail>
 	<columnFooter/>
 	<pageFooter height="30">
-		<element kind="line" uuid="8514bdfa-02f6-4581-a2d8-4892cd30c208" key="line-1" mode="Opaque" x="0" y="5" width="782" height="1" forecolor="#000000" backcolor="#FFFFFF">
+		<element kind="line" uuid="8514bdfa-02f6-4581-a2d8-4892cd30c208" key="line-1" mode="Opaque" x="0" y="5" width="782" height="1" forecolor="#CA9F41" backcolor="#FFFFFF">
 			<pen lineWidth="0.25" lineStyle="Solid"/>
 		</element>
-		<element kind="staticText" uuid="53862181-2460-41f4-bec6-2ad72dd8260b" x="0" y="10" width="100" height="15" fontName="SansSerif" fontSize="8.0">
+		<element kind="staticText" uuid="53862181-2460-41f4-bec6-2ad72dd8260b" x="0" y="10" width="100" height="15" forecolor="#FFFFFF" fontName="SansSerif" fontSize="7.0" vTextAlign="Middle">
 			<text><![CDATA[rpt:suppliers_list]]></text>
 		</element>
-		<element kind="textField" uuid="4fde3e41-cb92-4f12-968f-90e390afd317" key="textField-4" mode="Opaque" x="730" y="10" width="20" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Top">
+		<element kind="textField" uuid="4fde3e41-cb92-4f12-968f-90e390afd317" key="textField-4" mode="Transparent" x="730" y="10" width="20" height="15" forecolor="#FFFFFF" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="9.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Middle">
 			<paragraph lineSpacing="Single"/>
 			<expression><![CDATA[$V{PAGE_NUMBER}]]></expression>
 			<box>
@@ -197,7 +221,7 @@ ORDER BY NAME;]]></query>
 				<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 			</box>
 		</element>
-		<element kind="staticText" uuid="2902a0c6-ff54-489b-82a7-ad0df0e6c1c5" key="staticText-2" mode="Opaque" x="750" y="10" width="10" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Center" vTextAlign="Top">
+		<element kind="staticText" uuid="2902a0c6-ff54-489b-82a7-ad0df0e6c1c5" key="staticText-2" mode="Transparent" x="750" y="10" width="10" height="15" forecolor="#FFFFFF" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="9.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Center" vTextAlign="Middle">
 			<paragraph lineSpacing="Single"/>
 			<text><![CDATA[/]]></text>
 			<box>
@@ -207,7 +231,7 @@ ORDER BY NAME;]]></query>
 				<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#FFFFFF"/>
 			</box>
 		</element>
-		<element kind="textField" uuid="99af79a9-5070-4c9b-9d8b-b49174aab6df" key="textField-5" mode="Opaque" x="760" y="10" width="20" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" evaluationTime="Report" pattern="" blankWhenNull="false" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Top">
+		<element kind="textField" uuid="99af79a9-5070-4c9b-9d8b-b49174aab6df" key="textField-5" mode="Transparent" x="760" y="10" width="20" height="15" forecolor="#FFFFFF" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="9.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" evaluationTime="Report" pattern="" blankWhenNull="false" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Middle">
 			<paragraph lineSpacing="Single"/>
 			<expression><![CDATA[$V{PAGE_NUMBER}]]></expression>
 			<box>

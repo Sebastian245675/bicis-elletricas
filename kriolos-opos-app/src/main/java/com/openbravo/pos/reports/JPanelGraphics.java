@@ -74,17 +74,19 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
     private JPanel deptListPanel; // Panel para la lista de departamentos (en lugar de tabla)
     private JPanel taxesBreakdownPanel;
 
-    private static final Color APP_BG = new Color(239, 244, 255);
+    private static final Color APP_BG = new Color(240, 244, 248);          // #F0F4F8 gris azulado ultra claro
     private static final Color SURFACE_BG = Color.WHITE;
-    private static final Color HEADER_DARK = new Color(16, 46, 80);
-    private static final Color HEADER_LIGHT = new Color(56, 139, 253);
-    private static final Color TEXT_PRIMARY = new Color(15, 23, 42);
-    private static final Color TEXT_MUTED = new Color(100, 116, 139);
-    private static final Color BORDER_SOFT = new Color(219, 234, 254);
-    private static final Color ACCENT_BLUE = new Color(37, 99, 235);
-    private static final Color ACCENT_CYAN = new Color(6, 182, 212);
-    private static final Color ACCENT_GREEN = new Color(16, 185, 129);
-    private static final Color ACCENT_GOLD = new Color(245, 158, 11);
+    private static final Color HEADER_DARK = new Color(99, 102, 241);      // #6366F1 Indigo
+    private static final Color HEADER_LIGHT = new Color(139, 92, 246);     // #8B5CF6 Violeta
+    private static final Color TEXT_PRIMARY = new Color(30, 41, 59);       // #1E293B
+    private static final Color TEXT_MUTED = new Color(100, 116, 139);      // #64748B
+    private static final Color BORDER_SOFT = new Color(226, 232, 240);     // #E2E8F0
+    private static final Color ACCENT_BLUE = new Color(99, 102, 241);      // #6366F1 Indigo
+    private static final Color ACCENT_CYAN = new Color(6, 182, 212);       // #06B6D4
+    private static final Color ACCENT_GREEN = new Color(16, 185, 129);     // #10B981 Esmeralda
+    private static final Color ACCENT_GOLD = new Color(245, 158, 11);      // #F59E0B Ámbar
+    private static final Color ACCENT_ROSE = new Color(244, 63, 94);       // #F43F5E Rosa
+    private static final Color ACCENT_VIOLET = new Color(139, 92, 246);    // #8B5CF6 Violeta
     
     // Datos actuales
     private java.util.Date dateStart;
@@ -273,12 +275,16 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
             protected void paintComponent(Graphics g) {
                 Graphics2D g2d = (Graphics2D) g.create();
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2d.setPaint(new GradientPaint(0, 0, HEADER_DARK, getWidth(), getHeight(), HEADER_LIGHT));
+                // Gradiente indigo → violeta
+                g2d.setPaint(new GradientPaint(0, 0, new Color(79, 70, 229), getWidth(), 0, new Color(139, 92, 246)));
                 g2d.fillRect(0, 0, getWidth(), getHeight());
-                g2d.setColor(new Color(255, 255, 255, 28));
-                g2d.fillOval(getWidth() - 180, -50, 220, 220);
-                g2d.setColor(new Color(255, 255, 255, 16));
-                g2d.fillOval(getWidth() - 320, 10, 180, 180);
+                // Decoraciones circulares semi-transparentes
+                g2d.setColor(new Color(255, 255, 255, 20));
+                g2d.fillOval(getWidth() - 200, -60, 260, 260);
+                g2d.setColor(new Color(255, 255, 255, 12));
+                g2d.fillOval(getWidth() - 380, 20, 200, 200);
+                g2d.setColor(new Color(255, 255, 255, 8));
+                g2d.fillOval(-60, -40, 180, 180);
                 g2d.dispose();
                 super.paintComponent(g);
             }
@@ -288,44 +294,57 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
     }
 
     private JPanel createMetricSummaryCard(String title, String hint, Color accent, JLabel valueLabel) {
-        JPanel card = new JPanel(new BorderLayout(0, 12));
-        card.setOpaque(true);
-        card.setBackground(SURFACE_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
-            BorderFactory.createEmptyBorder(16, 16, 16, 16)
-        ));
+        // Outer wrapper for shadow
+        JPanel wrapper = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g.create();
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                // Multi-layer diffuse shadow
+                for (int i = 6; i >= 1; i--) {
+                    g2d.setColor(new Color(99, 102, 241, 3 * i));
+                    g2d.fillRoundRect(i, i + 2, getWidth() - 2 * i, getHeight() - 2 * i, 16, 16);
+                }
+                // White card background
+                g2d.setColor(Color.WHITE);
+                g2d.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 14, 14);
+                // Left accent bar
+                g2d.setColor(accent);
+                g2d.fillRoundRect(0, 0, 5, getHeight() - 4, 4, 4);
+                // Subtle top border
+                g2d.setColor(new Color(226, 232, 240, 120));
+                g2d.drawRoundRect(0, 0, getWidth() - 2, getHeight() - 5, 14, 14);
+                g2d.dispose();
+            }
+        };
+        wrapper.setOpaque(false);
+        wrapper.setBorder(BorderFactory.createEmptyBorder(4, 4, 8, 4));
 
-        JPanel header = new JPanel(new BorderLayout(8, 0));
-        header.setOpaque(false);
+        JPanel card = new JPanel(new BorderLayout(0, 8));
+        card.setOpaque(false);
+        card.setBorder(BorderFactory.createEmptyBorder(14, 18, 14, 16));
 
-        JPanel dot = new JPanel();
-        dot.setBackground(accent);
-        dot.setPreferredSize(new Dimension(10, 10));
-        header.add(dot, BorderLayout.WEST);
-
-        JLabel titleLabel = new JLabel(title);
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        JLabel titleLabel = new JLabel(title.toUpperCase());
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 11));
         titleLabel.setForeground(TEXT_MUTED);
-        header.add(titleLabel, BorderLayout.CENTER);
-        card.add(header, BorderLayout.NORTH);
+        card.add(titleLabel, BorderLayout.NORTH);
 
-        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 26));
+        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
         card.add(valueLabel, BorderLayout.CENTER);
 
         JLabel hintLabel = new JLabel(hint);
         hintLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        hintLabel.setForeground(TEXT_MUTED);
+        hintLabel.setForeground(new Color(148, 163, 184));
         card.add(hintLabel, BorderLayout.SOUTH);
 
-        return card;
+        wrapper.add(card, BorderLayout.CENTER);
+        return wrapper;
     }
-    
     private JPanel createMainChartsPanel() {
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
         mainPanel.setBackground(APP_BG);
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30)); // Más padding general
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30)); // Más padding
         
         // ========== TÍTULO PRINCIPAL Y LINKS DE PERÍODO ==========
         JPanel titlePanel = new JPanel(new BorderLayout(15, 8));
@@ -341,13 +360,13 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
                               "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
         String currentMonth = monthNames[cal.get(Calendar.MONTH)];
         lblMainTitle = new JLabel("Resumen de Ventas de " + currentMonth);
-        lblMainTitle.setFont(new Font("Segoe UI", Font.BOLD, 30)); // Más grande
+        lblMainTitle.setFont(new Font("Segoe UI", Font.BOLD, 28));
         lblMainTitle.setForeground(TEXT_PRIMARY);
         lblMainTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 12, 0));
         titlePanel.add(lblMainTitle, BorderLayout.WEST);
         
-        // Links de período (estilo Eleventa - como links subrayados)
-        JPanel periodLinksPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 22, 0));
+        // Period selectors as pills
+        JPanel periodLinksPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         periodLinksPanel.setBackground(APP_BG);
         periodLinksPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
         
@@ -356,80 +375,86 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         
         for (int i = 0; i < 5; i++) {
             final int periodIndex = i;
-            periodLinks[i] = new JLabel("<html><u>" + periodLabels[i] + "</u></html>");
-            periodLinks[i].setFont(new Font("Segoe UI", Font.PLAIN, 14)); // Más grande
-            periodLinks[i].setForeground(new Color(59, 130, 246)); // Azul más vibrante
+            periodLinks[i] = new JLabel(periodLabels[i]) {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2d = (Graphics2D) g.create();
+                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    if (isOpaque()) {
+                        g2d.setColor(getBackground());
+                        g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
+                    }
+                    g2d.dispose();
+                    super.paintComponent(g);
+                }
+            };
+            periodLinks[i].setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            periodLinks[i].setForeground(TEXT_MUTED);
             periodLinks[i].setCursor(new Cursor(Cursor.HAND_CURSOR));
-            periodLinks[i].setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8)); // Padding para hover
+            periodLinks[i].setBorder(BorderFactory.createEmptyBorder(6, 16, 6, 16));
+            periodLinks[i].setHorizontalAlignment(SwingConstants.CENTER);
             
-            // Estilo para el link seleccionado (Mes Actual por defecto)
-            if (i == 1) { // Mes Actual
-                periodLinks[i].setForeground(new Color(37, 99, 235)); // Azul más oscuro y sólido
-                periodLinks[i].setFont(new Font("Segoe UI", Font.BOLD, 14));
+            // Pill seleccionado por defecto: Mes Actual
+            if (i == 1) {
+                periodLinks[i].setForeground(Color.WHITE);
+                periodLinks[i].setFont(new Font("Segoe UI", Font.BOLD, 13));
                 periodLinks[i].setOpaque(true);
-                periodLinks[i].setBackground(new Color(239, 246, 255)); // Fondo azul claro
+                periodLinks[i].setBackground(new Color(99, 102, 241));
             }
             
             periodLinks[i].addMouseListener(new java.awt.event.MouseAdapter() {
                 @Override
                 public void mouseClicked(java.awt.event.MouseEvent evt) {
                     currentPeriodIndex = periodIndex;
-                    // Resetear todos los links
+                    // Resetear todos los pills
                     for (int j = 0; j < periodLinks.length; j++) {
-                        periodLinks[j].setForeground(new Color(59, 130, 246));
-                        periodLinks[j].setFont(new Font("Segoe UI", Font.PLAIN, 14));
+                        periodLinks[j].setForeground(TEXT_MUTED);
+                        periodLinks[j].setFont(new Font("Segoe UI", Font.PLAIN, 13));
                         periodLinks[j].setOpaque(false);
-                        periodLinks[j].setBackground(new Color(249, 250, 251));
+                        periodLinks[j].setBackground(APP_BG);
                     }
-                    // Resaltar el link seleccionado
-                    periodLinks[periodIndex].setForeground(new Color(37, 99, 235));
-                    periodLinks[periodIndex].setFont(new Font("Segoe UI", Font.BOLD, 14));
+                    // Activar pill seleccionado
+                    periodLinks[periodIndex].setForeground(Color.WHITE);
+                    periodLinks[periodIndex].setFont(new Font("Segoe UI", Font.BOLD, 13));
                     periodLinks[periodIndex].setOpaque(true);
-                    periodLinks[periodIndex].setBackground(new Color(239, 246, 255));
+                    periodLinks[periodIndex].setBackground(new Color(99, 102, 241));
                     
-                    // Mapear índices de links a índices internos:
-                    // periodIndex 0 = "Semana Actual" -> internalIndex 1
-                    // periodIndex 1 = "Mes Actual" -> internalIndex 2
-                    // periodIndex 2 = "Mes Anterior" -> internalIndex 5 (nuevo)
-                    // periodIndex 3 = "Año actual" -> internalIndex 3
-                    // periodIndex 4 = "Periodo..." -> internalIndex 4
                     int internalIndex;
                     String periodLabel = "";
                     String[] monthNames = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
                                           "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
                     
                     switch (periodIndex) {
-                        case 0: // Semana Actual
+                        case 0:
                             internalIndex = 1;
                             periodLabel = "Semana Actual";
                             break;
-                        case 1: // Mes Actual
+                        case 1:
                             internalIndex = 2;
-                            Calendar cal = Calendar.getInstance();
-                            periodLabel = monthNames[cal.get(Calendar.MONTH)];
+                            Calendar cal2 = Calendar.getInstance();
+                            periodLabel = monthNames[cal2.get(Calendar.MONTH)];
                             break;
-                        case 2: // Mes Anterior
+                        case 2:
                             internalIndex = 5;
                             Calendar prevCal = Calendar.getInstance();
                             prevCal.add(Calendar.MONTH, -1);
                             periodLabel = monthNames[prevCal.get(Calendar.MONTH)];
                             break;
-                        case 3: // Año actual
+                        case 3:
                             internalIndex = 3;
                             periodLabel = String.valueOf(Calendar.getInstance().get(Calendar.YEAR));
                             break;
-                        case 4: // Periodo personalizado
+                        case 4:
                             showCustomPeriodDialog();
                             return;
                         default:
-                            internalIndex = 2; // Por defecto Mes Actual
+                            internalIndex = 2;
                             Calendar defaultCal = Calendar.getInstance();
                             periodLabel = monthNames[defaultCal.get(Calendar.MONTH)];
                             break;
                     }
                     
                     if (periodIndex != 4) {
-                        // Actualizar título dinámicamente
                         if (periodIndex == 1 || periodIndex == 2) {
                             lblMainTitle.setText("Resumen de Ventas de " + periodLabel);
                         } else if (periodIndex == 3) {
@@ -437,24 +462,25 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
                         } else {
                             lblMainTitle.setText("Resumen de Ventas - " + periodLabel);
                         }
-                        
                         loadDataForPeriod(internalIndex);
                     }
                 }
                 @Override
                 public void mouseEntered(java.awt.event.MouseEvent evt) {
-                    if (periodIndex != currentPeriodIndex) { // Solo cambiar si no está seleccionado
-                        periodLinks[periodIndex].setForeground(new Color(37, 99, 235));
+                    if (periodIndex != currentPeriodIndex) {
                         periodLinks[periodIndex].setOpaque(true);
-                        periodLinks[periodIndex].setBackground(new Color(239, 246, 255));
+                        periodLinks[periodIndex].setBackground(new Color(238, 242, 255));
+                        periodLinks[periodIndex].setForeground(new Color(99, 102, 241));
+                        periodLinks[periodIndex].repaint();
                     }
                 }
                 @Override
                 public void mouseExited(java.awt.event.MouseEvent evt) {
-                    if (periodIndex != currentPeriodIndex) { // No cambiar si es el seleccionado
-                        periodLinks[periodIndex].setForeground(new Color(59, 130, 246));
+                    if (periodIndex != currentPeriodIndex) {
                         periodLinks[periodIndex].setOpaque(false);
-                        periodLinks[periodIndex].setBackground(new Color(249, 250, 251));
+                        periodLinks[periodIndex].setBackground(APP_BG);
+                        periodLinks[periodIndex].setForeground(TEXT_MUTED);
+                        periodLinks[periodIndex].repaint();
                     }
                 }
             });
@@ -464,17 +490,14 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         
         titlePanel.add(periodLinksPanel, BorderLayout.CENTER);
         mainPanel.add(titlePanel);
+        mainPanel.add(Box.createVerticalStrut(20));
         
-        // ========== GRÁFICO PRINCIPAL: VENTAS Y GANANCIAS (más pequeño, a la izquierda) ==========
-        JPanel salesProfitContainer = new JPanel(new BorderLayout(0, 18));
-        salesProfitContainer.setBackground(APP_BG);
-        salesProfitContainer.setBorder(BorderFactory.createEmptyBorder(0, 0, 30, 0));
+        // ========== FILA 1: KPI CARDS ==========
+        JPanel metricsPanel = createSalesMetricsPanelEleventa();
+        mainPanel.add(metricsPanel);
+        mainPanel.add(Box.createVerticalStrut(20));
         
-        // Panel izquierdo: Gráfico más pequeño
-        JPanel chartLeftPanel = new JPanel(new BorderLayout());
-        chartLeftPanel.setBackground(APP_BG);
-        
-        // Gráfico principal de Ventas y Ganancias (más pequeño y compacto)
+        // ========== FILA 2: GRÁFICO PRINCIPAL DE VENTAS Y GANANCIAS ==========
         chartPanelSalesProfit = new ChartPanel(createEmptySalesProfitBarChart());
         chartPanelSalesProfit.setPreferredSize(new Dimension(960, 300));
         chartPanelSalesProfit.setBackground(Color.WHITE);
@@ -482,405 +505,124 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         chartPanelSalesProfit.setRangeZoomable(false);
         chartPanelSalesProfit.setMouseWheelEnabled(false);
         
-        // Panel con sombra sutil usando border elevado
-        JPanel salesProfitWrapper = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2d = (Graphics2D) g.create();
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                // Sombra sutil
-                for (int i = 0; i < 5; i++) {
-                    int alpha = 5 - i;
-                    g2d.setColor(new Color(0, 0, 0, alpha));
-                    g2d.fillRoundRect(5 + i, 5 + i, getWidth() - 10 - 2*i, getHeight() - 10 - 2*i, 8, 8);
-                }
-                
-                // Panel blanco encima
-                g2d.setColor(Color.WHITE);
-                g2d.fillRoundRect(5, 5, getWidth() - 10, getHeight() - 10, 8, 8);
-                g2d.dispose();
-            }
-        };
-        salesProfitWrapper.setOpaque(false);
-        salesProfitWrapper.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        JPanel salesProfitCard = createPremiumCard("Rendimiento de Ventas y Ganancias", chartPanelSalesProfit);
+        mainPanel.add(salesProfitCard);
+        mainPanel.add(Box.createVerticalStrut(20));
         
-        JPanel innerPanel = new JPanel(new BorderLayout());
-        innerPanel.setOpaque(false);
-        innerPanel.setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));
-        innerPanel.add(chartPanelSalesProfit, BorderLayout.CENTER);
-        salesProfitWrapper.add(innerPanel, BorderLayout.CENTER);
-        
-        chartLeftPanel.add(salesProfitWrapper, BorderLayout.CENTER);
-        
-        JPanel metricsPanel = createSalesMetricsPanelEleventa();
-        
-        salesProfitContainer.add(metricsPanel, BorderLayout.NORTH);
-        salesProfitContainer.add(chartLeftPanel, BorderLayout.CENTER);
-        
-        mainPanel.add(salesProfitContainer);
-        
-        // ========== GRÁFICO DE BARRAS: VENTAS POR FORMA DE PAGO (más pequeño, a la izquierda) ==========
-        JPanel paymentChartContainer = new JPanel(new GridLayout(1, 2, 18, 0));
+        // ========== FILA 3: FORMA DE PAGO & VENTAS POR HORA ==========
+        JPanel paymentChartContainer = new JPanel(new GridLayout(1, 2, 20, 0));
         paymentChartContainer.setBackground(APP_BG);
-        paymentChartContainer.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
         
-        // Panel izquierdo: Gráfico de barras más pequeño
-        JPanel paymentLeftPanel = new JPanel(new BorderLayout());
-        paymentLeftPanel.setBackground(Color.WHITE);
-        
-        // Título del gráfico
-        JLabel paymentChartTitle = new JLabel("Ventas por forma de pago");
-        paymentChartTitle.setFont(new Font("Segoe UI", Font.BOLD, 19)); // Más grande
-        paymentChartTitle.setForeground(new Color(17, 24, 39)); // Gris muy oscuro
-        paymentChartTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
-        paymentLeftPanel.add(paymentChartTitle, BorderLayout.NORTH);
-        
-        // Gráfico de barras más pequeño
         chartPanelPayment = new ChartPanel(createEmptyBarChart());
-        chartPanelPayment.setPreferredSize(new Dimension(450, 200)); // Más pequeño como Eleventa
+        chartPanelPayment.setPreferredSize(new Dimension(450, 240));
         chartPanelPayment.setBackground(Color.WHITE);
         chartPanelPayment.setDomainZoomable(false);
         chartPanelPayment.setRangeZoomable(false);
         chartPanelPayment.setMouseWheelEnabled(false);
         
-        // Panel con sombra sutil
-        JPanel barChartWrapper = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2d = (Graphics2D) g.create();
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                // Sombra sutil
-                for (int i = 0; i < 5; i++) {
-                    int alpha = 5 - i;
-                    g2d.setColor(new Color(0, 0, 0, alpha));
-                    g2d.fillRoundRect(5 + i, 5 + i, getWidth() - 10 - 2*i, getHeight() - 10 - 2*i, 8, 8);
-                }
-                
-                // Panel blanco encima
-                g2d.setColor(Color.WHITE);
-                g2d.fillRoundRect(5, 5, getWidth() - 10, getHeight() - 10, 8, 8);
-                g2d.dispose();
-            }
-        };
-        barChartWrapper.setOpaque(false);
-        barChartWrapper.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        
-        JPanel innerBarPanel = new JPanel(new BorderLayout());
-        innerBarPanel.setOpaque(false);
-        innerBarPanel.setBorder(BorderFactory.createEmptyBorder(18, 18, 18, 18));
-        innerBarPanel.add(chartPanelPayment, BorderLayout.CENTER);
-        barChartWrapper.add(innerBarPanel, BorderLayout.CENTER);
-        
-        paymentLeftPanel.add(barChartWrapper, BorderLayout.CENTER);
-        
-        // Solo el gráfico de barras a la izquierda (sin gráfico de dona aquí)
-        paymentLeftPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
-            BorderFactory.createEmptyBorder(14, 14, 14, 14)
-        ));
-        paymentChartContainer.add(paymentLeftPanel);
-        
-        // Panel derecho: Gráfico de ventas por hora
-        JPanel hourlyRightPanel = new JPanel(new BorderLayout());
-        hourlyRightPanel.setBackground(Color.WHITE);
-        
-        JLabel hourlyChartTitle = new JLabel("Ventas por hora (Secuencia)");
-        hourlyChartTitle.setFont(new Font("Segoe UI", Font.BOLD, 19));
-        hourlyChartTitle.setForeground(new Color(17, 24, 39));
-        hourlyChartTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
-        hourlyRightPanel.add(hourlyChartTitle, BorderLayout.NORTH);
+        JPanel paymentCard = createPremiumCard("Ventas por Forma de Pago", chartPanelPayment);
+        paymentChartContainer.add(paymentCard);
         
         chartPanelHourly = new ChartPanel(createEmptyHourlyChart());
-        chartPanelHourly.setPreferredSize(new Dimension(500, 200));
+        chartPanelHourly.setPreferredSize(new Dimension(500, 240));
         chartPanelHourly.setBackground(Color.WHITE);
         chartPanelHourly.setDomainZoomable(false);
         chartPanelHourly.setRangeZoomable(false);
         
-        JPanel hourlyChartWrapper = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2d = (Graphics2D) g.create();
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                for (int i = 0; i < 5; i++) {
-                    int alpha = 5 - i;
-                    g2d.setColor(new Color(0, 0, 0, alpha));
-                    g2d.fillRoundRect(5 + i, 5 + i, getWidth() - 10 - 2*i, getHeight() - 10 - 2*i, 8, 8);
-                }
-                g2d.setColor(Color.WHITE);
-                g2d.fillRoundRect(5, 5, getWidth() - 10, getHeight() - 10, 8, 8);
-                g2d.dispose();
-            }
-        };
-        hourlyChartWrapper.setOpaque(false);
-        hourlyChartWrapper.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        
-        JPanel innerHourlyPanel = new JPanel(new BorderLayout());
-        innerHourlyPanel.setOpaque(false);
-        innerHourlyPanel.setBorder(BorderFactory.createEmptyBorder(18, 18, 18, 18));
-        innerHourlyPanel.add(chartPanelHourly, BorderLayout.CENTER);
-        hourlyChartWrapper.add(innerHourlyPanel, BorderLayout.CENTER);
-        
-        hourlyRightPanel.add(hourlyChartWrapper, BorderLayout.CENTER);
-        hourlyRightPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
-            BorderFactory.createEmptyBorder(14, 14, 14, 14)
-        ));
-        paymentChartContainer.add(hourlyRightPanel);
+        JPanel hourlyCard = createPremiumCard("Ventas por Hora (Tendencia)", chartPanelHourly);
+        paymentChartContainer.add(hourlyCard);
         
         mainPanel.add(paymentChartContainer);
+        mainPanel.add(Box.createVerticalStrut(20));
         
-        // ========== SECCIÓN INFERIOR: DOS COLUMNAS ==========
-        JPanel bottomSectionPanel = new JPanel(new GridLayout(1, 2, 18, 0));
+        // ========== FILA 4: VENTAS POR MES & VENTAS POR DEPARTAMENTO (TABLAS Y DONAS) ==========
+        JPanel bottomSectionPanel = new JPanel(new GridLayout(1, 2, 20, 0));
         bottomSectionPanel.setBackground(APP_BG);
-        bottomSectionPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
         
-        // ========== COLUMNA IZQUIERDA: VENTAS POR MES ==========
-        JPanel leftColumnPanel = new JPanel(new BorderLayout());
-        leftColumnPanel.setBackground(Color.WHITE);
-        
-        JLabel monthTableTitle = new JLabel("Ventas por mes");
-        monthTableTitle.setFont(new Font("Segoe UI", Font.BOLD, 19)); // Más grande
-        monthTableTitle.setForeground(new Color(17, 24, 39)); // Gris muy oscuro
-        monthTableTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
-        leftColumnPanel.add(monthTableTitle, BorderLayout.NORTH);
-        
-        // Panel que contiene tabla y gráfico de dona lado a lado
+        // Columna Izquierda: Ventas por Mes
         JPanel monthContentPanel = new JPanel(new BorderLayout(20, 0));
-        monthContentPanel.setBackground(Color.WHITE);
+        monthContentPanel.setOpaque(false);
         
-        // Tabla de ventas por mes a la izquierda (más grande)
         tableSalesByMonth = createSalesByMonthTable();
         JScrollPane monthScrollPane = new JScrollPane(tableSalesByMonth);
-        monthScrollPane.setBorder(BorderFactory.createLineBorder(new Color(229, 231, 235), 1));
-        monthScrollPane.setPreferredSize(new Dimension(350, 300)); // Aún más grande
+        monthScrollPane.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240), 1));
+        monthScrollPane.setPreferredSize(new Dimension(300, 240));
         monthScrollPane.getViewport().setBackground(Color.WHITE);
+        monthContentPanel.add(monthScrollPane, BorderLayout.WEST);
         
-        // Agregar sombra sutil a la tabla
-        JPanel monthTableWrapper = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2d = (Graphics2D) g.create();
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                // Sombra sutil
-                for (int i = 0; i < 5; i++) {
-                    int alpha = 5 - i;
-                    g2d.setColor(new Color(0, 0, 0, alpha));
-                    g2d.fillRoundRect(5 + i, 5 + i, getWidth() - 10 - 2*i, getHeight() - 10 - 2*i, 8, 8);
-                }
-                
-                // Panel blanco encima
-                g2d.setColor(Color.WHITE);
-                g2d.fillRoundRect(5, 5, getWidth() - 10, getHeight() - 10, 8, 8);
-                g2d.dispose();
-            }
-        };
-        monthTableWrapper.setOpaque(false);
-        monthTableWrapper.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        monthTableWrapper.add(monthScrollPane, BorderLayout.CENTER);
-        
-        monthContentPanel.add(monthTableWrapper, BorderLayout.WEST);
-        
-        // Gráfico de dona para meses a la derecha (con leyenda)
         chartPanelMonthDonut = new ChartPanel(createEmptyPieChart());
-        chartPanelMonthDonut.setPreferredSize(new Dimension(280, 250)); // Más grande para incluir leyenda
-        chartPanelMonthDonut.setMinimumSize(new Dimension(250, 250));
-        chartPanelMonthDonut.setMaximumSize(new Dimension(320, 280));
+        chartPanelMonthDonut.setPreferredSize(new Dimension(240, 240));
         chartPanelMonthDonut.setBackground(Color.WHITE);
         chartPanelMonthDonut.setDomainZoomable(false);
         chartPanelMonthDonut.setRangeZoomable(false);
         chartPanelMonthDonut.setMouseWheelEnabled(false);
-        chartPanelMonthDonut.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        monthContentPanel.add(chartPanelMonthDonut, BorderLayout.CENTER);
         
-        JPanel monthChartWrapper = new JPanel(new BorderLayout());
-        monthChartWrapper.setOpaque(false);
-        monthChartWrapper.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
-        monthChartWrapper.add(chartPanelMonthDonut, BorderLayout.CENTER);
-        monthContentPanel.add(monthChartWrapper, BorderLayout.CENTER);
+        JPanel monthCard = createPremiumCard("Ventas por Mes", monthContentPanel);
+        bottomSectionPanel.add(monthCard);
         
-        leftColumnPanel.add(monthContentPanel, BorderLayout.CENTER);
-        
-        // ========== COLUMNA DERECHA: VENTAS POR DEPARTAMENTO ==========
-        JPanel rightColumnPanel = new JPanel(new BorderLayout());
-        rightColumnPanel.setBackground(Color.WHITE);
-        
-        JLabel deptTableTitle = new JLabel("Ventas por Departamento");
-        deptTableTitle.setFont(new Font("Segoe UI", Font.BOLD, 19)); // Más grande
-        deptTableTitle.setForeground(new Color(17, 24, 39)); // Gris muy oscuro
-        deptTableTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
-        rightColumnPanel.add(deptTableTitle, BorderLayout.NORTH);
-        
-        // Panel que contiene tabla y gráfico de dona lado a lado
+        // Columna Derecha: Ventas por Departamento
         JPanel deptContentPanel = new JPanel(new BorderLayout(20, 0));
-        deptContentPanel.setBackground(Color.WHITE);
+        deptContentPanel.setOpaque(false);
         
-        // Tabla de ventas por departamento a la izquierda (más grande)
         tableDepartment = createDepartmentTable();
         JScrollPane deptScrollPane = new JScrollPane(tableDepartment);
-        deptScrollPane.setBorder(BorderFactory.createLineBorder(new Color(229, 231, 235), 1));
-        deptScrollPane.setPreferredSize(new Dimension(350, 300)); // Aún más grande
+        deptScrollPane.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240), 1));
+        deptScrollPane.setPreferredSize(new Dimension(300, 240));
         deptScrollPane.getViewport().setBackground(Color.WHITE);
+        deptContentPanel.add(deptScrollPane, BorderLayout.WEST);
         
-        // Agregar sombra sutil a la tabla
-        JPanel deptTableWrapper = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2d = (Graphics2D) g.create();
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                // Sombra sutil
-                for (int i = 0; i < 5; i++) {
-                    int alpha = 5 - i;
-                    g2d.setColor(new Color(0, 0, 0, alpha));
-                    g2d.fillRoundRect(5 + i, 5 + i, getWidth() - 10 - 2*i, getHeight() - 10 - 2*i, 8, 8);
-                }
-                
-                // Panel blanco encima
-                g2d.setColor(Color.WHITE);
-                g2d.fillRoundRect(5, 5, getWidth() - 10, getHeight() - 10, 8, 8);
-                g2d.dispose();
-            }
-        };
-        deptTableWrapper.setOpaque(false);
-        deptTableWrapper.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        deptTableWrapper.add(deptScrollPane, BorderLayout.CENTER);
-        
-        deptContentPanel.add(deptTableWrapper, BorderLayout.WEST);
-        
-        // Gráfico de dona para ganancia por departamento a la derecha (con leyenda para ver nombres)
         chartPanelDepartment = new ChartPanel(createEmptyPieChart());
-        chartPanelDepartment.setPreferredSize(new Dimension(280, 250)); // Más grande para incluir leyenda
-        chartPanelDepartment.setMinimumSize(new Dimension(250, 250));
-        chartPanelDepartment.setMaximumSize(new Dimension(320, 280));
+        chartPanelDepartment.setPreferredSize(new Dimension(240, 240));
         chartPanelDepartment.setBackground(Color.WHITE);
         chartPanelDepartment.setDomainZoomable(false);
         chartPanelDepartment.setRangeZoomable(false);
         chartPanelDepartment.setMouseWheelEnabled(false);
-        chartPanelDepartment.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        deptContentPanel.add(chartPanelDepartment, BorderLayout.CENTER);
         
-        JPanel deptChartWrapper = new JPanel(new BorderLayout());
-        deptChartWrapper.setOpaque(false);
-        deptChartWrapper.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
-        deptChartWrapper.add(chartPanelDepartment, BorderLayout.CENTER);
-        deptContentPanel.add(deptChartWrapper, BorderLayout.CENTER);
-        
-        rightColumnPanel.add(deptContentPanel, BorderLayout.CENTER);
-        
-        // Agregar las dos columnas lado a lado
-        leftColumnPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
-            BorderFactory.createEmptyBorder(14, 14, 14, 14)
-        ));
-        rightColumnPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
-            BorderFactory.createEmptyBorder(14, 14, 14, 14)
-        ));
-        bottomSectionPanel.add(leftColumnPanel);
-        bottomSectionPanel.add(rightColumnPanel);
+        JPanel deptCard = createPremiumCard("Ventas por Departamento", deptContentPanel);
+        bottomSectionPanel.add(deptCard);
         
         mainPanel.add(bottomSectionPanel);
+        mainPanel.add(Box.createVerticalStrut(20));
         
-        // ========== GANANCIA POR DEPARTAMENTO (Lista simple) ==========
-        JPanel departmentProfitPanel = new JPanel(new BorderLayout());
-        departmentProfitPanel.setBackground(Color.WHITE);
-        departmentProfitPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
+        // ========== FILA 5: GANANCIA POR DEPARTAMENTO & IMPUESTOS ==========
+        JPanel bottomInsightsPanel = new JPanel(new GridLayout(1, 2, 20, 0));
+        bottomInsightsPanel.setBackground(APP_BG);
         
-        JLabel deptProfitTitle = new JLabel("Ganancia por Departamento");
-        deptProfitTitle.setFont(new Font("Segoe UI", Font.BOLD, 19)); // Más grande
-        deptProfitTitle.setForeground(new Color(17, 24, 39)); // Gris muy oscuro
-        deptProfitTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
-        departmentProfitPanel.add(deptProfitTitle, BorderLayout.NORTH);
-        
-        // Panel para la lista de departamentos (simple, sin tabla) con sombra
-        JPanel deptListWrapper = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2d = (Graphics2D) g.create();
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                // Sombra sutil
-                for (int i = 0; i < 5; i++) {
-                    int alpha = 5 - i;
-                    g2d.setColor(new Color(0, 0, 0, alpha));
-                    g2d.fillRoundRect(5 + i, 5 + i, getWidth() - 10 - 2*i, getHeight() - 10 - 2*i, 8, 8);
-                }
-                
-                // Panel blanco encima
-                g2d.setColor(Color.WHITE);
-                g2d.fillRoundRect(5, 5, getWidth() - 10, getHeight() - 10, 8, 8);
-                g2d.dispose();
-            }
-        };
-        deptListWrapper.setOpaque(false);
-        deptListWrapper.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        
+        // Ganancia por Departamento
         deptListPanel = new JPanel();
         deptListPanel.setLayout(new BoxLayout(deptListPanel, BoxLayout.Y_AXIS));
         deptListPanel.setOpaque(false);
-        deptListPanel.setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25)); // Más padding
         
-        deptListWrapper.add(deptListPanel, BorderLayout.CENTER);
-        
-        // Crear scroll pane para la lista de departamentos envuelta en el wrapper con sombra
-        JScrollPane deptListScroll = new JScrollPane(deptListWrapper);
+        JScrollPane deptListScroll = new JScrollPane(deptListPanel);
         deptListScroll.setBorder(null);
         deptListScroll.getViewport().setOpaque(false);
         deptListScroll.setOpaque(false);
-        departmentProfitPanel.add(deptListScroll, BorderLayout.CENTER);
+        deptListScroll.setPreferredSize(new Dimension(0, 240));
         
-        // ========== IMPUESTOS ==========
-        JPanel taxesPanel = new JPanel(new BorderLayout());
-        taxesPanel.setBackground(Color.WHITE);
+        JPanel deptProfitCard = createPremiumCard("Ganancia por Departamento", deptListScroll);
+        bottomInsightsPanel.add(deptProfitCard);
         
-        JLabel taxesTitle = new JLabel("Impuestos");
-        taxesTitle.setFont(new Font("Segoe UI", Font.BOLD, 19)); // Más grande
-        taxesTitle.setForeground(new Color(17, 24, 39)); // Gris muy oscuro
-        taxesTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
-        taxesPanel.add(taxesTitle, BorderLayout.NORTH);
-        
-        // Panel para mostrar impuestos (por implementar)
+        // Impuestos
         taxesBreakdownPanel = new JPanel();
         taxesBreakdownPanel.setLayout(new BoxLayout(taxesBreakdownPanel, BoxLayout.Y_AXIS));
-        taxesBreakdownPanel.setBackground(Color.WHITE);
-        taxesBreakdownPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(229, 231, 235), 1), // Borde más suave
-            BorderFactory.createEmptyBorder(20, 20, 20, 20) // Más padding
-        ));
-        JLabel taxesHintLabel = new JLabel("El detalle fiscal del periodo aparecera aqui.");
-        taxesHintLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        taxesHintLabel.setForeground(TEXT_MUTED);
-        taxesBreakdownPanel.add(taxesHintLabel);
-        taxesPanel.add(taxesBreakdownPanel, BorderLayout.CENTER);
+        taxesBreakdownPanel.setOpaque(false);
         
-        JPanel bottomInsightsPanel = new JPanel(new GridLayout(1, 2, 18, 0));
-        bottomInsightsPanel.setOpaque(false);
-        departmentProfitPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
-            BorderFactory.createEmptyBorder(14, 14, 14, 14)
-        ));
-        taxesPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
-            BorderFactory.createEmptyBorder(14, 14, 14, 14)
-        ));
-        bottomInsightsPanel.add(departmentProfitPanel);
-        bottomInsightsPanel.add(taxesPanel);
+        JScrollPane taxesScroll = new JScrollPane(taxesBreakdownPanel);
+        taxesScroll.setBorder(null);
+        taxesScroll.getViewport().setOpaque(false);
+        taxesScroll.setOpaque(false);
+        taxesScroll.setPreferredSize(new Dimension(0, 240));
+        
+        JPanel taxesCard = createPremiumCard("Impuestos y Desglose Fiscal", taxesScroll);
+        bottomInsightsPanel.add(taxesCard);
         
         mainPanel.add(bottomInsightsPanel);
-        
-        // Panel para mantener el espaciado
         mainPanel.add(Box.createVerticalGlue());
-        
         return mainPanel;
     }
-    
+
     private JPanel createChartPanel(String title, ChartPanel chartPanel) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
@@ -897,6 +639,83 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         panel.add(chartPanel, BorderLayout.CENTER);
         
         return panel;
+    }
+
+    private JPanel createPremiumCard(String title, JComponent content) {
+        JPanel wrapper = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g.create();
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                // Multi-layer diffuse shadow
+                for (int i = 6; i >= 1; i--) {
+                    g2d.setColor(new Color(99, 102, 241, 2 * i));
+                    g2d.fillRoundRect(i, i + 2, getWidth() - 2 * i, getHeight() - 2 * i, 16, 16);
+                }
+                // White card background
+                g2d.setColor(Color.WHITE);
+                g2d.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 4, 14, 14);
+                // Subtle border
+                g2d.setColor(new Color(226, 232, 240, 120));
+                g2d.drawRoundRect(0, 0, getWidth() - 2, getHeight() - 5, 14, 14);
+                g2d.dispose();
+            }
+        };
+        wrapper.setOpaque(false);
+        wrapper.setBorder(BorderFactory.createEmptyBorder(4, 4, 8, 4));
+
+        JPanel card = new JPanel(new BorderLayout(0, 12));
+        card.setOpaque(false);
+        card.setBorder(BorderFactory.createEmptyBorder(18, 22, 18, 22));
+
+        if (title != null && !title.isEmpty()) {
+            JLabel titleLabel = new JLabel(title);
+            titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+            titleLabel.setForeground(TEXT_PRIMARY);
+            titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+            card.add(titleLabel, BorderLayout.NORTH);
+        }
+
+        card.add(content, BorderLayout.CENTER);
+        wrapper.add(card, BorderLayout.CENTER);
+        return wrapper;
+    }
+
+    private void styleTable(JTable table) {
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        table.setRowHeight(38);
+        table.setShowGrid(false);
+        table.setIntercellSpacing(new Dimension(0, 0));
+        
+        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
+        table.getTableHeader().setBackground(new Color(241, 245, 249));
+        table.getTableHeader().setForeground(TEXT_PRIMARY);
+        table.getTableHeader().setReorderingAllowed(false);
+        table.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)));
+        
+        table.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable t, Object val, boolean isSel, boolean hasFocus, int r, int c) {
+                Component comp = super.getTableCellRendererComponent(t, val, isSel, hasFocus, r, c);
+                if (!isSel) {
+                    if (r % 2 == 0) {
+                        comp.setBackground(Color.WHITE);
+                    } else {
+                        comp.setBackground(new Color(248, 250, 252));
+                    }
+                } else {
+                    comp.setBackground(new Color(99, 102, 241, 40));
+                }
+                comp.setForeground(TEXT_PRIMARY);
+                
+                if (comp instanceof JLabel) {
+                    JLabel lbl = (JLabel) comp;
+                    lbl.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
+                }
+                return comp;
+            }
+        });
     }
     
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -934,19 +753,14 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
     
     private JFreeChart createEmptySalesProfitBarChart() {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-        // Agregar valores temporales para que el gráfico se vea
         dataset.addValue(0.0, "Ventas", "Esperando datos...");
         dataset.addValue(0.0, "Ganancia", "Esperando datos...");
-        JFreeChart chart = ChartFactory.createBarChart(null, "", "Ventas", 
+        JFreeChart chart = ChartFactory.createBarChart(null, "", null, 
             dataset, PlotOrientation.VERTICAL, true, true, false);
-        chart.setBackgroundPaint(Color.WHITE);
+        chart.setBackgroundPaint(new Color(0, 0, 0, 0));
         CategoryPlot plot = (CategoryPlot) chart.getPlot();
-        plot.setBackgroundPaint(Color.WHITE);
+        plot.setBackgroundPaint(new Color(248, 250, 252));
         plot.setOutlineVisible(false);
-        plot.getDomainAxis().setLabelFont(new Font("Segoe UI", Font.PLAIN, 11));
-        plot.getRangeAxis().setLabelFont(new Font("Segoe UI", Font.PLAIN, 11));
-        plot.getDomainAxis().setTickLabelFont(new Font("Segoe UI", Font.PLAIN, 10));
-        plot.getRangeAxis().setTickLabelFont(new Font("Segoe UI", Font.PLAIN, 10));
         return chart;
     }
     
@@ -955,9 +769,9 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         dataset.addValue(0.0, "Ventas", "00:00");
         JFreeChart chart = ChartFactory.createLineChart(null, "Hora", "Ventas", 
             dataset, PlotOrientation.VERTICAL, false, true, false);
-        chart.setBackgroundPaint(Color.WHITE);
+        chart.setBackgroundPaint(new Color(0, 0, 0, 0));
         CategoryPlot plot = (CategoryPlot) chart.getPlot();
-        plot.setBackgroundPaint(Color.WHITE);
+        plot.setBackgroundPaint(new Color(248, 250, 252));
         plot.setOutlineVisible(false);
         return chart;
     }
@@ -969,48 +783,48 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         }
         
         try {
-            // Cargar datos agrupados por mes
             List<MonthData> monthData = loadSalesProfitByMonth();
-            
             DefaultCategoryDataset dataset = new DefaultCategoryDataset();
             
-            // Si hay datos por mes, mostrarlos; si no, mostrar totales
             if (monthData != null && !monthData.isEmpty()) {
                 for (MonthData month : monthData) {
                     dataset.addValue(month.sales, "Ventas", month.monthName);
                     dataset.addValue(month.profit, "Ganancia", month.monthName);
                 }
             } else {
-                // Fallback: mostrar totales
                 dataset.addValue(totalSales, "Ventas", "Total");
                 dataset.addValue(totalProfit, "Ganancia", "Total");
             }
             
-            JFreeChart chart = ChartFactory.createBarChart(null, "", "Ventas", 
+            JFreeChart chart = ChartFactory.createBarChart(null, "", null, 
                 dataset, PlotOrientation.VERTICAL, true, true, false);
-            chart.setBackgroundPaint(SURFACE_BG);
+            chart.setBackgroundPaint(new Color(0, 0, 0, 0));
             
             CategoryPlot plot = (CategoryPlot) chart.getPlot();
-            plot.setBackgroundPaint(Color.WHITE);
+            plot.setBackgroundPaint(new Color(248, 250, 252));
             plot.setOutlineVisible(false);
-            plot.setRangeGridlinePaint(new Color(229, 231, 235)); // Grid más suave
+            plot.setRangeGridlinePaint(new Color(226, 232, 240));
             
-            // Tamaño de fuente mejorado
             plot.getDomainAxis().setLabelFont(new Font("Segoe UI", Font.PLAIN, 12));
             plot.getRangeAxis().setLabelFont(new Font("Segoe UI", Font.PLAIN, 12));
             plot.getDomainAxis().setTickLabelFont(new Font("Segoe UI", Font.PLAIN, 11));
             plot.getRangeAxis().setTickLabelFont(new Font("Segoe UI", Font.PLAIN, 11));
+            plot.getDomainAxis().setTickLabelPaint(TEXT_MUTED);
+            plot.getRangeAxis().setTickLabelPaint(TEXT_MUTED);
             
-            // Configurar la leyenda
             LegendTitle legend = chart.getLegend();
             if (legend != null) {
                 legend.setItemFont(new Font("Segoe UI", Font.PLAIN, 12));
-                legend.setBackgroundPaint(Color.WHITE);
+                legend.setBackgroundPaint(new Color(0, 0, 0, 0));
+                legend.setFrame(org.jfree.chart.block.BlockBorder.NONE);
             }
             
-            // Colores similares a la imagen: Azul más oscuro para Ventas, Azul claro para Ganancia
-            plot.getRenderer().setSeriesPaint(0, new Color(70, 130, 180));   // Azul para Ventas
-            plot.getRenderer().setSeriesPaint(1, new Color(173, 216, 230));  // Azul claro para Ganancia
+            BarRenderer renderer = (BarRenderer) plot.getRenderer();
+            renderer.setSeriesPaint(0, new Color(99, 102, 241));
+            renderer.setSeriesPaint(1, new Color(16, 185, 129));
+            renderer.setShadowVisible(false);
+            renderer.setMaximumBarWidth(0.12);
+            renderer.setItemMargin(0.04);
             
             chartPanelSalesProfit.setChart(chart);
             chartPanelSalesProfit.repaint();
@@ -1020,7 +834,6 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         }
     }
     
-    // Clase para almacenar datos por mes
     private static class MonthData {
         public String monthName;
         public double sales;
@@ -1098,11 +911,9 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         } catch (SQLException e) {
             LOGGER.log(Level.WARNING, "Error cargando datos por mes", e);
         }
-        
         return monthData;
     }
-    
-    @SuppressWarnings({"unchecked", "rawtypes"})
+
     private void updatePieChart(List<DepartmentData> departments) {
         if (chartPanelDepartment == null) {
             LOGGER.warning("chartPanelDepartment es null, no se puede actualizar el gráfico");
@@ -1111,28 +922,24 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         
         if (departments == null || departments.isEmpty()) {
             LOGGER.info("No hay datos de departamentos para mostrar");
-            // Ocultar el gráfico completamente cuando no hay datos
             chartPanelDepartment.setVisible(false);
             return;
         }
         
         DefaultPieDataset dataset = new DefaultPieDataset();
-        
-        // Ordenar por ganancia descendente
         departments.sort((a, b) -> Double.compare(b.profit, a.profit));
         
-        // Agregar los primeros 6 departamentos más grandes
         int count = 0;
         double othersProfit = 0.0;
         Color[] colors = {
-            new Color(70, 130, 180),   // Azul acero
-            new Color(60, 179, 113),   // Verde mar
-            new Color(255, 140, 0),    // Naranja oscuro
-            new Color(220, 20, 60),    // Rojo carmesí (pero solo si hay múltiples segmentos)
-            new Color(138, 43, 226),   // Violeta azul
-            new Color(255, 215, 0),    // Oro
-            new Color(102, 204, 204),  // Turquesa claro
-            new Color(51, 153, 204)    // Azul medio
+            new Color(99, 102, 241),   // Indigo
+            new Color(139, 92, 246),  // Violet
+            new Color(6, 182, 212),   // Cyan
+            new Color(16, 185, 129),  // Emerald
+            new Color(245, 158, 11),   // Amber
+            new Color(244, 63, 94),   // Rose
+            new Color(79, 70, 229),   // Dark Indigo
+            new Color(124, 58, 237)   // Dark Violet
         };
         
         for (DepartmentData dept : departments) {
@@ -1151,42 +958,36 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         
         if (dataset.getItemCount() == 0) {
             LOGGER.info("No hay datos con ganancia positiva para mostrar");
-            // Ocultar el gráfico completamente cuando no hay datos
             chartPanelDepartment.setVisible(false);
             return;
         }
         
-        // Mostrar el gráfico cuando hay datos
         chartPanelDepartment.setVisible(true);
-        
-        // Crear gráfico CON leyenda para mostrar los nombres de los departamentos
         JFreeChart chart = ChartFactory.createRingChart(null, dataset, true, true, false);
-        chart.setBackgroundPaint(Color.WHITE);
+        chart.setBackgroundPaint(new Color(0, 0, 0, 0));
         
         RingPlot plot = (RingPlot) chart.getPlot();
-        plot.setBackgroundPaint(Color.WHITE);
+        plot.setBackgroundPaint(new Color(0, 0, 0, 0));
         plot.setOutlineVisible(false);
-        plot.setLabelGenerator(null); // Sin etiquetas en el gráfico mismo
+        plot.setLabelGenerator(null);
         plot.setShadowPaint(new Color(0, 0, 0, 0));
         plot.setInteriorGap(0.04);
         plot.setSectionDepth(0.38);
         plot.setSeparatorPaint(Color.WHITE);
         plot.setSeparatorStroke(new BasicStroke(2.0f));
         
-        // Configurar la leyenda para que sea legible
         LegendTitle legend = chart.getLegend();
         if (legend != null) {
             legend.setItemFont(new Font("Segoe UI", Font.PLAIN, 11));
-            legend.setBackgroundPaint(SURFACE_BG);
+            legend.setBackgroundPaint(new Color(0, 0, 0, 0));
+            legend.setFrame(org.jfree.chart.block.BlockBorder.NONE);
         }
         
-        // Aplicar colores variados
         int colorIndex = 0;
         for (Object key : dataset.getKeys()) {
             if (colorIndex < colors.length) {
                 plot.setSectionPaint((Comparable) key, colors[colorIndex]);
             } else {
-                // Si hay más elementos que colores, generar colores alternativos
                 float hue = (colorIndex * 0.1f) % 1.0f;
                 Color newColor = Color.getHSBColor(hue, 0.6f, 0.9f);
                 plot.setSectionPaint((Comparable) key, newColor);
@@ -1198,8 +999,7 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         chartPanelDepartment.repaint();
         LOGGER.info("Gráfico circular actualizado con " + dataset.getItemCount() + " elementos");
     }
-    
-    @SuppressWarnings({"unchecked", "rawtypes"})
+
     private void updateMonthDonutChart(List<MonthData> monthData) {
         if (chartPanelMonthDonut == null) {
             LOGGER.warning("chartPanelMonthDonut es null, no se puede actualizar el gráfico");
@@ -1213,8 +1013,6 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         }
         
         DefaultPieDataset dataset = new DefaultPieDataset();
-        
-        // Agregar todos los meses con ventas
         for (MonthData month : monthData) {
             if (month.sales > 0) {
                 dataset.setValue(month.monthName, month.sales);
@@ -1228,42 +1026,35 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         }
         
         chartPanelMonthDonut.setVisible(true);
-        
-        // Crear gráfico CON leyenda para mostrar los nombres de los meses
         JFreeChart chart = ChartFactory.createRingChart(null, dataset, true, true, false);
-        chart.setBackgroundPaint(Color.WHITE);
+        chart.setBackgroundPaint(new Color(0, 0, 0, 0));
         
         RingPlot plot = (RingPlot) chart.getPlot();
-        plot.setBackgroundPaint(Color.WHITE);
+        plot.setBackgroundPaint(new Color(0, 0, 0, 0));
         plot.setOutlineVisible(false);
-        plot.setLabelGenerator(null); // Sin etiquetas en el gráfico mismo
+        plot.setLabelGenerator(null);
         plot.setShadowPaint(new Color(0, 0, 0, 0));
         plot.setInteriorGap(0.04);
         plot.setSectionDepth(0.38);
         plot.setSeparatorPaint(Color.WHITE);
         plot.setSeparatorStroke(new BasicStroke(2.0f));
         
-        // Configurar la leyenda para que sea legible
         LegendTitle legend = chart.getLegend();
         if (legend != null) {
             legend.setItemFont(new Font("Segoe UI", Font.PLAIN, 11));
-            legend.setBackgroundPaint(Color.WHITE);
+            legend.setBackgroundPaint(new Color(0, 0, 0, 0));
+            legend.setFrame(org.jfree.chart.block.BlockBorder.NONE);
         }
         
-        // Aplicar colores variados para meses
         Color[] colors = {
-            new Color(70, 130, 180),   // Azul acero
-            new Color(60, 179, 113),   // Verde mar
-            new Color(255, 140, 0),    // Naranja oscuro
-            new Color(220, 20, 60),    // Rojo carmesí
-            new Color(138, 43, 226),   // Violeta azul
-            new Color(255, 215, 0),    // Oro
-            new Color(102, 204, 204),  // Turquesa claro
-            new Color(51, 153, 204),   // Azul medio
-            new Color(255, 192, 203),  // Rosa
-            new Color(144, 238, 144),  // Verde claro
-            new Color(255, 165, 0),    // Naranja
-            new Color(186, 85, 211)    // Orquídea
+            new Color(99, 102, 241),   // Indigo
+            new Color(139, 92, 246),  // Violet
+            new Color(6, 182, 212),   // Cyan
+            new Color(16, 185, 129),  // Emerald
+            new Color(245, 158, 11),   // Amber
+            new Color(244, 63, 94),   // Rose
+            new Color(79, 70, 229),   // Dark Indigo
+            new Color(124, 58, 237)   // Dark Violet
         };
         
         int colorIndex = 0;
@@ -1282,7 +1073,7 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         chartPanelMonthDonut.repaint();
         LOGGER.info("Gráfico de meses actualizado con " + dataset.getItemCount() + " elementos");
     }
-    
+
     private void updateBarChart(List<PaymentData> payments) {
         if (chartPanelPayment == null) {
             LOGGER.warning("chartPanelPayment es null, no se puede actualizar el gráfico");
@@ -1293,15 +1084,13 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         
         if (payments == null || payments.isEmpty()) {
             LOGGER.info("No hay datos de pagos para mostrar");
-            // Mostrar gráfico vacío
-            JFreeChart chart = ChartFactory.createBarChart(null, "Forma de pago", "Ventas", 
-                dataset, PlotOrientation.HORIZONTAL, false, true, false);
-            chart.setBackgroundPaint(SURFACE_BG);
+            JFreeChart chart = ChartFactory.createBarChart(null, null, null, 
+                dataset, PlotOrientation.HORIZONTAL, true, true, false);
+            chart.setBackgroundPaint(new Color(0, 0, 0, 0));
             chartPanelPayment.setChart(chart);
             return;
         }
         
-        // Ordenar por monto descendente
         payments.sort((a, b) -> Double.compare(b.amount, a.amount));
         
         for (PaymentData payment : payments) {
@@ -1310,43 +1099,38 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
             }
         }
         
-        if (dataset.getRowCount() == 0) {
-            LOGGER.info("No hay pagos con monto positivo para mostrar");
-        }
-        
-        // Cambiar a barras verticales como en Eleventa, con leyenda
-        JFreeChart chart = ChartFactory.createBarChart(null, null, "Ventas ($)", 
+        JFreeChart chart = ChartFactory.createBarChart(null, null, null, 
             dataset, PlotOrientation.HORIZONTAL, true, true, false);
-        chart.setBackgroundPaint(Color.WHITE);
+        chart.setBackgroundPaint(new Color(0, 0, 0, 0));
         CategoryPlot plot = (CategoryPlot) chart.getPlot();
-        plot.setBackgroundPaint(Color.WHITE);
+        plot.setBackgroundPaint(new Color(248, 250, 252));
         plot.setOutlineVisible(false);
-        plot.setRangeGridlinePaint(new Color(229, 231, 235)); // Grid más suave
+        plot.setRangeGridlinePaint(new Color(226, 232, 240));
         
-        // Mejorar la apariencia del gráfico
         plot.getDomainAxis().setLabelFont(new Font("Segoe UI", Font.PLAIN, 12));
         plot.getRangeAxis().setLabelFont(new Font("Segoe UI", Font.PLAIN, 12));
         plot.getDomainAxis().setTickLabelFont(new Font("Segoe UI", Font.PLAIN, 11));
         plot.getRangeAxis().setTickLabelFont(new Font("Segoe UI", Font.PLAIN, 11));
         
-        // Configurar la leyenda
         LegendTitle legend = chart.getLegend();
         if (legend != null) {
             legend.setItemFont(new Font("Segoe UI", Font.PLAIN, 12));
-            legend.setBackgroundPaint(Color.WHITE);
+            legend.setBackgroundPaint(new Color(0, 0, 0, 0));
+            legend.setFrame(org.jfree.chart.block.BlockBorder.NONE);
         }
         
-        // Colores como en Eleventa: Efectivo (azul claro), Vales (azul oscuro), Tarjeta (rojo), Crédito (naranja)
         Map<String, Color> paymentColors = new HashMap<>();
-        paymentColors.put("Efectivo", new Color(173, 216, 230));  // Azul claro
-        paymentColors.put("Vales", new Color(70, 130, 180));      // Azul acero
-        paymentColors.put("Tarjeta", new Color(220, 20, 60));     // Rojo
-        paymentColors.put("Crédito", new Color(255, 140, 0));     // Naranja
+        paymentColors.put("Efectivo", new Color(16, 185, 129));      // Emerald
+        paymentColors.put("Tarjeta", new Color(99, 102, 241));       // Indigo
+        paymentColors.put("Crédito", new Color(245, 158, 11));       // Amber
+        paymentColors.put("Vales", new Color(6, 182, 212));          // Cyan
+        paymentColors.put("Transferencia", new Color(139, 92, 246));  // Violet
+        paymentColors.put("Cheque", new Color(100, 116, 139));        // Muted Slate
         
         if (dataset.getRowCount() > 0) {
             for (int i = 0; i < dataset.getRowCount(); i++) {
                 String category = (String) dataset.getRowKey(i);
-                Color color = paymentColors.getOrDefault(category, new Color(70, 130, 180));
+                Color color = paymentColors.getOrDefault(category, new Color(99, 102, 241));
                 plot.getRenderer().setSeriesPaint(i, color);
             }
         }
@@ -1354,7 +1138,7 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         BarRenderer renderer = (BarRenderer) plot.getRenderer();
         renderer.setDefaultItemLabelGenerator(new StandardCategoryItemLabelGenerator());
         renderer.setDefaultItemLabelsVisible(true);
-        renderer.setMaximumBarWidth(0.18);
+        renderer.setMaximumBarWidth(0.15);
         renderer.setShadowVisible(false);
         plot.getDomainAxis().setTickLabelPaint(TEXT_MUTED);
         plot.getRangeAxis().setTickLabelPaint(TEXT_MUTED);
@@ -1363,7 +1147,7 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         chartPanelPayment.repaint();
         LOGGER.info("Gráfico de barras actualizado con " + dataset.getRowCount() + " formas de pago");
     }
-    
+
     private void updateHourlyChart() {
         if (chartPanelHourly == null) return;
         
@@ -1379,23 +1163,23 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
                 }
             }
             
-            JFreeChart chart = ChartFactory.createLineChart(null, null, "Ventas ($)", 
+            JFreeChart chart = ChartFactory.createLineChart(null, null, null, 
                 dataset, PlotOrientation.VERTICAL, false, true, false);
-            chart.setBackgroundPaint(Color.WHITE);
+            chart.setBackgroundPaint(new Color(0, 0, 0, 0));
             
             CategoryPlot plot = (CategoryPlot) chart.getPlot();
             plot.setBackgroundPaint(new Color(248, 250, 252));
             plot.setOutlineVisible(false);
-            plot.setRangeGridlinePaint(new Color(229, 231, 235));
+            plot.setRangeGridlinePaint(new Color(226, 232, 240));
             
             // Estilo de línea
             LineAndShapeRenderer renderer = new LineAndShapeRenderer();
-            renderer.setSeriesPaint(0, ACCENT_BLUE);
+            renderer.setSeriesPaint(0, new Color(99, 102, 241));
             renderer.setSeriesStroke(0, new BasicStroke(3.0f));
             renderer.setDefaultShapesVisible(true);
             renderer.setDefaultShapesFilled(true);
             renderer.setUseFillPaint(true);
-            renderer.setSeriesFillPaint(0, ACCENT_CYAN);
+            renderer.setSeriesFillPaint(0, Color.WHITE);
             plot.setRenderer(renderer);
             plot.getDomainAxis().setTickLabelPaint(TEXT_MUTED);
             plot.getRangeAxis().setTickLabelPaint(TEXT_MUTED);
@@ -1552,7 +1336,7 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
             totalValue.setForeground(ACCENT_GOLD);
 
             totalRow.add(totalLabel, BorderLayout.WEST);
-            totalRow.add(totalValue, BorderLayout.EAST);
+        totalRow.add(totalValue, BorderLayout.EAST);
             taxesBreakdownPanel.add(Box.createVerticalStrut(10));
             taxesBreakdownPanel.add(totalRow);
         }
@@ -1560,7 +1344,7 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         taxesBreakdownPanel.revalidate();
         taxesBreakdownPanel.repaint();
     }
-    
+
     private JTable createSalesByMonthTable() {
         String[] columns = {"Mes", "Monto"};
         DefaultTableModel model = new DefaultTableModel(columns, 0) {
@@ -1569,40 +1353,11 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
                 return false;
             }
         };
-        
         JTable table = new JTable(model);
-        table.setFont(new Font("Segoe UI", Font.PLAIN, 14)); // Más grande
-        table.setRowHeight(38); // Más alto
-        table.setShowGrid(true);
-        table.setGridColor(new Color(243, 244, 246));
-        table.setBackground(Color.WHITE);
-        table.setSelectionBackground(new Color(239, 246, 255));
-        table.setSelectionForeground(new Color(30, 64, 175));
-        table.setIntercellSpacing(new Dimension(1, 1));
-        
-        // Alternar colores de filas para mejor legibilidad
-        table.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                if (!isSelected) {
-                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(249, 250, 251));
-                }
-                return c;
-            }
-        });
-        
-        // Header moderno estilo Eleventa
-        JTableHeader header = table.getTableHeader();
-        header.setFont(new Font("Segoe UI", Font.BOLD, 14)); // Más grande
-        header.setBackground(new Color(249, 250, 251));
-        header.setForeground(new Color(17, 24, 39)); // Más oscuro
-        header.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(229, 231, 235)));
-        header.setPreferredSize(new Dimension(0, 42)); // Más alto
-        
+        styleTable(table);
         return table;
     }
-    
+
     private void updateSalesByMonthTable(List<MonthData> monthData) {
         DefaultTableModel model = (DefaultTableModel) tableSalesByMonth.getModel();
         model.setRowCount(0);
@@ -1615,7 +1370,7 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
             }
         }
     }
-    
+
     private JTable createDepartmentTable() {
         String[] columns = {"Departamento", "Monto"};
         DefaultTableModel model = new DefaultTableModel(columns, 0) {
@@ -1624,40 +1379,11 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
                 return false;
             }
         };
-        
         JTable table = new JTable(model);
-        table.setFont(new Font("Segoe UI", Font.PLAIN, 14)); // Más grande
-        table.setRowHeight(38); // Más alto
-        table.setShowGrid(true);
-        table.setGridColor(new Color(243, 244, 246));
-        table.setBackground(Color.WHITE);
-        table.setSelectionBackground(new Color(239, 246, 255));
-        table.setSelectionForeground(new Color(30, 64, 175));
-        table.setIntercellSpacing(new Dimension(1, 1));
-        
-        // Alternar colores de filas para mejor legibilidad
-        table.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                if (!isSelected) {
-                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(249, 250, 251));
-                }
-                return c;
-            }
-        });
-        
-        // Header moderno estilo Eleventa
-        JTableHeader header = table.getTableHeader();
-        header.setFont(new Font("Segoe UI", Font.BOLD, 14)); // Más grande
-        header.setBackground(new Color(249, 250, 251));
-        header.setForeground(new Color(17, 24, 39)); // Más oscuro
-        header.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(229, 231, 235)));
-        header.setPreferredSize(new Dimension(0, 42)); // Más alto
-        
+        styleTable(table);
         return table;
     }
-    
+
     private JTable createDepartmentProfitTable() {
         String[] columns = {"Departamento", "Ganancia"};
         DefaultTableModel model = new DefaultTableModel(columns, 0) {
@@ -1666,7 +1392,6 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
                 return false;
             }
         };
-        
         JTable table = new JTable(model);
         table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         table.setRowHeight(30);
@@ -1675,10 +1400,9 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
         table.getTableHeader().setBackground(new Color(70, 130, 180));
         table.getTableHeader().setForeground(Color.WHITE);
-        
         return table;
     }
-    
+
     private void updateDepartmentProfitList(List<DepartmentData> departments) {
         if (deptListPanel == null) {
             LOGGER.warning("deptListPanel es null, no se puede actualizar la lista");

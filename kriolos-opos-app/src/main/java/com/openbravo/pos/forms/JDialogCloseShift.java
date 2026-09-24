@@ -65,11 +65,17 @@ public class JDialogCloseShift extends JDialog {
     private JLabel lblStatusText;
 
     private double m_totalEsperado = 0.0;
+    private boolean m_isDayClose = false;
 
     // -------------------------------------------------------------------------
     public JDialogCloseShift(Frame parent, AppView app) {
+        this(parent, app, false);
+    }
+
+    public JDialogCloseShift(Frame parent, AppView app, boolean isDayClose) {
         super(parent, true);
         this.m_App = app;
+        this.m_isDayClose = isDayClose;
 
         try {
             m_dlSystem = (DataLogicSystem) m_App.getBean("com.openbravo.pos.forms.DataLogicSystem");
@@ -94,7 +100,7 @@ public class JDialogCloseShift extends JDialog {
 
     // -------------------------------------------------------------------------
     private void buildUI() {
-        setTitle("Cierre de turno");
+        setTitle(m_isDayClose ? "Cierre del día" : "Cierre de turno");
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 
         JPanel root = new JPanel(new BorderLayout(0, 0));
@@ -105,7 +111,7 @@ public class JDialogCloseShift extends JDialog {
         header.setBackground(COL_HEADER_BG);
         header.setBorder(new EmptyBorder(12, 16, 12, 16));
 
-        JLabel lblHeader = new JLabel("CIERRE DE TURNO");
+        JLabel lblHeader = new JLabel(m_isDayClose ? "CIERRE DEL DÍA" : "CIERRE DE TURNO");
         lblHeader.setFont(new Font("Arial", Font.BOLD, 20));
         lblHeader.setForeground(COL_HEADER_FG);
         header.add(lblHeader, BorderLayout.WEST);
@@ -119,7 +125,9 @@ public class JDialogCloseShift extends JDialog {
 
         // Texto instructivo
         JLabel lblInstruction = new JLabel(
-                "<html>Por favor cuenta el dinero en caja e ingrésalo para<br>proceder con el cierre de turno.</html>");
+                m_isDayClose 
+                ? "<html>Por favor cuenta el dinero en caja e ingrésalo para<br>proceder con el cierre del día.</html>"
+                : "<html>Por favor cuenta el dinero en caja e ingrésalo para<br>proceder con el cierre de turno.</html>");
         lblInstruction.setFont(new Font("Arial", Font.PLAIN, 13));
         lblInstruction.setForeground(COL_LABEL);
         lblInstruction.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -235,7 +243,7 @@ public class JDialogCloseShift extends JDialog {
         JPanel footer = new JPanel(new GridLayout(1, 2, 0, 0));
         footer.setBorder(new MatteBorder(1, 0, 0, 0, COL_GRID_LINE));
 
-        JButton btnCerrar = buildButton("🔒  Cerrar Turno", COL_BTN_GREEN, COL_HEADER_FG);
+        JButton btnCerrar = buildButton(m_isDayClose ? "🔒  Cerrar Día" : "🔒  Cerrar Turno", COL_BTN_GREEN, COL_HEADER_FG);
         btnCerrar.addActionListener(e -> confirmarCierre());
 
         JButton btnCancelar = buildButton("Cancelar", COL_BTN_GRAY_BG, COL_LABEL);

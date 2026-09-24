@@ -116,6 +116,17 @@ public class CatalogController {
         return list;
     }
 
+    List<ProductInfoExt> getAllProductCatalog() {
+        List<ProductInfoExt> list = new ArrayList<>();
+        try {
+            list = dlLogicSales.getAllProductCatalog();
+        }
+        catch (BasicException ex) {
+            Exceptions.printStackTrace(ex);
+        }
+        return list;
+    }
+
     TaxInfo getTaxInfo(String taxCategoryID) {
         return taxeslogic.getTaxInfo(taxCategoryID);
     }

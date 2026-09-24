@@ -27,6 +27,7 @@ report.setSentence("SELECT " +
                     "closedcash.DATESTART, " +
                     "closedcash.DATEEND, " +
                     "closedcash.initial_amount AS INITIAL_AMOUNT, " +
+                    "COALESCE((SELECT MIN(people.NAME) FROM tickets INNER JOIN receipts ON tickets.ID = receipts.ID INNER JOIN people ON tickets.PERSON = people.ID WHERE receipts.MONEY = closedcash.MONEY), 'admin') AS CAJERO, " +
                     "COALESCE(payments.PAYMENT, 'Sin ventas') AS PAYMENT, " +
                     "COALESCE(SUM(payments.TOTAL), 0.0) AS TOTAL " +
                     "FROM closedcash " +
@@ -42,8 +43,7 @@ report.addParameter("closedcash.DATEEND");
 paramdates = new com.openbravo.pos.reports.JParamsDatesInterval();
 
 paramdates.setStartDate(com.openbravo.beans.DateUtils.getToday());
-// JG - 8 Jan 14 paramdates.setEndDate(com.openbravo.beans.DateUtils.getToday());
-paramdates.setEndDate(com.openbravo.beans.DateUtils.getTodayMinutes());
+paramdates.setEndDate(new java.util.Date(com.openbravo.beans.DateUtils.getToday().getTime() + 86400000));
 
 report.addQBFFilter(paramdates);
 
@@ -53,6 +53,7 @@ report.addField("MONEY", com.openbravo.data.loader.Datas.STRING);
 report.addField("DATESTART", com.openbravo.data.loader.Datas.TIMESTAMP);
 report.addField("DATEEND", com.openbravo.data.loader.Datas.TIMESTAMP);
 report.addField("INITIAL_AMOUNT", com.openbravo.data.loader.Datas.DOUBLE);
+report.addField("CAJERO", com.openbravo.data.loader.Datas.STRING);
 report.addField("PAYMENT", com.openbravo.data.loader.Datas.STRING);
 report.addField("TOTAL", com.openbravo.data.loader.Datas.DOUBLE);
 

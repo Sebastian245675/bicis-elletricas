@@ -109,6 +109,8 @@ public class JRootApp extends JPanel implements AppView {
             throw new BasicException("Exception on DB createSession", e);
         }
 
+        com.openbravo.pos.sync.VoltiumSyncService.setLocalSession(session);
+
         m_dlSystem = (DataLogicSystem) getBean("com.openbravo.pos.forms.DataLogicSystem");
 
         LOGGER.log(Level.INFO, "DB Migration execution Starting");
@@ -207,6 +209,9 @@ public class JRootApp extends JPanel implements AppView {
 
         setStatusBarPanel();
 
+        // Start background scheduler for SMTP alerts and reports
+        new Thread(new com.openbravo.pos.util.EmailScheduler(this), "EmailSchedulerThread").start();
+
         // showLoginPanel(); // Sebastian - Ahora se usa JLogonDialog desde JRootFrame
     }
     /**
@@ -288,6 +293,39 @@ public class JRootApp extends JPanel implements AppView {
                     }
                 } else {
                     LOGGER.info("✔️ Columna " + col + " ya existe en PEOPLE");
+                }
+            }
+
+            // 2.5. Columnas adicionales en la tabla SHIFTS para registrar presencia y festivos
+            String[][] shiftsColumns = {
+                {"HOLIDAY", "BOOLEAN DEFAULT FALSE"},
+                {"NOTES", "VARCHAR(255)"},
+                {"ROLE_FUNCTION", "VARCHAR(100)"}
+            };
+            for (String[] colInfo : shiftsColumns) {
+                String col = colInfo[0];
+                String colType = colInfo[1];
+                boolean exists = false;
+
+                try (java.sql.ResultSet rs = md.getColumns(null, null, "SHIFTS", null)) {
+                    while (rs.next()) {
+                        if (rs.getString("COLUMN_NAME").equalsIgnoreCase(col)) {
+                            exists = true;
+                            break;
+                        }
+                    }
+                } catch (SQLException e) {}
+
+                if (!exists) {
+                    LOGGER.info("🔧 Sebastian - Agregando columna " + col + " a la tabla SHIFTS...");
+                    try (java.sql.Statement stmt = conn.createStatement()) {
+                        stmt.execute("ALTER TABLE SHIFTS ADD COLUMN " + col + " " + colType);
+                        LOGGER.info("✅ Columna " + col + " agregada a SHIFTS exitosamente");
+                    } catch (SQLException e) {
+                        LOGGER.log(Level.WARNING, "⚠️ No se pudo agregar columna " + col + " a SHIFTS: " + e.getMessage());
+                    }
+                } else {
+                    LOGGER.info("✔️ Columna " + col + " ya existe en SHIFTS");
                 }
             }
 
@@ -400,6 +438,43 @@ public class JRootApp extends JPanel implements AppView {
                 }
             }
 
+            // 3.6. Sebastian - Forzar actualización de Menu.Root en DB desde classpath
+            LOGGER.info("🔧 Sebastian - Sincronizando Menu.Root en DB desde classpath...");
+            try (java.io.InputStream in = JRootApp.class.getResourceAsStream("/com/openbravo/pos/templates/Menu.Root.bs")) {
+                if (in != null) {
+                    byte[] classpathContent = in.readAllBytes();
+                    boolean exists = false;
+                    String id = null;
+                    try (java.sql.PreparedStatement checkStmt = conn.prepareStatement("SELECT ID FROM resources WHERE NAME = 'Menu.Root'")) {
+                        try (java.sql.ResultSet checkRs = checkStmt.executeQuery()) {
+                            if (checkRs.next()) {
+                                exists = true;
+                                id = checkRs.getString("ID");
+                            }
+                        }
+                    }
+                    if (exists) {
+                        LOGGER.info("🔧 Sebastian - Actualizando recurso DB Menu.Root");
+                        try (java.sql.PreparedStatement updateStmt = conn.prepareStatement("UPDATE resources SET CONTENT = ? WHERE ID = ?")) {
+                            updateStmt.setBytes(1, classpathContent);
+                            updateStmt.setString(2, id);
+                            updateStmt.executeUpdate();
+                        }
+                    } else {
+                        LOGGER.info("🔧 Sebastian - Insertando recurso DB Menu.Root");
+                        try (java.sql.PreparedStatement insertStmt = conn.prepareStatement("INSERT INTO resources (ID, NAME, RESTYPE, CONTENT) VALUES (?, 'Menu.Root', 0, ?)")) {
+                            insertStmt.setString(1, UUID.randomUUID().toString());
+                            insertStmt.setBytes(2, classpathContent);
+                            insertStmt.executeUpdate();
+                        }
+                    }
+                } else {
+                    LOGGER.warning("⚠️ Sebastian - No se pudo encontrar /com/openbravo/pos/templates/Menu.Root.bs en el classpath");
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "⚠️ Sebastian - Error al sincronizar Menu.Root desde classpath: " + e.getMessage(), e);
+            }
+
             // 4. Crear tabla AUDIT_LOG si no existe
             boolean auditTableExists = false;
             try (java.sql.Statement stmt = conn.createStatement()) {
@@ -476,8 +551,74 @@ public class JRootApp extends JPanel implements AppView {
                     }
                 }
                 
-                // Asegurar que estén en products_cat (catálogo)
-                String[] prodIds = {"xxx999_999xxx_x9x9x9", "xxx998_998xxx_x8x8x8"};
+                // Asegurar que existan productos de muestra en categorías del negocio
+                Object[][] sampleProducts = {
+                    {"prod_tortilla_1kg", "1001", "1001", "1 Kg Tortilla Mostrador", 20.0, 24.0, "f121025e-3f6c-4284-abc3-070171375065", "A. TORTILLA MOSTRADOR"},
+                    {"prod_tortilla_half", "1002", "1002", "1/2 Kg Tortilla Mostrador", 10.0, 12.0, "f121025e-3f6c-4284-abc3-070171375065", "A. TORTILLA MOSTRADOR"},
+                    {"prod_masa_1kg", "1003", "1003", "1 Kg Masa Mostrador", 15.0, 18.0, "fce395dd-e3f4-4593-9965-8c369eaeb29b", "D. MASA MOSTRADOR"},
+                    {"prod_coca_600", "1004", "1004", "Coca Cola 600ml", 15.0, 20.0, "5d242472-6468-4017-b888-efc5f4c96816", "H. COCA COLA"},
+                    {"prod_tostadas", "1005", "1005", "Paquete Tostadas", 28.0, 35.0, "cat_1777168833284", "G.TOSTADAS MOSTRADOR"}
+                };
+
+                for (Object[] sp : sampleProducts) {
+                    String sId = (String) sp[0];
+                    String sRef = (String) sp[1];
+                    String sCode = (String) sp[2];
+                    String sName = (String) sp[3];
+                    double pBuy = (Double) sp[4];
+                    double pSell = (Double) sp[5];
+                    String sCat = (String) sp[6];
+                    String sCatName = (String) sp[7];
+
+                    // Asegurar que la categoría padre exista para la clave foránea
+                    boolean catTableExists = false;
+                    try (java.sql.PreparedStatement chkCat = conn.prepareStatement("SELECT id FROM categories WHERE id = ?")) {
+                        chkCat.setString(1, sCat);
+                        try (java.sql.ResultSet rs = chkCat.executeQuery()) {
+                            if (rs.next()) catTableExists = true;
+                        }
+                    }
+                    if (!catTableExists) {
+                        try (java.sql.PreparedStatement insCat = conn.prepareStatement(
+                                "INSERT INTO categories (id, name, catshowname) VALUES (?, ?, true)")) {
+                            insCat.setString(1, sCat);
+                            insCat.setString(2, sCatName);
+                            insCat.executeUpdate();
+                            catTableExists = true;
+                            LOGGER.info("✅ Categoría " + sCatName + " creada en base de datos");
+                        } catch (Exception e) {
+                            LOGGER.warning("⚠️ No se pudo crear categoría: " + e.getMessage());
+                            sCat = "000"; // Fallback a categoría general
+                        }
+                    }
+
+                    boolean exists = false;
+                    try (java.sql.PreparedStatement chk = conn.prepareStatement("SELECT id FROM products WHERE id = ?")) {
+                        chk.setString(1, sId);
+                        try (java.sql.ResultSet rs = chk.executeQuery()) {
+                            if (rs.next()) exists = true;
+                        }
+                    }
+                    if (!exists) {
+                        try (java.sql.PreparedStatement ins = conn.prepareStatement(
+                                "INSERT INTO products (id, reference, code, name, pricebuy, pricesell, taxcat, isservice, display, category) " +
+                                "VALUES (?, ?, ?, ?, ?, ?, '001', false, ?, ?)")) {
+                            ins.setString(1, sId);
+                            ins.setString(2, sRef);
+                            ins.setString(3, sCode);
+                            ins.setString(4, sName);
+                            ins.setDouble(5, pBuy);
+                            ins.setDouble(6, pSell);
+                            ins.setString(7, sName);
+                            ins.setString(8, sCat);
+                            ins.executeUpdate();
+                            LOGGER.info("✅ Producto " + sName + " insertado");
+                        }
+                    }
+                }
+
+                // Asegurar que todos estén en products_cat (catálogo)
+                String[] prodIds = {"xxx999_999xxx_x9x9x9", "xxx998_998xxx_x8x8x8", "prod_tortilla_1kg", "prod_tortilla_half", "prod_masa_1kg", "prod_coca_600", "prod_tostadas"};
                 for (String pId : prodIds) {
                     boolean catExists = false;
                     try (java.sql.PreparedStatement checkCat = conn.prepareStatement(
@@ -517,7 +658,7 @@ public class JRootApp extends JPanel implements AppView {
                 double[] stocks = {50.0, 100.0};
                 for (int i = 0; i < prodIds.length; i++) {
                     String pId = prodIds[i];
-                    double units = stocks[i];
+                    double units = (i < stocks.length) ? stocks[i] : 100.0;
                     boolean stockExists = false;
                     try (java.sql.PreparedStatement checkStock = conn.prepareStatement(
                             "SELECT units FROM stockcurrent WHERE product = ? AND location = '0'")) {

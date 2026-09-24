@@ -16,6 +16,8 @@
 
 package com.openbravo.pos.panels;
 
+import com.openbravo.pos.util.ModernActionIcon;
+
 import com.openbravo.basic.BasicException;
 import com.openbravo.data.gui.MessageInf;
 import com.openbravo.data.loader.SerializerWrite;
@@ -218,7 +220,7 @@ public class AuxiliarFilter extends javax.swing.JPanel implements ReportEditorCr
             }
         });
 
-        Enter1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/products24.png"))); // NOI18N
+        Enter1.setIcon(new ModernActionIcon(ModernActionIcon.Type.BOX, 20));
         Enter1.setToolTipText("Enter Product ID");
         Enter1.setPreferredSize(new java.awt.Dimension(80, 45));
         Enter1.addActionListener(new java.awt.event.ActionListener() {
@@ -239,7 +241,7 @@ public class AuxiliarFilter extends javax.swing.JPanel implements ReportEditorCr
             }
         });
 
-        Enter2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/barcode.png"))); // NOI18N
+        Enter2.setIcon(new ModernActionIcon(ModernActionIcon.Type.SEARCH, 20));
         Enter2.setToolTipText("Get Barcode");
         Enter2.setPreferredSize(new java.awt.Dimension(80, 45));
         Enter2.addActionListener(new java.awt.event.ActionListener() {
@@ -260,7 +262,7 @@ public class AuxiliarFilter extends javax.swing.JPanel implements ReportEditorCr
             }
         });
 
-        search.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/search24.png"))); // NOI18N
+        search.setIcon(new ModernActionIcon(ModernActionIcon.Type.SEARCH, 20));
         search.setToolTipText("Search Products");
         search.setPreferredSize(new java.awt.Dimension(80, 45));
         search.addActionListener(new java.awt.event.ActionListener() {

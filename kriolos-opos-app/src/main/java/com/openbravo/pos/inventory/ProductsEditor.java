@@ -63,6 +63,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.AbstractTableModel;
 import com.openbravo.pos.forms.DataLogicSystem;
+import com.openbravo.pos.util.ModernActionIcon;
 import java.awt.Color;
 import java.io.File;
 import javax.imageio.ImageIO;
@@ -123,6 +124,10 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
     private javax.swing.JTable jTableProductAuditHistory;
     private javax.swing.table.DefaultTableModel auditHistoryTableModel;
     private javax.swing.JTextArea txtAuditDetails;
+    private javax.swing.JTable jTableProductStockHistory;
+    private javax.swing.table.DefaultTableModel stockHistoryTableModel;
+    private javax.swing.JTable jTableSupplierProducts;
+    private javax.swing.table.DefaultTableModel supplierProductsTableModel;
     private ProductFilter m_productFilter;
 
     public ProductsEditor(AppView app, DirtyManager dirty) {
@@ -224,6 +229,14 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jUom.setVisible(false);
     }
 
+    public ComboBoxValModel getCategoryModel() {
+        return m_CategoryModel;
+    }
+
+    public ComboBoxValModel getTaxCatModel() {
+        return taxcatmodel;
+    }
+
     private void initValidator() {
         org.netbeans.validation.api.ui.ValidationGroup valGroup = getValidationGroup();
         valGroup.add(m_jRef, StringValidators.REQUIRE_NON_EMPTY_STRING);
@@ -282,7 +295,8 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                             if (view != null) {
                                 System.out.println("        JScrollPane view class: " + view.getClass().getName());
                                 System.out.println("        JScrollPane view size: " + view.getSize());
-                                System.out.println("        JScrollPane view components count: " + ((java.awt.Container)view).getComponentCount());
+                                System.out.println("        JScrollPane view components count: "
+                                        + ((java.awt.Container) view).getComponentCount());
                             } else {
                                 System.out.println("        JScrollPane view is null!");
                             }
@@ -294,6 +308,88 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
             System.out.println("mainCombinedPanel is null!");
         }
         System.out.println("=== DIAGNOSTIC END ===");
+
+        // Navigate or highlight if search target field is set
+        if (com.openbravo.pos.forms.JPanelSystemOverview.searchTargetField != null) {
+            final String target = com.openbravo.pos.forms.JPanelSystemOverview.searchTargetField;
+            com.openbravo.pos.forms.JPanelSystemOverview.searchTargetField = null; // Clear it
+
+            javax.swing.SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    // Find the JTabbedPane inside mainCombinedPanel
+                    javax.swing.JTabbedPane tp = null;
+                    if (mainCombinedPanel != null) {
+                        for (java.awt.Component c : mainCombinedPanel.getComponents()) {
+                            if (c instanceof javax.swing.JTabbedPane) {
+                                tp = (javax.swing.JTabbedPane) c;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (tp != null) {
+                        // All target fields so far are in "Datos Generales" (Tab 0)
+                        tp.setSelectedIndex(0);
+                    }
+
+                    // Map field names to actual text fields
+                    javax.swing.JTextField fieldToHighlight = null;
+                    if ("ref".equalsIgnoreCase(target)) {
+                        fieldToHighlight = m_jRef;
+                    } else if ("code".equalsIgnoreCase(target) || "codigo".equalsIgnoreCase(target)) {
+                        fieldToHighlight = m_jCode;
+                    } else if ("name".equalsIgnoreCase(target) || "nombre".equalsIgnoreCase(target)
+                            || "descripcion".equalsIgnoreCase(target)) {
+                        fieldToHighlight = m_jName;
+                    } else if ("pricebuy".equalsIgnoreCase(target) || "costo".equalsIgnoreCase(target)
+                            || "preciobuy".equalsIgnoreCase(target)) {
+                        fieldToHighlight = m_jPriceBuy;
+                    } else if ("pricesell".equalsIgnoreCase(target) || "venta".equalsIgnoreCase(target)
+                            || "preciosell".equalsIgnoreCase(target)) {
+                        fieldToHighlight = m_jPriceSell;
+                    } else if ("lote".equalsIgnoreCase(target)) {
+                        fieldToHighlight = m_jLote;
+                    } else if ("modelo".equalsIgnoreCase(target)) {
+                        fieldToHighlight = m_jModelo;
+                    } else if ("color".equalsIgnoreCase(target)) {
+                        fieldToHighlight = m_jColor;
+                    } else if ("voltaje".equalsIgnoreCase(target)) {
+                        fieldToHighlight = m_jVoltaje;
+                    } else if ("noserie".equalsIgnoreCase(target) || "serie".equalsIgnoreCase(target)) {
+                        fieldToHighlight = m_jNoSerie;
+                    } else if ("stockcurrent".equalsIgnoreCase(target) || "stock".equalsIgnoreCase(target)
+                            || "actual".equalsIgnoreCase(target)) {
+                        fieldToHighlight = m_jStockCurrent;
+                    } else if ("stockminimum".equalsIgnoreCase(target) || "minimo".equalsIgnoreCase(target)) {
+                        fieldToHighlight = m_jStockMinimum;
+                    }
+
+                    if (fieldToHighlight != null) {
+                        highlightField(fieldToHighlight);
+                    }
+                }
+            });
+        }
+    }
+
+    private void highlightField(final javax.swing.JTextField field) {
+        if (field == null)
+            return;
+        field.requestFocusInWindow();
+        field.selectAll();
+
+        final java.awt.Color originalBg = field.getBackground();
+        field.setBackground(new java.awt.Color(254, 243, 199)); // Amber 100
+
+        javax.swing.Timer timer = new javax.swing.Timer(2000, new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                field.setBackground(originalBg);
+            }
+        });
+        timer.setRepeats(false);
+        timer.start();
     }
 
     /**
@@ -466,6 +562,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         calculatePriceSellTax();
         calculateGP();
         loadProductAuditHistory(null);
+        loadProductStockHistory(null);
     }
 
     @Override
@@ -593,6 +690,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
             });
         }
         loadProductAuditHistory(null);
+        loadProductStockHistory(null);
     }
 
     /**
@@ -651,18 +749,17 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         try {
             Double currentPriceBuy = (Double) myprod[5];
             Double currentPriceSell = (Double) myprod[6];
-            
-            if (initialPriceBuy != null && initialPriceSell != null && 
-                (!initialPriceBuy.equals(currentPriceBuy) || !initialPriceSell.equals(currentPriceSell))) {
-                
+
+            if (initialPriceBuy != null && initialPriceSell != null &&
+                    (!initialPriceBuy.equals(currentPriceBuy) || !initialPriceSell.equals(currentPriceSell))) {
+
                 ProductPriceHistory history = new ProductPriceHistory(
-                    (String) myprod[0],
-                    currentPriceBuy,
-                    currentPriceSell,
-                    appView.getAppUserView().getUser().getId()
-                );
+                        (String) myprod[0],
+                        currentPriceBuy,
+                        currentPriceSell,
+                        appView.getAppUserView().getUser().getId());
                 dlSales.recordPriceHistory(history);
-                
+
                 // Actualizar iniciales para el próximo guardado sin recargar
                 initialPriceBuy = currentPriceBuy;
                 initialPriceSell = currentPriceSell;
@@ -933,6 +1030,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jStockUnits.setText(Formats.DOUBLE.formatValue((Double) myprod[25]));
         m_jPrintTo.setSelectedItem(myprod[26]);
         m_SuppliersModel.setSelectedKey(myprod[27]);
+        updateSupplierProductsTable();
         m_jdate.setText(Formats.DATE.formatValue((Date) myprod[29]));
         m_jInCatalog.setSelected(((Boolean) myprod[30]));
         m_jCatalogOrder.setText(Formats.INT.formatValue((Integer) myprod[31]));
@@ -979,11 +1077,11 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
 
         // Calcular ganancia después de cargar los valores
         calculateGP();
-        
+
         // Sebastian - Guardar valores iniciales de precios
         initialPriceBuy = (Double) myprod[5];
         initialPriceSell = (Double) myprod[6];
-        
+
         // Sebastian - Actualizar datos de variación
         try {
             List<ProductPriceHistory> history = dlSales.getProductPriceHistory(productId);
@@ -991,8 +1089,9 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         } catch (BasicException e) {
             LOGGER.log(Level.WARNING, "No se pudo cargar el historial de precios", e);
         }
-        
+
         loadProductAuditHistory(productId);
+        loadProductStockHistory(productId);
     }
 
     private void loadProductAuditHistory(String pId) {
@@ -1013,22 +1112,31 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         java.sql.ResultSet rs = null;
         try {
             conn = appView.getSession().getConnection();
-            pstmt = conn.prepareStatement("SELECT USER_NAME, EVENT_TYPE, EVENT_DATE, DETAILS FROM AUDIT_LOG WHERE ENTITY_ID = ? ORDER BY EVENT_DATE DESC");
+            pstmt = conn.prepareStatement(
+                    "SELECT USER_NAME, EVENT_TYPE, EVENT_DATE, DETAILS FROM AUDIT_LOG WHERE ENTITY_ID = ? ORDER BY EVENT_DATE DESC");
             pstmt.setString(1, pId);
             rs = pstmt.executeQuery();
             while (rs.next()) {
                 dataList.add(new Object[] {
-                    rs.getString("USER_NAME"),
-                    rs.getString("EVENT_TYPE"),
-                    rs.getTimestamp("EVENT_DATE"),
-                    rs.getString("DETAILS")
+                        rs.getString("USER_NAME"),
+                        rs.getString("EVENT_TYPE"),
+                        rs.getTimestamp("EVENT_DATE"),
+                        rs.getString("DETAILS")
                 });
             }
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Error loading audit logs for product " + pId, e);
         } finally {
-            if (rs != null) try { rs.close(); } catch (Exception e) {}
-            if (pstmt != null) try { pstmt.close(); } catch (Exception e) {}
+            if (rs != null)
+                try {
+                    rs.close();
+                } catch (Exception e) {
+                }
+            if (pstmt != null)
+                try {
+                    pstmt.close();
+                } catch (Exception e) {
+                }
         }
 
         jTableProductAuditHistory.putClientProperty("auditDataList", dataList);
@@ -1037,15 +1145,116 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         for (Object[] rowData : dataList) {
             String formattedDate = rowData[2] != null ? sdf.format((java.util.Date) rowData[2]) : "";
             auditHistoryTableModel.addRow(new Object[] {
-                formattedDate,
-                rowData[0],
-                rowData[1],
-                rowData[3]
+                    formattedDate,
+                    rowData[0],
+                    rowData[1],
+                    rowData[3]
             });
         }
 
         if (auditHistoryTableModel.getRowCount() > 0) {
             jTableProductAuditHistory.setRowSelectionInterval(0, 0);
+        }
+    }
+
+    private void loadProductStockHistory(String pId) {
+        if (stockHistoryTableModel == null) {
+            return;
+        }
+        stockHistoryTableModel.setRowCount(0);
+        if (pId == null || pId.isEmpty()) {
+            return;
+        }
+
+        java.sql.Connection conn = null;
+        java.sql.PreparedStatement pstmt = null;
+        java.sql.ResultSet rs = null;
+        try {
+            conn = appView.getSession().getConnection();
+            pstmt = conn.prepareStatement(
+                    "SELECT sd.DATENEW, sd.REASON, loc.NAME AS LOCATION_NAME, sd.UNITS, sd.PRICE, sd.AppUser, sup.NAME AS SUPPLIER_NAME, sd.SUPPLIERDOC "
+                            +
+                            "FROM stockdiary sd " +
+                            "INNER JOIN locations loc ON sd.LOCATION = loc.ID " +
+                            "LEFT JOIN suppliers sup ON sd.SUPPLIER = sup.ID " +
+                            "WHERE sd.PRODUCT = ? " +
+                            "ORDER BY sd.DATENEW DESC");
+            pstmt.setString(1, pId);
+            rs = pstmt.executeQuery();
+
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+            java.text.DecimalFormat decFormat = new java.text.DecimalFormat("$#,##0.00");
+
+            while (rs.next()) {
+                java.util.Date dateNew = rs.getTimestamp("DATENEW");
+                String formattedDate = dateNew != null ? sdf.format(dateNew) : "";
+
+                int reason = rs.getInt("REASON");
+                String reasonText = getReasonText(reason);
+
+                String location = rs.getString("LOCATION_NAME");
+                double units = rs.getDouble("UNITS");
+                double price = rs.getDouble("PRICE");
+                String user = rs.getString("AppUser");
+                String supplier = rs.getString("SUPPLIER_NAME");
+                String doc = rs.getString("SUPPLIERDOC");
+
+                String unitsStr = (units > 0 ? "+" : "") + Formats.DOUBLE.formatValue(units);
+                String priceStr = decFormat.format(price);
+
+                double total = units * price;
+                String totalStr = (total > 0 ? "+" : total < 0 ? "-" : "") + decFormat.format(Math.abs(total));
+
+                stockHistoryTableModel.addRow(new Object[] {
+                        formattedDate,
+                        reasonText,
+                        location,
+                        unitsStr,
+                        priceStr,
+                        totalStr,
+                        user != null ? user : "",
+                        supplier != null ? supplier : "",
+                        doc != null ? doc : ""
+                });
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error loading stock history for product " + pId, e);
+        } finally {
+            if (rs != null)
+                try {
+                    rs.close();
+                } catch (Exception e) {
+                }
+            if (pstmt != null)
+                try {
+                    pstmt.close();
+                } catch (Exception e) {
+                }
+        }
+    }
+
+    private String getReasonText(int reason) {
+        switch (reason) {
+            case 1:
+                return "Entrada (Compra)";
+            case 2:
+                return "Salida (Venta)";
+            case 3:
+                return "Salida (Rotura/Merma)";
+            case 4:
+                return "Salida (Otro)";
+            case -1:
+                return "Entrada (Ajuste)";
+            case -2:
+                return "Salida (Ajuste)";
+            case -3:
+                return "Entrada (Transferencia)";
+            case -4:
+                return "Salida (Transferencia)";
+            case -5:
+                return "Entrada (Devolución)";
+            default:
+                return "Otro (" + reason + ")";
         }
     }
 
@@ -2477,8 +2686,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jSupplier.setPreferredSize(new java.awt.Dimension(200, 30));
 
         jBtnSupplier.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jBtnSupplier.setIcon(
-                new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/customer_add_sml.png"))); // NOI18N
+        jBtnSupplier.setIcon(new ModernActionIcon(ModernActionIcon.Type.ADD, 18));
         jBtnSupplier.setText(bundle.getString("label.supplier")); // NOI18N
         jBtnSupplier.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -3075,7 +3283,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         jLblDate.setText(bundle.getString("label.proddate")); // NOI18N
         jLblDate.setPreferredSize(new java.awt.Dimension(130, 30));
 
-        m_jbtndate.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/date.png"))); // NOI18N
+        m_jbtndate.setIcon(new ModernActionIcon(ModernActionIcon.Type.CALENDAR, 18));
         m_jbtndate.setToolTipText("Open Calendar");
         m_jbtndate.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -3677,7 +3885,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         });
 
         jBtnReset.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jBtnReset.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/reload.png"))); // NOI18N
+        jBtnReset.setIcon(new ModernActionIcon(ModernActionIcon.Type.REFRESH, 18));
         jBtnReset.setText(bundle.getString("button.prodhtmldisplayReset")); // NOI18N
         jBtnReset.setPreferredSize(new java.awt.Dimension(100, 35));
         jBtnReset.addActionListener(new java.awt.event.ActionListener() {
@@ -3860,11 +4068,11 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         // Crear panel principal con scroll
         mainCombinedPanel = new javax.swing.JPanel();
         mainCombinedPanel.setLayout(new java.awt.BorderLayout());
-        mainCombinedPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 18, 18, 18));
+        mainCombinedPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 15, 15, 15));
         mainCombinedPanel.setBackground(new java.awt.Color(245, 247, 250));
 
-        // Panel de contenido con el diseño combinado
-        javax.swing.JPanel contentPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+        // Panel de contenido con el diseño combinado que implementa Scrollable
+        javax.swing.JPanel contentPanel = new ScrollablePanel(new java.awt.BorderLayout());
         contentPanel.setBackground(new java.awt.Color(245, 247, 250));
 
         // Título "NUEVO PRODUCTO" o "EDITAR PRODUCTO" en naranja
@@ -3875,67 +4083,16 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         jLabelProductTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
         jLabelProductTitle.setVisible(false);
 
-        // Panel principal con todos los campos en un solo GridBagLayout ordenado
+        // Panel principal con BorderLayout para contener la foto a la izquierda y los campos a la derecha
         mainFieldsPanel = new javax.swing.JPanel();
-        mainFieldsPanel.setLayout(new java.awt.GridBagLayout());
+        mainFieldsPanel.setLayout(new java.awt.BorderLayout(20, 0));
         mainFieldsPanel.setBackground(java.awt.Color.WHITE);
         mainFieldsPanel.setBorder(createProductSectionBorder());
-        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
-        gbc.anchor = java.awt.GridBagConstraints.WEST;
-        gbc.insets = new java.awt.Insets(3, 0, 3, 10);
 
-        int row = 0;
-
-        // Producto (m_jRef)
-        gbc.gridx = 1;
-        gbc.gridy = row;
-        javax.swing.JLabel lblProducto = createProductFormLabel("Producto");
-        mainFieldsPanel.add(lblProducto, gbc);
-        gbc.gridx = 2;
-        styleProductTextField(m_jRef, 320);
-        if (m_jRef.getParent() != null)
-            m_jRef.getParent().remove(m_jRef);
-        mainFieldsPanel.add(m_jRef, gbc);
-        row++;
-
-        // Código de Barras
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        javax.swing.JLabel lblCodigo = new javax.swing.JLabel("Código de Barras:");
-        gbc.gridx = 1;
-        lblCodigo = createProductFormLabel("Codigo de barras");
-        mainFieldsPanel.add(lblCodigo, gbc);
-        gbc.gridx = 2;
-        styleProductTextField(m_jCode, 320);
-        if (m_jCode.getParent() != null)
-            m_jCode.getParent().remove(m_jCode);
-        mainFieldsPanel.add(m_jCode, gbc);
-        row++;
-
-        // Descripción (usar m_jName)
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        javax.swing.JLabel lblDescripcion = new javax.swing.JLabel("Descripción:");
-        gbc.gridx = 1;
-        lblDescripcion = createProductFormLabel("Descripcion");
-        mainFieldsPanel.add(lblDescripcion, gbc);
-        gbc.gridx = 2;
-        styleProductTextField(m_jName, 320);
-        if (m_jName.getParent() != null)
-            m_jName.getParent().remove(m_jName);
-        mainFieldsPanel.add(m_jName, gbc);
-        row++;
-
+        // 1. Panel de foto del producto (Izquierda)
         javax.swing.JPanel photoPanel = new javax.swing.JPanel(new java.awt.BorderLayout(0, 12));
         photoPanel.setBackground(java.awt.Color.WHITE);
         photoPanel.setBorder(createProductSectionBorder());
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridheight = 10;
-        gbc.anchor = java.awt.GridBagConstraints.NORTHWEST;
-        gbc.insets = new java.awt.Insets(0, 0, 12, 15);
-        mainFieldsPanel.add(photoPanel, gbc);
-
         photoPanel.add(
                 createProductSectionHeader("Foto del producto",
                         "Carga o cambia la imagen principal desde aqui arriba."),
@@ -3949,22 +4106,77 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jImage.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(226, 232, 240), 1));
         photoPanel.add(m_jImage, java.awt.BorderLayout.CENTER);
 
-        gbc.gridheight = 1;
-        gbc.anchor = java.awt.GridBagConstraints.WEST;
-        gbc.insets = new java.awt.Insets(3, 0, 3, 10);
+        mainFieldsPanel.add(photoPanel, java.awt.BorderLayout.WEST);
+
+        // 2. Paneles de campos (Centro y Derecha del formulario)
+        javax.swing.JPanel leftFieldsPanel = new javax.swing.JPanel(new java.awt.GridBagLayout());
+        leftFieldsPanel.setOpaque(false);
+        java.awt.GridBagConstraints gbcLeft = new java.awt.GridBagConstraints();
+        gbcLeft.anchor = java.awt.GridBagConstraints.WEST;
+        gbcLeft.insets = new java.awt.Insets(6, 0, 6, 12);
+        gbcLeft.fill = java.awt.GridBagConstraints.NONE;
+
+        int rowLeft = 0;
+
+        // Producto (m_jRef)
+        gbcLeft.gridx = 0;
+        gbcLeft.gridy = rowLeft;
+        javax.swing.JLabel lblProducto = createProductFormLabel("Producto");
+        leftFieldsPanel.add(lblProducto, gbcLeft);
+        gbcLeft.gridx = 1;
+        gbcLeft.weightx = 1.0;
+        gbcLeft.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        styleProductTextField(m_jRef, 240);
+        if (m_jRef.getParent() != null)
+            m_jRef.getParent().remove(m_jRef);
+        leftFieldsPanel.add(m_jRef, gbcLeft);
+        gbcLeft.weightx = 0.0;
+        gbcLeft.fill = java.awt.GridBagConstraints.NONE;
+        rowLeft++;
+
+        // Código de Barras
+        gbcLeft.gridx = 0;
+        gbcLeft.gridy = rowLeft;
+        javax.swing.JLabel lblCodigo = createProductFormLabel("Codigo de barras");
+        leftFieldsPanel.add(lblCodigo, gbcLeft);
+        gbcLeft.gridx = 1;
+        gbcLeft.weightx = 1.0;
+        gbcLeft.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        styleProductTextField(m_jCode, 240);
+        if (m_jCode.getParent() != null)
+            m_jCode.getParent().remove(m_jCode);
+        leftFieldsPanel.add(m_jCode, gbcLeft);
+        gbcLeft.weightx = 0.0;
+        gbcLeft.fill = java.awt.GridBagConstraints.NONE;
+        rowLeft++;
+
+        // Descripción (usar m_jName)
+        gbcLeft.gridx = 0;
+        gbcLeft.gridy = rowLeft;
+        javax.swing.JLabel lblDescripcion = createProductFormLabel("Descripcion");
+        leftFieldsPanel.add(lblDescripcion, gbcLeft);
+        gbcLeft.gridx = 1;
+        gbcLeft.weightx = 1.0;
+        gbcLeft.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        styleProductTextField(m_jName, 240);
+        if (m_jName.getParent() != null)
+            m_jName.getParent().remove(m_jName);
+        leftFieldsPanel.add(m_jName, gbcLeft);
+        gbcLeft.weightx = 0.0;
+        gbcLeft.fill = java.awt.GridBagConstraints.NONE;
+        rowLeft++;
 
         // Radio buttons "Tipo de Producto"
-        gbc.gridx = 1;
-        gbc.gridy = row;
+        gbcLeft.gridx = 0;
+        gbcLeft.gridy = rowLeft;
         javax.swing.JLabel lblSeVende = createProductFormLabel("Tipo");
-        mainFieldsPanel.add(lblSeVende, gbc);
-        gbc.gridx = 2;
-        gbc.gridwidth = 3; // Ocupar más espacio horizontal
+        leftFieldsPanel.add(lblSeVende, gbcLeft);
+        gbcLeft.gridx = 1;
         javax.swing.ButtonGroup sellTypeGroup = new javax.swing.ButtonGroup();
         rbSellVehicle = new javax.swing.JRadioButton("Vehículo", true);
         rbSellPieza = new javax.swing.JRadioButton("Pieza", false);
-        rbSellPackage = new javax.swing.JRadioButton("Kit", false); // Mantener oculto o para paquetes
-        rbSellPackage.setVisible(false); // No se usa según solicitud
+        rbSellPackage = new javax.swing.JRadioButton("Kit", false);
+        rbSellPackage.setVisible(false);
 
         styleProductToggle(rbSellVehicle);
         styleProductToggle(rbSellPieza);
@@ -3979,7 +4191,6 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         radioPanel.add(rbSellVehicle);
         radioPanel.add(rbSellPieza);
 
-        // Listeners para cambiar visibilidad
         rbSellVehicle.addActionListener(e -> {
             m_jScale.setSelected(false);
             updateTypeVisibility();
@@ -3989,341 +4200,362 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
             updateTypeVisibility();
         });
 
-        mainFieldsPanel.add(radioPanel, gbc);
-        gbc.gridwidth = 1; // Reset gridwidth
-        row++;
+        gbcLeft.weightx = 1.0;
+        gbcLeft.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        leftFieldsPanel.add(radioPanel, gbcLeft);
+        gbcLeft.weightx = 0.0;
+        gbcLeft.fill = java.awt.GridBagConstraints.NONE;
+        rowLeft++;
 
         // Precio Costo
-        gbc.gridx = 1;
-        gbc.gridy = row;
+        gbcLeft.gridx = 0;
+        gbcLeft.gridy = rowLeft;
         jLabel3.setText("Precio Costo:");
         jLabel3.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
         jLabel3.setForeground(new java.awt.Color(55, 65, 81));
         jLabel3.setPreferredSize(new java.awt.Dimension(150, 24));
         if (jLabel3.getParent() != null)
             jLabel3.getParent().remove(jLabel3);
-        mainFieldsPanel.add(jLabel3, gbc);
-        gbc.gridx = 2;
-        styleProductTextField(m_jPriceBuy, 180);
+        leftFieldsPanel.add(jLabel3, gbcLeft);
+        gbcLeft.gridx = 1;
+        gbcLeft.weightx = 1.0;
+        gbcLeft.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        styleProductTextField(m_jPriceBuy, 240);
         m_jPriceBuy.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
         if (m_jPriceBuy.getParent() != null)
             m_jPriceBuy.getParent().remove(m_jPriceBuy);
-        mainFieldsPanel.add(m_jPriceBuy, gbc);
-        row++;
+        leftFieldsPanel.add(m_jPriceBuy, gbcLeft);
+        gbcLeft.weightx = 0.0;
+        gbcLeft.fill = java.awt.GridBagConstraints.NONE;
+        rowLeft++;
 
         // Precio Venta
-        gbc.gridx = 1;
-        gbc.gridy = row;
+        gbcLeft.gridx = 0;
+        gbcLeft.gridy = rowLeft;
         jLabel4.setText("Precio Venta:");
         jLabel4.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
         jLabel4.setForeground(new java.awt.Color(55, 65, 81));
         jLabel4.setPreferredSize(new java.awt.Dimension(150, 24));
         if (jLabel4.getParent() != null)
             jLabel4.getParent().remove(jLabel4);
-        mainFieldsPanel.add(jLabel4, gbc);
-        gbc.gridx = 2;
-        styleProductTextField(m_jPriceSell, 180);
+        leftFieldsPanel.add(jLabel4, gbcLeft);
+        gbcLeft.gridx = 1;
+        gbcLeft.weightx = 1.0;
+        gbcLeft.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        styleProductTextField(m_jPriceSell, 240);
         m_jPriceSell.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
         if (m_jPriceSell.getParent() != null)
             m_jPriceSell.getParent().remove(m_jPriceSell);
-        mainFieldsPanel.add(m_jPriceSell, gbc);
-        row++;
+        leftFieldsPanel.add(m_jPriceSell, gbcLeft);
+        gbcLeft.weightx = 0.0;
+        gbcLeft.fill = java.awt.GridBagConstraints.NONE;
+        rowLeft++;
 
         // Ganancia (calculada automáticamente)
-        gbc.gridx = 1;
-        gbc.gridy = row;
+        gbcLeft.gridx = 0;
+        gbcLeft.gridy = rowLeft;
         javax.swing.JLabel lblGanancia = createProductFormLabel("Ganancia");
-        mainFieldsPanel.add(lblGanancia, gbc);
-        gbc.gridx = 2;
+        leftFieldsPanel.add(lblGanancia, gbcLeft);
+        gbcLeft.gridx = 1;
+        gbcLeft.weightx = 1.0;
+        gbcLeft.fill = java.awt.GridBagConstraints.HORIZONTAL;
         if (m_jGrossProfit.getParent() != null)
             m_jGrossProfit.getParent().remove(m_jGrossProfit);
-        styleProductTextField(m_jGrossProfit, 180);
+        styleProductTextField(m_jGrossProfit, 240);
         m_jGrossProfit.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
         m_jGrossProfit.setEnabled(false);
         m_jGrossProfit.setDisabledTextColor(new java.awt.Color(15, 23, 42));
         m_jGrossProfit.setBackground(new java.awt.Color(248, 250, 252));
-        mainFieldsPanel.add(m_jGrossProfit, gbc);
-        row++;
-
-        // Precio Mayoreo - OCULTADO
-        // gbc.gridx = 0; gbc.gridy = row;
-        // javax.swing.JLabel lblMayoreo = new javax.swing.JLabel("Precio Mayoreo:");
-        // lblMayoreo.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
-        // lblMayoreo.setPreferredSize(new java.awt.Dimension(140, 25));
-        // mainFieldsPanel.add(lblMayoreo, gbc);
-        // gbc.gridx = 1;
-        // m_jPriceSellTax.setPreferredSize(new java.awt.Dimension(160, 30));
-        // m_jPriceSellTax.setMaximumSize(new java.awt.Dimension(160, 30));
-        // m_jPriceSellTax.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
-        // if (m_jPriceSellTax.getParent() != null)
-        // m_jPriceSellTax.getParent().remove(m_jPriceSellTax);
-        // mainFieldsPanel.add(m_jPriceSellTax, gbc);
-        // row++;
+        leftFieldsPanel.add(m_jGrossProfit, gbcLeft);
+        gbcLeft.weightx = 0.0;
+        gbcLeft.fill = java.awt.GridBagConstraints.NONE;
+        rowLeft++;
 
         // Checkbox "Acumula Puntos"
-        gbc.gridx = 1;
-        gbc.gridy = row;
-        gbc.gridx = 1;
-        gbc.gridwidth = 2;
-        gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gbc.insets = new java.awt.Insets(3, 0, 3, 15);
+        gbcLeft.gridx = 0;
+        gbcLeft.gridy = rowLeft;
+        gbcLeft.gridwidth = 2;
+        gbcLeft.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gbcLeft.insets = new java.awt.Insets(6, 0, 6, 0);
         if (m_jAccumulatesPoints.getParent() != null)
             m_jAccumulatesPoints.getParent().remove(m_jAccumulatesPoints);
         m_jAccumulatesPoints.setText(AppLocal.getIntString("label.prodaccumulatespoints"));
         styleProductToggle(m_jAccumulatesPoints);
-        mainFieldsPanel.add(m_jAccumulatesPoints, gbc);
-        gbc.gridwidth = 1;
-        gbc.fill = java.awt.GridBagConstraints.NONE;
-        gbc.insets = new java.awt.Insets(6, 0, 6, 18);
-        row++;
+        leftFieldsPanel.add(m_jAccumulatesPoints, gbcLeft);
+        gbcLeft.gridwidth = 1;
+        gbcLeft.fill = java.awt.GridBagConstraints.NONE;
+        gbcLeft.insets = new java.awt.Insets(6, 0, 6, 12);
 
-        // --- FILA: Lote y Modelo ---
-        gbc.gridy = row;
+        // Panel Secundario (Derecha)
+        javax.swing.JPanel rightFieldsPanel = new javax.swing.JPanel(new java.awt.GridBagLayout());
+        rightFieldsPanel.setOpaque(false);
+        java.awt.GridBagConstraints gbcRight = new java.awt.GridBagConstraints();
+        gbcRight.anchor = java.awt.GridBagConstraints.WEST;
+        gbcRight.insets = new java.awt.Insets(6, 0, 6, 12);
+        gbcRight.fill = java.awt.GridBagConstraints.NONE;
+
+        int rowRight = 0;
 
         // Lote
-        gbc.gridx = 1;
+        gbcRight.gridx = 0;
+        gbcRight.gridy = rowRight;
         jLabelLote.setText("Lote:");
         jLabelLote.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
         jLabelLote.setForeground(new java.awt.Color(55, 65, 81));
-        jLabelLote.setPreferredSize(new java.awt.Dimension(90, 24));
+        jLabelLote.setPreferredSize(new java.awt.Dimension(120, 24));
         if (jLabelLote.getParent() != null)
             jLabelLote.getParent().remove(jLabelLote);
-        mainFieldsPanel.add(jLabelLote, gbc);
-
-        gbc.gridx = 2;
-        styleProductTextField(m_jLote, 130);
+        rightFieldsPanel.add(jLabelLote, gbcRight);
+        gbcRight.gridx = 1;
+        gbcRight.weightx = 1.0;
+        gbcRight.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        styleProductTextField(m_jLote, 220);
         if (m_jLote.getParent() != null)
             m_jLote.getParent().remove(m_jLote);
-        mainFieldsPanel.add(m_jLote, gbc);
+        rightFieldsPanel.add(m_jLote, gbcRight);
+        gbcRight.weightx = 0.0;
+        gbcRight.fill = java.awt.GridBagConstraints.NONE;
+        rowRight++;
 
         // Modelo
-        gbc.gridx = 3;
+        gbcRight.gridx = 0;
+        gbcRight.gridy = rowRight;
         jLabelModelo.setText("Modelo:");
         jLabelModelo.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
         jLabelModelo.setForeground(new java.awt.Color(55, 65, 81));
-        jLabelModelo.setPreferredSize(new java.awt.Dimension(90, 24));
+        jLabelModelo.setPreferredSize(new java.awt.Dimension(120, 24));
         if (jLabelModelo.getParent() != null)
             jLabelModelo.getParent().remove(jLabelModelo);
-        mainFieldsPanel.add(jLabelModelo, gbc);
-
-        gbc.gridx = 4;
-        styleProductTextField(m_jModelo, 130);
+        rightFieldsPanel.add(jLabelModelo, gbcRight);
+        gbcRight.gridx = 1;
+        gbcRight.weightx = 1.0;
+        gbcRight.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        styleProductTextField(m_jModelo, 220);
         if (m_jModelo.getParent() != null)
             m_jModelo.getParent().remove(m_jModelo);
-        mainFieldsPanel.add(m_jModelo, gbc);
-
-        row++;
-
-        // --- FILA: Color y Voltaje ---
-        gbc.gridy = row;
+        rightFieldsPanel.add(m_jModelo, gbcRight);
+        gbcRight.weightx = 0.0;
+        gbcRight.fill = java.awt.GridBagConstraints.NONE;
+        rowRight++;
 
         // Color
-        gbc.gridx = 1;
+        gbcRight.gridx = 0;
+        gbcRight.gridy = rowRight;
         jLabelColor.setText("Color:");
         jLabelColor.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
         jLabelColor.setForeground(new java.awt.Color(55, 65, 81));
-        jLabelColor.setPreferredSize(new java.awt.Dimension(90, 24));
+        jLabelColor.setPreferredSize(new java.awt.Dimension(120, 24));
         if (jLabelColor.getParent() != null)
             jLabelColor.getParent().remove(jLabelColor);
-        mainFieldsPanel.add(jLabelColor, gbc);
-
-        gbc.gridx = 2;
-        styleProductTextField(m_jColor, 130);
+        rightFieldsPanel.add(jLabelColor, gbcRight);
+        gbcRight.gridx = 1;
+        gbcRight.weightx = 1.0;
+        gbcRight.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        styleProductTextField(m_jColor, 220);
         if (m_jColor.getParent() != null)
             m_jColor.getParent().remove(m_jColor);
-        mainFieldsPanel.add(m_jColor, gbc);
+        rightFieldsPanel.add(m_jColor, gbcRight);
+        gbcRight.weightx = 0.0;
+        gbcRight.fill = java.awt.GridBagConstraints.NONE;
+        rowRight++;
 
         // Voltaje
-        gbc.gridx = 3;
+        gbcRight.gridx = 0;
+        gbcRight.gridy = rowRight;
         jLabelVoltaje.setText("Voltaje:");
         jLabelVoltaje.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
         jLabelVoltaje.setForeground(new java.awt.Color(55, 65, 81));
-        jLabelVoltaje.setPreferredSize(new java.awt.Dimension(90, 24));
+        jLabelVoltaje.setPreferredSize(new java.awt.Dimension(120, 24));
         if (jLabelVoltaje.getParent() != null)
             jLabelVoltaje.getParent().remove(jLabelVoltaje);
-        mainFieldsPanel.add(jLabelVoltaje, gbc);
-
-        gbc.gridx = 4;
-        styleProductTextField(m_jVoltaje, 130);
+        rightFieldsPanel.add(jLabelVoltaje, gbcRight);
+        gbcRight.gridx = 1;
+        gbcRight.weightx = 1.0;
+        gbcRight.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        styleProductTextField(m_jVoltaje, 220);
         if (m_jVoltaje.getParent() != null)
             m_jVoltaje.getParent().remove(m_jVoltaje);
-        mainFieldsPanel.add(m_jVoltaje, gbc);
+        rightFieldsPanel.add(m_jVoltaje, gbcRight);
+        gbcRight.weightx = 0.0;
+        gbcRight.fill = java.awt.GridBagConstraints.NONE;
+        rowRight++;
 
-        row++;
-
-        // --- FILA: NoSerie ---
-        gbc.gridy = row;
-        gbc.gridx = 1;
+        // NoSerie
+        gbcRight.gridx = 0;
+        gbcRight.gridy = rowRight;
         jLabelNoSerie.setText("No. Serie:");
         jLabelNoSerie.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
         jLabelNoSerie.setForeground(new java.awt.Color(55, 65, 81));
-        jLabelNoSerie.setPreferredSize(new java.awt.Dimension(90, 24));
+        jLabelNoSerie.setPreferredSize(new java.awt.Dimension(120, 24));
         if (jLabelNoSerie.getParent() != null)
             jLabelNoSerie.getParent().remove(jLabelNoSerie);
-        mainFieldsPanel.add(jLabelNoSerie, gbc);
-
-        gbc.gridx = 2;
-        styleProductTextField(m_jNoSerie, 130);
+        rightFieldsPanel.add(jLabelNoSerie, gbcRight);
+        gbcRight.gridx = 1;
+        gbcRight.weightx = 1.0;
+        gbcRight.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        styleProductTextField(m_jNoSerie, 220);
         if (m_jNoSerie.getParent() != null)
             m_jNoSerie.getParent().remove(m_jNoSerie);
-        mainFieldsPanel.add(m_jNoSerie, gbc);
-
-        row++;
-
-        // --- FILA: Departamento y Categoría de Impuesto ---
-        gbc.gridy = row;
+        rightFieldsPanel.add(m_jNoSerie, gbcRight);
+        gbcRight.weightx = 0.0;
+        gbcRight.fill = java.awt.GridBagConstraints.NONE;
+        rowRight++;
 
         // Departamento
-        gbc.gridx = 1;
+        gbcRight.gridx = 0;
+        gbcRight.gridy = rowRight;
         javax.swing.JLabel lblDept = createProductFormLabel("Departamento");
-        mainFieldsPanel.add(lblDept, gbc);
-
-        gbc.gridx = 2;
-        styleProductComboBox(m_jCategory, 200);
+        lblDept.setPreferredSize(new java.awt.Dimension(120, 24));
+        rightFieldsPanel.add(lblDept, gbcRight);
+        gbcRight.gridx = 1;
+        gbcRight.weightx = 1.0;
+        gbcRight.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        styleProductComboBox(m_jCategory, 220);
         if (m_jCategory.getParent() != null)
             m_jCategory.getParent().remove(m_jCategory);
-        mainFieldsPanel.add(m_jCategory, gbc);
+        rightFieldsPanel.add(m_jCategory, gbcRight);
+        gbcRight.weightx = 0.0;
+        gbcRight.fill = java.awt.GridBagConstraints.NONE;
+        rowRight++;
 
-        // Categoría de Impuesto
-        gbc.gridx = 3;
+        // Impuesto
+        gbcRight.gridx = 0;
+        gbcRight.gridy = rowRight;
         jLabel7.setText("Impuesto:");
         jLabel7.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
         jLabel7.setForeground(new java.awt.Color(55, 65, 81));
-        jLabel7.setPreferredSize(new java.awt.Dimension(90, 24));
+        jLabel7.setPreferredSize(new java.awt.Dimension(120, 24));
         if (jLabel7.getParent() != null)
             jLabel7.getParent().remove(jLabel7);
-        mainFieldsPanel.add(jLabel7, gbc);
-
-        gbc.gridx = 4;
-        styleProductComboBox(m_jTax, 130);
+        rightFieldsPanel.add(jLabel7, gbcRight);
+        gbcRight.gridx = 1;
+        gbcRight.weightx = 1.0;
+        gbcRight.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        styleProductComboBox(m_jTax, 220);
         if (m_jTax.getParent() != null)
             m_jTax.getParent().remove(m_jTax);
-        mainFieldsPanel.add(m_jTax, gbc);
-
-        row++;
+        rightFieldsPanel.add(m_jTax, gbcRight);
+        gbcRight.weightx = 0.0;
+        gbcRight.fill = java.awt.GridBagConstraints.NONE;
+        rowRight++;
 
         // Línea separadora naranja
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.gridwidth = 5;
-        gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
-        gbc.insets = new java.awt.Insets(6, 0, 4, 0);
+        gbcRight.gridx = 0;
+        gbcRight.gridy = rowRight;
+        gbcRight.gridwidth = 2;
+        gbcRight.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gbcRight.insets = new java.awt.Insets(10, 0, 8, 0);
         javax.swing.JSeparator separator = new javax.swing.JSeparator();
         separator.setForeground(new java.awt.Color(255, 140, 0));
-        separator.setPreferredSize(new java.awt.Dimension(Integer.MAX_VALUE, 2));
-        mainFieldsPanel.add(separator, gbc);
-        gbc.gridwidth = 1;
-        gbc.fill = java.awt.GridBagConstraints.NONE;
-        gbc.weightx = 0.0;
-        row++;
+        separator.setPreferredSize(new java.awt.Dimension(180, 2));
+        rightFieldsPanel.add(separator, gbcRight);
+        gbcRight.gridwidth = 1;
+        gbcRight.fill = java.awt.GridBagConstraints.NONE;
+        gbcRight.insets = new java.awt.Insets(6, 0, 6, 12);
+        rowRight++;
 
-        // Título "Inventario" con líneas decorativas
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.gridwidth = 5;
-        gbc.anchor = java.awt.GridBagConstraints.CENTER;
-        gbc.insets = new java.awt.Insets(2, 0, 4, 0);
+        // Título "Inventario"
+        gbcRight.gridx = 0;
+        gbcRight.gridy = rowRight;
+        gbcRight.gridwidth = 2;
+        gbcRight.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gbcRight.insets = new java.awt.Insets(0, 0, 8, 0);
         javax.swing.JPanel inventarioTitlePanel = new javax.swing.JPanel(
-                new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 12, 0));
+                new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 0, 0));
         inventarioTitlePanel.setBackground(java.awt.Color.WHITE);
-        javax.swing.JSeparator sep1 = new javax.swing.JSeparator();
-        sep1.setPreferredSize(new java.awt.Dimension(60, 2));
-        sep1.setForeground(new java.awt.Color(255, 140, 0));
         javax.swing.JLabel lblInventario = new javax.swing.JLabel("Inventario");
-        lblInventario.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 16));
+        lblInventario.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 15));
         lblInventario.setForeground(new java.awt.Color(249, 115, 22));
-        javax.swing.JSeparator sep2 = new javax.swing.JSeparator();
-        sep2.setPreferredSize(new java.awt.Dimension(60, 2));
-        sep2.setForeground(new java.awt.Color(255, 140, 0));
-        inventarioTitlePanel.add(sep1);
         inventarioTitlePanel.add(lblInventario);
-        inventarioTitlePanel.add(sep2);
-        mainFieldsPanel.add(inventarioTitlePanel, gbc);
-        gbc.gridwidth = 1;
-        gbc.anchor = java.awt.GridBagConstraints.WEST;
-        gbc.insets = new java.awt.Insets(3, 15, 3, 15);
-        row++;
+        rightFieldsPanel.add(inventarioTitlePanel, gbcRight);
+        gbcRight.gridwidth = 1;
+        gbcRight.fill = java.awt.GridBagConstraints.NONE;
+        gbcRight.insets = new java.awt.Insets(6, 0, 6, 12);
+        rowRight++;
 
         // Checkbox "Este producto SI utiliza inventario"
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.gridwidth = 5;
-        gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gbc.insets = new java.awt.Insets(3, 15, 3, 15);
+        gbcRight.gridx = 0;
+        gbcRight.gridy = rowRight;
+        gbcRight.gridwidth = 2;
+        gbcRight.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gbcRight.insets = new java.awt.Insets(0, 0, 8, 0);
         boolean initialUsesInventory = !m_jService.isSelected();
         chkUseInventory = new javax.swing.JCheckBox("Este producto SI utiliza inventario.", initialUsesInventory);
         styleProductToggle(chkUseInventory);
-        // Listener para actualizar m_jService y campos de stock cuando cambia el
-        // checkbox
         chkUseInventory.addActionListener(e -> {
             boolean useInventory = chkUseInventory.isSelected();
             m_jService.setSelected(!useInventory);
-            // Actualizar estado de campos de stock basado en si usa inventario
-            // Los campos solo son editables si el producto usa inventario
             m_jStockCurrent.setEditable(useInventory);
             m_jStockMinimum.setEditable(useInventory);
         });
-        // También escuchar cambios en m_jService directamente para mantener
-        // sincronización
         java.awt.event.ActionListener serviceListener = e -> {
             boolean useInventory = !m_jService.isSelected();
             if (chkUseInventory != null && chkUseInventory.isSelected() != useInventory) {
                 chkUseInventory.setSelected(useInventory);
             }
-            // Actualizar estado de campos de stock
             m_jStockCurrent.setEditable(useInventory);
             m_jStockMinimum.setEditable(useInventory);
         };
-        // Agregar el listener solo si no existe ya uno que haga esto
-        // (evitar duplicar listeners)
         m_jService.addActionListener(serviceListener);
-        mainFieldsPanel.add(chkUseInventory, gbc);
-        gbc.gridwidth = 1;
-        gbc.fill = java.awt.GridBagConstraints.NONE;
-        gbc.insets = new java.awt.Insets(6, 15, 6, 15);
-        row++;
-
-        // --- FILA: Stock Actual y Mínimo ---
-        gbc.gridy = row;
+        rightFieldsPanel.add(chkUseInventory, gbcRight);
+        gbcRight.gridwidth = 1;
+        gbcRight.fill = java.awt.GridBagConstraints.NONE;
+        gbcRight.insets = new java.awt.Insets(6, 0, 6, 12);
+        rowRight++;
 
         // Cantidad Actual
-        gbc.gridx = 1;
+        gbcRight.gridx = 0;
+        gbcRight.gridy = rowRight;
         jLabelStockCurrent.setText("Cant. Actual:");
         jLabelStockCurrent.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
         jLabelStockCurrent.setForeground(new java.awt.Color(55, 65, 81));
-        jLabelStockCurrent.setPreferredSize(new java.awt.Dimension(90, 24));
+        jLabelStockCurrent.setPreferredSize(new java.awt.Dimension(120, 24));
         if (jLabelStockCurrent.getParent() != null)
             jLabelStockCurrent.getParent().remove(jLabelStockCurrent);
-        mainFieldsPanel.add(jLabelStockCurrent, gbc);
-
-        gbc.gridx = 2;
-        styleProductTextField(m_jStockCurrent, 130);
+        rightFieldsPanel.add(jLabelStockCurrent, gbcRight);
+        gbcRight.gridx = 1;
+        gbcRight.weightx = 1.0;
+        gbcRight.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        styleProductTextField(m_jStockCurrent, 220);
         m_jStockCurrent.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
         m_jStockCurrent.setEditable(initialUsesInventory);
         if (m_jStockCurrent.getParent() != null)
             m_jStockCurrent.getParent().remove(m_jStockCurrent);
-        mainFieldsPanel.add(m_jStockCurrent, gbc);
+        rightFieldsPanel.add(m_jStockCurrent, gbcRight);
+        gbcRight.weightx = 0.0;
+        gbcRight.fill = java.awt.GridBagConstraints.NONE;
+        rowRight++;
 
         // Mínimo
-        gbc.gridx = 3;
+        gbcRight.gridx = 0;
+        gbcRight.gridy = rowRight;
         jLabelStockMinimum.setText("Mínimo:");
         jLabelStockMinimum.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
         jLabelStockMinimum.setForeground(new java.awt.Color(55, 65, 81));
-        jLabelStockMinimum.setPreferredSize(new java.awt.Dimension(90, 24));
+        jLabelStockMinimum.setPreferredSize(new java.awt.Dimension(120, 24));
         if (jLabelStockMinimum.getParent() != null)
             jLabelStockMinimum.getParent().remove(jLabelStockMinimum);
-        mainFieldsPanel.add(jLabelStockMinimum, gbc);
-
-        gbc.gridx = 4;
-        styleProductTextField(m_jStockMinimum, 130);
+        rightFieldsPanel.add(jLabelStockMinimum, gbcRight);
+        gbcRight.gridx = 1;
+        gbcRight.weightx = 1.0;
+        gbcRight.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        styleProductTextField(m_jStockMinimum, 220);
         m_jStockMinimum.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
         m_jStockMinimum.setEditable(initialUsesInventory);
         if (m_jStockMinimum.getParent() != null)
             m_jStockMinimum.getParent().remove(m_jStockMinimum);
-        mainFieldsPanel.add(m_jStockMinimum, gbc);
+        rightFieldsPanel.add(m_jStockMinimum, gbcRight);
+        gbcRight.weightx = 0.0;
+        gbcRight.fill = java.awt.GridBagConstraints.NONE;
+        rowRight++;
 
-        row++;
+        // Contenedor GridLayout para poner los dos bloques lado a lado
+        javax.swing.JPanel fieldsContainer = new javax.swing.JPanel(new java.awt.GridLayout(1, 2, 30, 0));
+        fieldsContainer.setOpaque(false);
+        fieldsContainer.add(leftFieldsPanel);
+        fieldsContainer.add(rightFieldsPanel);
+
+        mainFieldsPanel.add(fieldsContainer, java.awt.BorderLayout.CENTER);
 
         // --- Panel 2: Proveedor ---
         javax.swing.JPanel supplierTabPanel = new javax.swing.JPanel(new java.awt.GridBagLayout());
@@ -4333,56 +4565,27 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         java.awt.GridBagConstraints gbcSup = new java.awt.GridBagConstraints();
         gbcSup.insets = new java.awt.Insets(12, 18, 12, 18);
 
-        // 1. Panel de Búsqueda (ProductFilter) en la parte superior
+        // 1. Selector de Proveedor en la parte superior (arriba)
         gbcSup.gridx = 0;
         gbcSup.gridy = 0;
-        gbcSup.gridwidth = 4;
-        gbcSup.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gbcSup.anchor = java.awt.GridBagConstraints.NORTHWEST;
-        gbcSup.weightx = 1.0;
-        gbcSup.weighty = 0.0;
-        
-        if (m_productFilter != null) {
-            java.awt.Component filterComp = m_productFilter.getComponent();
-            if (filterComp instanceof javax.swing.JComponent) {
-                ((javax.swing.JComponent) filterComp).setOpaque(false);
-            }
-            if (filterComp.getParent() != null) {
-                filterComp.getParent().remove(filterComp);
-            }
-            supplierTabPanel.add(filterComp, gbcSup);
-        }
-
-        // 2. Línea separadora
-        gbcSup.gridy = 1;
-        gbcSup.gridx = 0;
-        gbcSup.gridwidth = 4;
-        gbcSup.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gbcSup.insets = new java.awt.Insets(5, 18, 15, 18);
-        javax.swing.JSeparator sepSup = new javax.swing.JSeparator();
-        sepSup.setForeground(new java.awt.Color(255, 140, 0)); // Color naranja premium
-        supplierTabPanel.add(sepSup, gbcSup);
-
-        // 3. Proveedores Asociados abajo
-        gbcSup.insets = new java.awt.Insets(12, 18, 12, 18);
         gbcSup.gridwidth = 1;
         gbcSup.fill = java.awt.GridBagConstraints.NONE;
+        gbcSup.anchor = java.awt.GridBagConstraints.WEST;
         gbcSup.weightx = 0.0;
+        gbcSup.weighty = 0.0;
 
-        // Label "Proveedor:"
-        gbcSup.gridy = 2;
-        gbcSup.gridx = 0;
         javax.swing.JLabel lblSupplier = createProductFormLabel("Proveedor");
         supplierTabPanel.add(lblSupplier, gbcSup);
 
-        // JComboBox m_jSupplier
         gbcSup.gridx = 1;
-        styleProductComboBox(m_jSupplier, 240);
+        styleProductComboBox(m_jSupplier, 300);
         if (m_jSupplier.getParent() != null)
             m_jSupplier.getParent().remove(m_jSupplier);
         supplierTabPanel.add(m_jSupplier, gbcSup);
 
-        // JButton jBtnSupplier
+        // Action listener to reload table when selection changes
+        m_jSupplier.addActionListener(e -> updateSupplierProductsTable());
+
         gbcSup.gridx = 2;
         jBtnSupplier.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
         jBtnSupplier.setPreferredSize(new java.awt.Dimension(140, 30));
@@ -4394,13 +4597,59 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
             jBtnSupplier.getParent().remove(jBtnSupplier);
         supplierTabPanel.add(jBtnSupplier, gbcSup);
 
-        // 4. Espaciador vertical inferior
+        // 2. Línea separadora
+        gbcSup.gridy = 1;
+        gbcSup.gridx = 0;
+        gbcSup.gridwidth = 4;
+        gbcSup.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gbcSup.insets = new java.awt.Insets(15, 18, 15, 18);
+        javax.swing.JSeparator sepSup = new javax.swing.JSeparator();
+        sepSup.setForeground(new java.awt.Color(226, 232, 240)); // Gris slate sutil
+        supplierTabPanel.add(sepSup, gbcSup);
+
+        // 3. Título de la tabla de productos asociados
+        gbcSup.gridy = 2;
+        gbcSup.gridx = 0;
+        gbcSup.gridwidth = 4;
+        gbcSup.insets = new java.awt.Insets(0, 18, 8, 18);
+        javax.swing.JLabel lblAssociatedProducts = new javax.swing.JLabel("Productos asociados a este proveedor:");
+        lblAssociatedProducts.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
+        lblAssociatedProducts.setForeground(new java.awt.Color(15, 23, 42));
+        supplierTabPanel.add(lblAssociatedProducts, gbcSup);
+
+        // 4. Tabla de productos asociados abajo
         gbcSup.gridy = 3;
         gbcSup.gridx = 0;
         gbcSup.gridwidth = 4;
         gbcSup.fill = java.awt.GridBagConstraints.BOTH;
+        gbcSup.weightx = 1.0;
         gbcSup.weighty = 1.0;
-        supplierTabPanel.add(new javax.swing.JLabel(), gbcSup);
+        gbcSup.insets = new java.awt.Insets(4, 18, 12, 18);
+
+        String[] supplierProdColumns = { "Código", "Referencia", "Nombre", "Precio Venta" };
+        supplierProductsTableModel = new javax.swing.table.DefaultTableModel(supplierProdColumns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        jTableSupplierProducts = new javax.swing.JTable(supplierProductsTableModel);
+        jTableSupplierProducts.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        jTableSupplierProducts.setRowHeight(28);
+        jTableSupplierProducts.getTableHeader().setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        jTableSupplierProducts.setSelectionBackground(new java.awt.Color(204, 251, 241)); // color de selección teal
+        jTableSupplierProducts.setSelectionForeground(new java.awt.Color(15, 23, 42));
+        jTableSupplierProducts.setGridColor(new java.awt.Color(241, 245, 249));
+
+        jTableSupplierProducts.getColumnModel().getColumn(0).setPreferredWidth(150); // Código
+        jTableSupplierProducts.getColumnModel().getColumn(1).setPreferredWidth(150); // Referencia
+        jTableSupplierProducts.getColumnModel().getColumn(2).setPreferredWidth(450); // Nombre
+        jTableSupplierProducts.getColumnModel().getColumn(3).setPreferredWidth(120); // Precio Venta
+
+        javax.swing.JScrollPane supplierProdScroll = new javax.swing.JScrollPane(jTableSupplierProducts);
+        supplierProdScroll.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(226, 232, 240)));
+        supplierProdScroll.getViewport().setBackground(java.awt.Color.WHITE);
+        supplierTabPanel.add(supplierProdScroll, gbcSup);
 
         // Crear el Tabbed Pane del Editor
         javax.swing.JTabbedPane editorTabbedPane = new javax.swing.JTabbedPane();
@@ -4409,7 +4658,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         editorTabbedPane.setForeground(new java.awt.Color(30, 41, 59));
 
         // Envolver cada panel en un JScrollPane
-        String[] auditColumnNames = {"Fecha y Hora", "Usuario", "Acción", "Detalles"};
+        String[] auditColumnNames = { "Fecha y Hora", "Usuario", "Acción", "Detalles" };
         auditHistoryTableModel = new javax.swing.table.DefaultTableModel(auditColumnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -4421,15 +4670,15 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         jTableProductAuditHistory.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
         jTableProductAuditHistory.setRowHeight(24);
         jTableProductAuditHistory.getTableHeader().setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
-        
+
         jTableProductAuditHistory.setSelectionBackground(new java.awt.Color(254, 243, 199)); // Amber selection
         jTableProductAuditHistory.setSelectionForeground(new java.awt.Color(120, 53, 4));
         jTableProductAuditHistory.setGridColor(new java.awt.Color(241, 245, 249));
 
-        jTableProductAuditHistory.getColumnModel().getColumn(0).setPreferredWidth(140); // Fecha
-        jTableProductAuditHistory.getColumnModel().getColumn(1).setPreferredWidth(120); // Usuario
-        jTableProductAuditHistory.getColumnModel().getColumn(2).setPreferredWidth(100); // Acción
-        jTableProductAuditHistory.getColumnModel().getColumn(3).setPreferredWidth(400); // Detalles
+        jTableProductAuditHistory.getColumnModel().getColumn(0).setPreferredWidth(110); // Fecha
+        jTableProductAuditHistory.getColumnModel().getColumn(1).setPreferredWidth(80); // Usuario
+        jTableProductAuditHistory.getColumnModel().getColumn(2).setPreferredWidth(70); // Acción
+        jTableProductAuditHistory.getColumnModel().getColumn(3).setPreferredWidth(100); // Detalles
 
         javax.swing.JScrollPane auditTableScrollPane = new javax.swing.JScrollPane(jTableProductAuditHistory);
         auditTableScrollPane.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(226, 232, 240)));
@@ -4443,47 +4692,45 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         txtAuditDetails.setForeground(new java.awt.Color(51, 65, 85));
         javax.swing.JScrollPane auditDetailScrollPane = new javax.swing.JScrollPane(txtAuditDetails);
         auditDetailScrollPane.setBorder(javax.swing.BorderFactory.createTitledBorder(
-            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(226, 232, 240)), 
-            "Detalles del Cambio Seleccionado", 
-            javax.swing.border.TitledBorder.LEFT, 
-            javax.swing.border.TitledBorder.TOP, 
-            new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12), 
-            new java.awt.Color(71, 85, 105)
-        ));
+                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(226, 232, 240)),
+                "Detalles del Cambio Seleccionado",
+                javax.swing.border.TitledBorder.LEFT,
+                javax.swing.border.TitledBorder.TOP,
+                new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12),
+                new java.awt.Color(71, 85, 105)));
 
-        jTableProductAuditHistory.getSelectionModel().addListSelectionListener(new javax.swing.event.ListSelectionListener() {
-            @Override
-            public void valueChanged(javax.swing.event.ListSelectionEvent e) {
-                int selectedRow = jTableProductAuditHistory.getSelectedRow();
-                java.util.List<Object[]> dataList = (java.util.List<Object[]>) jTableProductAuditHistory.getClientProperty("auditDataList");
-                if (selectedRow >= 0 && dataList != null && selectedRow < dataList.size()) {
-                    txtAuditDetails.setText(String.valueOf(dataList.get(selectedRow)[3]));
-                } else {
-                    txtAuditDetails.setText("");
-                }
-            }
-        });
-
-        javax.swing.JSplitPane auditSplitPane = new javax.swing.JSplitPane(javax.swing.JSplitPane.VERTICAL_SPLIT, auditTableScrollPane, auditDetailScrollPane);
-        auditSplitPane.setDividerLocation(100);
-        auditSplitPane.setOpaque(false);
-        auditSplitPane.setBorder(null);
+        jTableProductAuditHistory.getSelectionModel()
+                .addListSelectionListener(new javax.swing.event.ListSelectionListener() {
+                    @Override
+                    public void valueChanged(javax.swing.event.ListSelectionEvent e) {
+                        int selectedRow = jTableProductAuditHistory.getSelectedRow();
+                        java.util.List<Object[]> dataList = (java.util.List<Object[]>) jTableProductAuditHistory
+                                .getClientProperty("auditDataList");
+                        if (selectedRow >= 0 && dataList != null && selectedRow < dataList.size()) {
+                            txtAuditDetails.setText(String.valueOf(dataList.get(selectedRow)[3]));
+                        } else {
+                            txtAuditDetails.setText("");
+                        }
+                    }
+                });
 
         javax.swing.JPanel productAuditPanel = new javax.swing.JPanel(new java.awt.BorderLayout(8, 8));
         productAuditPanel.setBackground(java.awt.Color.WHITE);
         productAuditPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(
-            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(226, 232, 240)), 
-            "Historial de Cambios del Producto", 
-            javax.swing.border.TitledBorder.LEFT, 
-            javax.swing.border.TitledBorder.TOP, 
-            new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13), 
-            new java.awt.Color(30, 41, 59)
-        ));
-        productAuditPanel.setPreferredSize(new java.awt.Dimension(800, 220));
-        productAuditPanel.add(auditSplitPane, java.awt.BorderLayout.CENTER);
+                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(226, 232, 240)),
+                "Historial de Cambios del Producto",
+                javax.swing.border.TitledBorder.LEFT,
+                javax.swing.border.TitledBorder.TOP,
+                new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13),
+                new java.awt.Color(30, 41, 59)));
+        productAuditPanel.setPreferredSize(new java.awt.Dimension(360, 450));
+        productAuditPanel.add(auditTableScrollPane, java.awt.BorderLayout.CENTER);
 
-        contentPanel.add(mainFieldsPanel, java.awt.BorderLayout.NORTH);
-        contentPanel.add(productAuditPanel, java.awt.BorderLayout.CENTER);
+        javax.swing.JPanel upperPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+        upperPanel.setOpaque(false);
+        upperPanel.add(mainFieldsPanel, java.awt.BorderLayout.CENTER);
+
+        contentPanel.add(upperPanel, java.awt.BorderLayout.CENTER);
         javax.swing.JScrollPane generalScroll = new javax.swing.JScrollPane(contentPanel);
         generalScroll.setBorder(null);
         generalScroll.getViewport().setBackground(java.awt.Color.WHITE);
@@ -4491,6 +4738,66 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         javax.swing.JScrollPane supplierScroll = new javax.swing.JScrollPane(supplierTabPanel);
         supplierScroll.setBorder(null);
         supplierScroll.getViewport().setBackground(java.awt.Color.WHITE);
+
+        // Inicializar Historial de Stock
+        String[] stockColumnNames = { "Fecha y Hora", "Tipo / Razón", "Ubicación", "Unidades", "Precio Unit.", "Total",
+                "Usuario", "Proveedor", "Doc. Proveedor" };
+        stockHistoryTableModel = new javax.swing.table.DefaultTableModel(stockColumnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        jTableProductStockHistory = new javax.swing.JTable(stockHistoryTableModel);
+        jTableProductStockHistory.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        jTableProductStockHistory.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        jTableProductStockHistory.setRowHeight(24);
+        jTableProductStockHistory.getTableHeader().setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        jTableProductStockHistory.setSelectionBackground(new java.awt.Color(254, 243, 199)); // Amber selection
+        jTableProductStockHistory.setSelectionForeground(new java.awt.Color(120, 53, 4));
+        jTableProductStockHistory.setGridColor(new java.awt.Color(241, 245, 249));
+
+        jTableProductStockHistory.getColumnModel().getColumn(0).setPreferredWidth(140); // Fecha
+        jTableProductStockHistory.getColumnModel().getColumn(1).setPreferredWidth(130); // Razón
+        jTableProductStockHistory.getColumnModel().getColumn(2).setPreferredWidth(120); // Ubicación
+        jTableProductStockHistory.getColumnModel().getColumn(3).setPreferredWidth(80); // Unidades
+        jTableProductStockHistory.getColumnModel().getColumn(4).setPreferredWidth(100); // Precio Unit
+        jTableProductStockHistory.getColumnModel().getColumn(5).setPreferredWidth(100); // Total
+        jTableProductStockHistory.getColumnModel().getColumn(6).setPreferredWidth(100); // Usuario
+        jTableProductStockHistory.getColumnModel().getColumn(7).setPreferredWidth(120); // Proveedor
+        jTableProductStockHistory.getColumnModel().getColumn(8).setPreferredWidth(120); // Doc. Prov
+
+        jTableProductStockHistory.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public java.awt.Component getTableCellRendererComponent(javax.swing.JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                java.awt.Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row,
+                        column);
+                if (column == 3 || column == 5) {
+                    String valStr = value != null ? value.toString() : "";
+                    if (valStr.startsWith("+")) {
+                        c.setForeground(new java.awt.Color(25, 135, 84)); // Green
+                    } else if (valStr.startsWith("-")) {
+                        c.setForeground(new java.awt.Color(220, 53, 69)); // Red
+                    } else {
+                        c.setForeground(table.getForeground());
+                    }
+                } else {
+                    c.setForeground(table.getForeground());
+                }
+                if (isSelected) {
+                    c.setBackground(table.getSelectionBackground());
+                    c.setForeground(table.getSelectionForeground());
+                } else {
+                    c.setBackground(table.getBackground());
+                }
+                return c;
+            }
+        });
+
+        javax.swing.JScrollPane stockHistoryScrollPane = new javax.swing.JScrollPane(jTableProductStockHistory);
+        stockHistoryScrollPane.setBorder(null);
+        stockHistoryScrollPane.getViewport().setBackground(java.awt.Color.WHITE);
 
         editorTabbedPane.addTab("Datos Generales", generalScroll);
         editorTabbedPane.addTab("Proveedor", supplierScroll);
@@ -4506,6 +4813,21 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                 jPanel4.getParent().remove(jPanel4);
             editorTabbedPane.addTab("Botón", jPanel4);
         }
+
+        editorTabbedPane.addTab("Historial de Stock", stockHistoryScrollPane);
+
+        // Historial de cambios en pestaña dedicada
+        javax.swing.JPanel auditTabPanel = new javax.swing.JPanel(new java.awt.BorderLayout(0, 10));
+        auditTabPanel.setBackground(java.awt.Color.WHITE);
+        auditTabPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        if (productAuditPanel.getParent() != null)
+            productAuditPanel.getParent().remove(productAuditPanel);
+        if (auditDetailScrollPane.getParent() != null)
+            auditDetailScrollPane.getParent().remove(auditDetailScrollPane);
+        auditTabPanel.add(productAuditPanel, java.awt.BorderLayout.CENTER);
+        auditDetailScrollPane.setPreferredSize(new java.awt.Dimension(800, 120));
+        auditTabPanel.add(auditDetailScrollPane, java.awt.BorderLayout.SOUTH);
+        editorTabbedPane.addTab("Historial de Cambios", auditTabPanel);
 
         mainCombinedPanel.add(editorTabbedPane, java.awt.BorderLayout.CENTER);
 
@@ -4705,6 +5027,39 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
             m_jdate.setText(Formats.TIMESTAMP.formatValue(date));
         }
     }// GEN-LAST:event_m_jbtndateActionPerformed
+
+    private void updateSupplierProductsTable() {
+        if (supplierProductsTableModel == null) {
+            return;
+        }
+        supplierProductsTableModel.setRowCount(0);
+        String supplierId = (String) m_SuppliersModel.getSelectedKey();
+        if (supplierId == null || supplierId.trim().isEmpty()) {
+            return;
+        }
+
+        try (java.sql.Connection con = appView.getSession().getConnection();
+                java.sql.PreparedStatement ps = con.prepareStatement(
+                        "SELECT CODE, REFERENCE, NAME, PRICESELL FROM products WHERE SUPPLIER = ? ORDER BY NAME")) {
+            ps.setString(1, supplierId);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String code = rs.getString(1);
+                    String ref = rs.getString(2);
+                    String name = rs.getString(3);
+                    double price = rs.getDouble(4);
+                    supplierProductsTableModel.addRow(new Object[] {
+                            code != null ? code : "",
+                            ref != null ? ref : "",
+                            name != null ? name : "",
+                            Formats.CURRENCY.formatValue(price)
+                    });
+                }
+            }
+        } catch (java.sql.SQLException ex) {
+            LOGGER.log(Level.WARNING, "Error loading supplier products: " + ex.getMessage(), ex);
+        }
+    }
 
     /**
      * Muestra automáticamente la tabla de stock cuando se selecciona la pestaña
@@ -4996,4 +5351,34 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
     private javax.swing.JCheckBox chkUseInventory; // Checkbox "Este producto SI utiliza inventario"
     // End of variables declaration//GEN-END:variables
 
+    private static class ScrollablePanel extends javax.swing.JPanel implements javax.swing.Scrollable {
+        public ScrollablePanel(java.awt.LayoutManager layout) {
+            super(layout);
+        }
+
+        @Override
+        public java.awt.Dimension getPreferredScrollableViewportSize() {
+            return getPreferredSize();
+        }
+
+        @Override
+        public int getScrollableUnitIncrement(java.awt.Rectangle visibleRect, int orientation, int direction) {
+            return 16;
+        }
+
+        @Override
+        public int getScrollableBlockIncrement(java.awt.Rectangle visibleRect, int orientation, int direction) {
+            return 32;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            return true;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportHeight() {
+            return false;
+        }
+    }
 }

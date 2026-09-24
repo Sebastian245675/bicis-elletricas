@@ -15,10 +15,7 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package com.openbravo.pos.catalog;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Insets;
+import java.awt.*;
 import java.awt.event.ActionListener;
 import javax.swing.*;
 
@@ -45,7 +42,7 @@ public class JCatalogTab extends javax.swing.JPanel {
         scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
         scroll.getVerticalScrollBar().setPreferredSize(new Dimension(12, 12)); // Scrollbar más delgado
         scroll.setBorder(null); // Sin borde para apariencia limpia
-        scroll.getViewport().setBackground(new Color(248, 250, 252));
+        scroll.getViewport().setBackground(new Color(250, 247, 242));
         scroll.getVerticalScrollBar().setUnitIncrement(16); // Desplazamiento más suave
 
         add(scroll, BorderLayout.CENTER);
@@ -75,6 +72,95 @@ public class JCatalogTab extends javax.swing.JPanel {
         flowpanel.add(prodCard);
     }
     
+    public void showEmptyState(ActionListener onShowAll) {
+        flowpanel.removeAll();
+        
+        JPanel emptyPanel = new JPanel();
+        emptyPanel.setLayout(new BoxLayout(emptyPanel, BoxLayout.Y_AXIS));
+        emptyPanel.setOpaque(false);
+        emptyPanel.setBorder(BorderFactory.createEmptyBorder(60, 20, 40, 20));
+
+        JLabel iconLabel = new JLabel("📦");
+        iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 56));
+        iconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        emptyPanel.add(iconLabel);
+
+        emptyPanel.add(Box.createVerticalStrut(15));
+
+        JLabel titleLabel = new JLabel("No hay productos en esta categoría");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        titleLabel.setForeground(new Color(55, 65, 81));
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        emptyPanel.add(titleLabel);
+
+        emptyPanel.add(Box.createVerticalStrut(8));
+
+        JLabel subLabel = new JLabel("Puedes registrar o asociar productos en Administración > Productos");
+        subLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subLabel.setForeground(new Color(107, 114, 128));
+        subLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        emptyPanel.add(subLabel);
+
+        if (onShowAll != null) {
+            emptyPanel.add(Box.createVerticalStrut(20));
+            JButton btnAll = new JButton("⭐ Ver todos los productos");
+            btnAll.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            btnAll.setBackground(new Color(202, 159, 65));
+            btnAll.setForeground(Color.WHITE);
+            btnAll.setFocusPainted(false);
+            btnAll.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            btnAll.setBorder(BorderFactory.createEmptyBorder(10, 22, 10, 22));
+            btnAll.setAlignmentX(Component.CENTER_ALIGNMENT);
+            btnAll.addActionListener(onShowAll);
+            emptyPanel.add(btnAll);
+        }
+
+        flowpanel.setLayout(new BorderLayout());
+        flowpanel.add(emptyPanel, BorderLayout.CENTER);
+        flowpanel.revalidate();
+        flowpanel.repaint();
+    }
+    public void clearItems() {
+        flowpanel.removeAll();
+        flowpanel.resetLayout();
+        flowpanel.revalidate();
+        flowpanel.repaint();
+    }
+
+    public void showSearchEmptyState(String query) {
+        flowpanel.removeAll();
+        
+        JPanel emptyPanel = new JPanel();
+        emptyPanel.setLayout(new BoxLayout(emptyPanel, BoxLayout.Y_AXIS));
+        emptyPanel.setOpaque(false);
+        emptyPanel.setBorder(BorderFactory.createEmptyBorder(60, 20, 40, 20));
+
+        JLabel iconLabel = new JLabel("🔍");
+        iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 56));
+        iconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        emptyPanel.add(iconLabel);
+
+        emptyPanel.add(Box.createVerticalStrut(15));
+
+        JLabel titleLabel = new JLabel("No se encontraron productos para \"" + (query != null ? query : "") + "\"");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        titleLabel.setForeground(new Color(55, 65, 81));
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        emptyPanel.add(titleLabel);
+
+        emptyPanel.add(Box.createVerticalStrut(8));
+
+        JLabel subLabel = new JLabel("Intenta buscar por nombre, referencia o código de barras");
+        subLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subLabel.setForeground(new Color(107, 114, 128));
+        subLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        emptyPanel.add(subLabel);
+
+        flowpanel.setLayout(new BorderLayout());
+        flowpanel.add(emptyPanel, BorderLayout.CENTER);
+        flowpanel.revalidate();
+        flowpanel.repaint();
+    }
 
     /**
      * This method is called from within the constructor to initialize the form.

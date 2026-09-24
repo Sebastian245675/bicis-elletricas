@@ -16,6 +16,8 @@
 
 package com.openbravo.pos.inventory;
 
+import com.openbravo.pos.util.ModernActionIcon;
+
 import com.openbravo.basic.BasicException;
 import com.openbravo.data.gui.MessageInf;
 import com.openbravo.data.user.DirtyManager;
@@ -262,7 +264,7 @@ public class BundleEditor extends javax.swing.JPanel implements EditorRecord {
             }
         });
 
-        m_jEnter1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ok.png"))); // NOI18N
+        m_jEnter1.setIcon(new ModernActionIcon(ModernActionIcon.Type.SAVE, 20));
         m_jEnter1.setPreferredSize(new java.awt.Dimension(80, 45));
         m_jEnter1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -270,7 +272,7 @@ public class BundleEditor extends javax.swing.JPanel implements EditorRecord {
             }
         });
 
-        m_jEnter2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/barcode.png"))); // NOI18N
+        m_jEnter2.setIcon(new ModernActionIcon(ModernActionIcon.Type.SEARCH, 20));
         m_jEnter2.setPreferredSize(new java.awt.Dimension(80, 45));
         m_jEnter2.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -278,7 +280,7 @@ public class BundleEditor extends javax.swing.JPanel implements EditorRecord {
             }
         });
 
-        m_jSearch.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/search24.png"))); // NOI18N
+        m_jSearch.setIcon(new ModernActionIcon(ModernActionIcon.Type.SEARCH, 20));
         m_jSearch.setPreferredSize(new java.awt.Dimension(80, 45));
         m_jSearch.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {

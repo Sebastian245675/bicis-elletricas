@@ -16,6 +16,8 @@
 
 package com.openbravo.pos.inventory;
 
+import com.openbravo.pos.util.ModernActionIcon;
+
 import com.openbravo.basic.BasicException;
 import com.openbravo.data.gui.ComboBoxValModel;
 import com.openbravo.data.gui.JMessageDialog;
@@ -122,7 +124,7 @@ public final class CategoriesEditor extends JPanel implements EditorRecord {
     public void writeValueEOF() {
         m_id = null;
         m_jName.setText(null);
-        jLblDepartamentoTitle.setText(""); // Limpiar título
+        jLblDepartamentoTitle.setText("Seleccione un Departamento"); // Limpiar título
         m_CategoryModel.setSelectedKey(null);
         m_jImage.setImage(null);
         m_jName.setEnabled(false);
@@ -146,7 +148,7 @@ public final class CategoriesEditor extends JPanel implements EditorRecord {
     public void writeValueInsert() {
         m_id = UUID.randomUUID().toString();
         m_jName.setText(null);
-        jLblDepartamentoTitle.setText(""); // Limpiar título al insertar
+        jLblDepartamentoTitle.setText("Nuevo Departamento"); // Limpiar título al insertar
         m_CategoryModel.setSelectedKey(null);
         m_jImage.setImage(null);
         m_jName.setEnabled(true);
@@ -171,7 +173,9 @@ public final class CategoriesEditor extends JPanel implements EditorRecord {
     public void writeValueDelete(Object value) {
         Object[] cat = (Object[]) value;
         m_id = (String) cat[0];
-        m_jName.setText(Formats.STRING.formatValue((String)cat[1]));
+        String name = Formats.STRING.formatValue((String)cat[1]);
+        m_jName.setText(name);
+        jLblDepartamentoTitle.setText(name != null && !name.isEmpty() ? name : "Eliminar Departamento");
         m_CategoryModel.setSelectedKey(cat[2]);
         m_jImage.setImage((BufferedImage) cat[3]);
         m_jTextTip.setText(Formats.STRING.formatValue((String)cat[4]));
@@ -201,8 +205,8 @@ public final class CategoriesEditor extends JPanel implements EditorRecord {
         String name = Formats.STRING.formatValue((String)cat[1]);
         m_jName.setText(name);
         
-        // Actualizar título del departamento en amarillo
-        jLblDepartamentoTitle.setText(name != null && !name.isEmpty() ? name : "");
+        // Actualizar título del departamento
+        jLblDepartamentoTitle.setText(name != null && !name.isEmpty() ? name : "Editar Departamento");
         
         m_CategoryModel.setSelectedKey(cat[2]);
         m_jImage.setImage((BufferedImage) cat[3]);
@@ -387,7 +391,7 @@ public void resetTranxTable() {
         jLblDepartamentoTitle.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         jLblName.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLblName.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/info.png"))); // NOI18N
+        jLblName.setIcon(new ModernActionIcon(ModernActionIcon.Type.INFO, 18));
         jLblName.setText(AppLocal.getIntString("label.namem")); // NOI18N
         jLblName.setPreferredSize(new java.awt.Dimension(125, 30));
         jLblName.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -500,50 +504,268 @@ public void resetTranxTable() {
             jTableCategoryStock.getColumnModel().getColumn(0).setPreferredWidth(250);
         }
 
-        // Layout simplificado estilo Eleventa
-        // Panel principal con BorderLayout
-        javax.swing.JPanel mainPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
-        mainPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        // Modern Premium Layout - Full responsive side-by-side cards over Crema Background
+        setBackground(new java.awt.Color(250, 247, 242)); // Soft Crema background
+        setLayout(new java.awt.BorderLayout());
+
+        // Card Container (holds left and right cards side-by-side)
+        javax.swing.JPanel cardsContainer = new javax.swing.JPanel(new java.awt.GridBagLayout());
+        cardsContainer.setOpaque(false);
+        cardsContainer.setBorder(javax.swing.BorderFactory.createEmptyBorder(16, 16, 16, 16));
+
+        java.awt.GridBagConstraints mainGbc = new java.awt.GridBagConstraints();
+        javax.swing.border.Border lineBorder = javax.swing.BorderFactory.createLineBorder(new java.awt.Color(226, 232, 240), 1);
+        javax.swing.border.Border paddingBorder = javax.swing.BorderFactory.createEmptyBorder(20, 24, 20, 24);
+
+        // 1. LEFT CARD (Details)
+        javax.swing.JPanel leftCard = new javax.swing.JPanel(new java.awt.GridBagLayout());
+        leftCard.setBackground(java.awt.Color.WHITE);
+        leftCard.setBorder(javax.swing.BorderFactory.createCompoundBorder(lineBorder, paddingBorder));
+        leftCard.setMinimumSize(new java.awt.Dimension(350, 300));
+
+        java.awt.GridBagConstraints leftGbc = new java.awt.GridBagConstraints();
+        leftGbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        leftGbc.anchor = java.awt.GridBagConstraints.NORTHWEST;
+
+        // Left Card Header
+        javax.swing.JPanel headerPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+        headerPanel.setOpaque(false);
         
-        // Panel superior con título
-        javax.swing.JPanel titlePanel = new javax.swing.JPanel(new java.awt.BorderLayout());
-        titlePanel.setOpaque(false);
-        titlePanel.add(jLblDepartamentoTitle, java.awt.BorderLayout.WEST);
-        mainPanel.add(titlePanel, java.awt.BorderLayout.NORTH);
+        javax.swing.JPanel accentBar = new javax.swing.JPanel();
+        accentBar.setBackground(new java.awt.Color(202, 159, 65)); // gold accent
+        accentBar.setPreferredSize(new java.awt.Dimension(4, 0));
+        headerPanel.add(accentBar, java.awt.BorderLayout.WEST);
         
-        // Panel central con campo Nombre
-        javax.swing.JPanel centerPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 15, 20));
-        centerPanel.setOpaque(false);
+        javax.swing.JPanel textPanel = new javax.swing.JPanel(new java.awt.GridLayout(2, 1, 2, 2));
+        textPanel.setOpaque(false);
+        textPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 8, 0, 0));
         
-        // Label "Nombre"
-        jLblName.setText("Nombre");
-        jLblName.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 14));
-        jLblName.setIcon(null); // Sin icono
-        centerPanel.add(jLblName);
+        jLblDepartamentoTitle.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 15));
+        jLblDepartamentoTitle.setForeground(new java.awt.Color(15, 23, 42)); // Slate 900
+        textPanel.add(jLblDepartamentoTitle);
         
-        // Campo de texto Nombre
-        m_jName.setPreferredSize(new java.awt.Dimension(300, 30));
-        centerPanel.add(m_jName);
+        javax.swing.JLabel subtitleLabel = new javax.swing.JLabel("Gestione los detalles del departamento o categoría.");
+        subtitleLabel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+        subtitleLabel.setForeground(new java.awt.Color(100, 116, 139)); // Slate 500
+        textPanel.add(subtitleLabel);
         
-        mainPanel.add(centerPanel, java.awt.BorderLayout.CENTER);
+        headerPanel.add(textPanel, java.awt.BorderLayout.CENTER);
         
-        // Ocultar todos los campos que no se usan
-        jLblCategory.setVisible(false);
-        m_jCategory.setVisible(false);
-        jLblTextTip.setVisible(false);
-        m_jTextTip.setVisible(false);
-        jLblCatShowName.setVisible(false);
-        m_jCatNameShow.setVisible(false);
-        jLblCatOrder.setVisible(false);
-        m_jCatOrder.setVisible(false);
-        jLblInCat.setVisible(false);
-        webSwtch_InCatalog.setVisible(false);
-        m_jImage.setVisible(false);
+        leftGbc.gridx = 0;
+        leftGbc.gridy = 0;
+        leftGbc.gridwidth = 2;
+        leftGbc.weightx = 1.0;
+        leftGbc.weighty = 0.0;
+        leftGbc.insets = new java.awt.Insets(0, 0, 16, 0);
+        leftCard.add(headerPanel, leftGbc);
+
+        // Separator
+        javax.swing.JSeparator sep = new javax.swing.JSeparator();
+        sep.setForeground(new java.awt.Color(241, 245, 249));
+        sep.setBackground(new java.awt.Color(241, 245, 249));
+        leftGbc.gridy = 1;
+        leftGbc.insets = new java.awt.Insets(0, 0, 16, 0);
+        leftCard.add(sep, leftGbc);
+
+        // Form Fields
+        leftGbc.gridwidth = 1;
+        leftGbc.weightx = 0.0;
+        leftGbc.fill = java.awt.GridBagConstraints.NONE;
+
+        // Nombre Field
+        jLblName.setText("Nombre:");
+        jLblName.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        jLblName.setForeground(new java.awt.Color(71, 85, 105));
+        jLblName.setIcon(null);
+        jLblName.setPreferredSize(new java.awt.Dimension(110, 32));
+        leftGbc.gridx = 0;
+        leftGbc.gridy = 2;
+        leftGbc.insets = new java.awt.Insets(0, 0, 8, 8);
+        leftCard.add(jLblName, leftGbc);
+
+        m_jName.setPreferredSize(new java.awt.Dimension(200, 32));
+        m_jName.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        m_jName.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(226, 232, 240), 1),
+            javax.swing.BorderFactory.createEmptyBorder(4, 8, 4, 8)
+        ));
+        leftGbc.gridx = 1;
+        leftGbc.weightx = 1.0;
+        leftGbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        leftCard.add(m_jName, leftGbc);
+
+        // Categoría Padre Field
+        jLblCategory.setText("Categoría Padre:");
+        jLblCategory.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        jLblCategory.setForeground(new java.awt.Color(71, 85, 105));
+        jLblCategory.setPreferredSize(new java.awt.Dimension(110, 32));
+        leftGbc.gridx = 0;
+        leftGbc.gridy = 3;
+        leftGbc.weightx = 0.0;
+        leftGbc.fill = java.awt.GridBagConstraints.NONE;
+        leftCard.add(jLblCategory, leftGbc);
+
+        m_jCategory.setPreferredSize(new java.awt.Dimension(200, 32));
+        m_jCategory.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        leftGbc.gridx = 1;
+        leftGbc.weightx = 1.0;
+        leftGbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        leftCard.add(m_jCategory, leftGbc);
+
+        // Orden de Catálogo Field
+        jLblCatOrder.setText("Orden catálogo:");
+        jLblCatOrder.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        jLblCatOrder.setForeground(new java.awt.Color(71, 85, 105));
+        jLblCatOrder.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLblCatOrder.setPreferredSize(new java.awt.Dimension(110, 32));
+        leftGbc.gridx = 0;
+        leftGbc.gridy = 4;
+        leftGbc.weightx = 0.0;
+        leftGbc.fill = java.awt.GridBagConstraints.NONE;
+        leftCard.add(jLblCatOrder, leftGbc);
+
+        m_jCatOrder.setPreferredSize(new java.awt.Dimension(200, 32));
+        m_jCatOrder.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        m_jCatOrder.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(226, 232, 240), 1),
+            javax.swing.BorderFactory.createEmptyBorder(4, 8, 4, 8)
+        ));
+        leftGbc.gridx = 1;
+        leftGbc.weightx = 1.0;
+        leftGbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        leftCard.add(m_jCatOrder, leftGbc);
+
+        // Notas / Ayuda Field
+        jLblTextTip.setText("Notas / Ayuda:");
+        jLblTextTip.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        jLblTextTip.setForeground(new java.awt.Color(71, 85, 105));
+        jLblTextTip.setPreferredSize(new java.awt.Dimension(110, 32));
+        leftGbc.gridx = 0;
+        leftGbc.gridy = 5;
+        leftGbc.weightx = 0.0;
+        leftGbc.fill = java.awt.GridBagConstraints.NONE;
+        leftCard.add(jLblTextTip, leftGbc);
+
+        m_jTextTip.setPreferredSize(new java.awt.Dimension(200, 32));
+        m_jTextTip.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        m_jTextTip.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(226, 232, 240), 1),
+            javax.swing.BorderFactory.createEmptyBorder(4, 8, 4, 8)
+        ));
+        leftGbc.gridx = 1;
+        leftGbc.weightx = 1.0;
+        leftGbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        leftCard.add(m_jTextTip, leftGbc);
+
+        // Checkboxes Row
+        javax.swing.JPanel checkPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 16, 0));
+        checkPanel.setOpaque(false);
+        
+        m_jCatNameShow.setText("Mostrar Nombre");
+        m_jCatNameShow.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        m_jCatNameShow.setForeground(new java.awt.Color(71, 85, 105));
+        m_jCatNameShow.setOpaque(false);
+        m_jCatNameShow.setPreferredSize(new java.awt.Dimension(140, 30));
+        checkPanel.add(m_jCatNameShow);
+
+        webSwtch_InCatalog.setText("En Catálogo");
+        webSwtch_InCatalog.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        webSwtch_InCatalog.setForeground(new java.awt.Color(71, 85, 105));
+        webSwtch_InCatalog.setOpaque(false);
+        webSwtch_InCatalog.setPreferredSize(new java.awt.Dimension(140, 30));
+        checkPanel.add(webSwtch_InCatalog);
+
+        leftGbc.gridx = 0;
+        leftGbc.gridy = 6;
+        leftGbc.gridwidth = 2;
+        leftGbc.weightx = 1.0;
+        leftGbc.weighty = 0.0;
+        leftGbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        leftGbc.insets = new java.awt.Insets(8, 0, 0, 0);
+        leftCard.add(checkPanel, leftGbc);
+
+        // Spacer at the bottom to absorb extra space
+        javax.swing.JPanel spacer = new javax.swing.JPanel();
+        spacer.setOpaque(false);
+        leftGbc.gridy = 7;
+        leftGbc.weighty = 1.0;
+        leftGbc.fill = java.awt.GridBagConstraints.BOTH;
+        leftCard.add(spacer, leftGbc);
+
+
+        // 2. RIGHT CARD (Image)
+        javax.swing.JPanel rightCard = new javax.swing.JPanel(new java.awt.BorderLayout(0, 12));
+        rightCard.setBackground(java.awt.Color.WHITE);
+        rightCard.setBorder(javax.swing.BorderFactory.createCompoundBorder(lineBorder, paddingBorder));
+        rightCard.setMinimumSize(new java.awt.Dimension(250, 300));
+
+        // Right Card Header
+        javax.swing.JPanel rightHeader = new javax.swing.JPanel(new java.awt.BorderLayout());
+        rightHeader.setOpaque(false);
+        
+        javax.swing.JPanel rightAccent = new javax.swing.JPanel();
+        rightAccent.setBackground(new java.awt.Color(202, 159, 65));
+        rightAccent.setPreferredSize(new java.awt.Dimension(4, 0));
+        rightHeader.add(rightAccent, java.awt.BorderLayout.WEST);
+        
+        javax.swing.JPanel rightHeaderText = new javax.swing.JPanel(new java.awt.GridLayout(2, 1, 2, 2));
+        rightHeaderText.setOpaque(false);
+        rightHeaderText.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 8, 0, 0));
+        
+        javax.swing.JLabel imgTitle = new javax.swing.JLabel("Imagen");
+        imgTitle.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 15));
+        imgTitle.setForeground(new java.awt.Color(15, 23, 42));
+        rightHeaderText.add(imgTitle);
+        
+        javax.swing.JLabel imgSubtitle = new javax.swing.JLabel("Cargue una foto para el catálogo.");
+        imgSubtitle.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+        imgSubtitle.setForeground(new java.awt.Color(100, 116, 139));
+        rightHeaderText.add(imgSubtitle);
+        
+        rightHeader.add(rightHeaderText, java.awt.BorderLayout.CENTER);
+        rightCard.add(rightHeader, java.awt.BorderLayout.NORTH);
+
+        // Right Card Center: Image Editor
+        m_jImage.setOpaque(false);
+        rightCard.add(m_jImage, java.awt.BorderLayout.CENTER);
+
+
+        // Add cards side-by-side to Container
+        mainGbc.gridy = 0;
+        mainGbc.weighty = 1.0;
+        mainGbc.fill = java.awt.GridBagConstraints.BOTH;
+
+        mainGbc.gridx = 0;
+        mainGbc.weightx = 0.6; // Details card gets 60% of horizontal space
+        mainGbc.insets = new java.awt.Insets(0, 0, 0, 16);
+        cardsContainer.add(leftCard, mainGbc);
+
+        mainGbc.gridx = 1;
+        mainGbc.weightx = 0.4; // Image card gets 40% of horizontal space
+        mainGbc.insets = new java.awt.Insets(0, 0, 0, 0);
+        cardsContainer.add(rightCard, mainGbc);
+
+        // Add Container to Editor
+        add(cardsContainer, java.awt.BorderLayout.CENTER);
+
+        // Make sure all these fields are visible!
+        jLblCategory.setVisible(true);
+        m_jCategory.setVisible(true);
+        jLblTextTip.setVisible(true);
+        m_jTextTip.setVisible(true);
+        jLblCatShowName.setVisible(false); // we put text directly in checkbox
+        m_jCatNameShow.setVisible(true);
+        jLblCatOrder.setVisible(true);
+        m_jCatOrder.setVisible(true);
+        jLblInCat.setVisible(false); // we put text directly in checkbox
+        webSwtch_InCatalog.setVisible(true);
+        m_jImage.setVisible(true);
+
+        // Unused fields stay hidden
         jBtnShowTrans.setVisible(false);
         jLblProdCount.setVisible(false);
         jScrollPane2.setVisible(false);
-        
-        add(mainPanel, java.awt.BorderLayout.CENTER);
+        jInternalFrame1.setVisible(false);
     }// </editor-fold>//GEN-END:initComponents
 
     private void webSwtch_InCatalogActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_webSwtch_InCatalogActionPerformed

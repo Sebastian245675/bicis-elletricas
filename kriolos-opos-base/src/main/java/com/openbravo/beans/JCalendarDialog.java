@@ -102,7 +102,8 @@ public class JCalendarDialog extends JDialog {
         myMsg.initComponents();
 
         Date d = date;
-        int dialogwidth = 400;
+        int dialogwidth = 500;
+        int dialogheight = 460;
 
         myMsg.myCalendar = new JCalendarPanel(d);
         myMsg.myCalendar.addPropertyChangeListener("Date", new JPanelCalendarChange(myMsg));
@@ -112,13 +113,13 @@ public class JCalendarDialog extends JDialog {
             myMsg.myTime = new JTimePanel(d);
             myMsg.myTime.addPropertyChangeListener("Date", new JPanelTimeChange(myMsg));
             myMsg.jPanelGrid.add(myMsg.myTime);
-            dialogwidth += 400;
+            dialogwidth += 480;
         }
 
         myMsg.getRootPane().setDefaultButton(myMsg.jcmdOK);
 
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        myMsg.setBounds((screenSize.width - dialogwidth) / 2, (screenSize.height - 359) / 2, dialogwidth, 359);
+        myMsg.setBounds((screenSize.width - dialogwidth) / 2, (screenSize.height - dialogheight) / 2, dialogwidth, dialogheight);
 
         //myMsg.show();
         myMsg.m_date = null;
@@ -176,12 +177,19 @@ public class JCalendarDialog extends JDialog {
             }
         });
 
-        jPanel1.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));
+        jPanel1.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 10, 8));
+        jPanel1.setBackground(new Color(248, 250, 252)); // slate-50
+        jPanel1.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(226, 232, 240))); // slate-200 top border
 
-        jcmdOK.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jcmdOK.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ok.png"))); // NOI18N
+        jcmdOK.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13)); // NOI18N
         jcmdOK.setText(m_resources.getString("button.ok")); // NOI18N
-        jcmdOK.setMargin(new java.awt.Insets(8, 16, 8, 16));
+        jcmdOK.setBackground(new Color(37, 99, 235)); // Blue 600
+        jcmdOK.setForeground(Color.WHITE);
+        jcmdOK.setOpaque(true);
+        jcmdOK.setBorderPainted(false);
+        jcmdOK.setFocusPainted(false);
+        jcmdOK.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        jcmdOK.setBorder(BorderFactory.createEmptyBorder(8, 18, 8, 18));
         jcmdOK.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jcmdOKActionPerformed(evt);
@@ -189,10 +197,15 @@ public class JCalendarDialog extends JDialog {
         });
         jPanel1.add(jcmdOK);
 
-        jcmdCancel.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jcmdCancel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/cancel.png"))); // NOI18N
+        jcmdCancel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13)); // NOI18N
         jcmdCancel.setText(m_resources.getString("button.cancel")); // NOI18N
-        jcmdCancel.setMargin(new java.awt.Insets(8, 16, 8, 16));
+        jcmdCancel.setBackground(new Color(241, 245, 249)); // slate-100
+        jcmdCancel.setForeground(new Color(71, 85, 105)); // slate-600
+        jcmdCancel.setOpaque(true);
+        jcmdCancel.setBorderPainted(false);
+        jcmdCancel.setFocusPainted(false);
+        jcmdCancel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        jcmdCancel.setBorder(BorderFactory.createEmptyBorder(8, 18, 8, 18));
         jcmdCancel.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jcmdCancelActionPerformed(evt);
@@ -202,11 +215,13 @@ public class JCalendarDialog extends JDialog {
 
         getContentPane().add(jPanel1, java.awt.BorderLayout.SOUTH);
 
-        jPanel2.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        jPanel2.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10));
         jPanel2.setLayout(new java.awt.BorderLayout());
+        jPanel2.setBackground(Color.WHITE);
 
-        jPanelGrid.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jPanelGrid.setLayout(new java.awt.GridLayout(1, 0, 5, 0));
+        jPanelGrid.setFont(new java.awt.Font("Segoe UI", 0, 12)); // NOI18N
+        jPanelGrid.setLayout(new java.awt.GridLayout(1, 0, 10, 0));
+        jPanelGrid.setBackground(Color.WHITE);
         jPanel2.add(jPanelGrid, java.awt.BorderLayout.CENTER);
 
         getContentPane().add(jPanel2, java.awt.BorderLayout.CENTER);

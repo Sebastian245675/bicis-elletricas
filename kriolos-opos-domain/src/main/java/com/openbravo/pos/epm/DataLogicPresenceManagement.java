@@ -360,15 +360,11 @@ public class DataLogicPresenceManagement extends BeanFactoryDataSingle {
         Object[] value = new Object[] {new Date(), new Date(), user};
         
         SentenceFind m_isonleave = new StaticSentence(s
-            , "SELECT COUNT(*) FROM leaves WHERE STARTDATE < ? AND ENDDATE > ? AND PPLID = ?"
+            , "SELECT COUNT(*) FROM leaves WHERE STARTDATE <= ? AND ENDDATE >= ? AND PPLID = ?"
             , new SerializerWriteBasic(new Datas[] {Datas.TIMESTAMP, Datas.TIMESTAMP, Datas.STRING})
             , SerializerReadInteger.INSTANCE);
-        Integer Data = (Integer) m_isonleave.find(value);
-        // "0" rows shows user is not on leave
-        if (Data.equals("0")) {
-            return false;
-        }
-        return true;
+        Integer count = (Integer) m_isonleave.find(value);
+        return count != null && count.intValue() > 0;
     }
 
     // EmployeeList list
@@ -404,6 +400,79 @@ public class DataLogicPresenceManagement extends BeanFactoryDataSingle {
         }
         CheckOut(user);
     }
+
+    public List<Object[]> getDailyPresenceByUser(String pplId, Date dateStart, Date dateEnd) throws BasicException {
+        return (List<Object[]>) new PreparedSentence(s,
+            "SELECT ROLE_FUNCTION, STARTSHIFT, ENDSHIFT, HOLIDAY, NOTES, ID " +
+            "FROM shifts " +
+            "WHERE PPLID = ? AND STARTSHIFT >= ? AND STARTSHIFT <= ? " +
+            "ORDER BY STARTSHIFT",
+            new SerializerWriteBasic(new Datas[] {Datas.STRING, Datas.TIMESTAMP, Datas.TIMESTAMP}),
+            new SerializerReadBasic(new Datas[] {Datas.STRING, Datas.TIMESTAMP, Datas.TIMESTAMP, Datas.BOOLEAN, Datas.STRING, Datas.STRING})
+        ).list(new Object[] {pplId, dateStart, dateEnd});
+    }
+
+    public void saveDailyPresenceByUser(String pplId, String roleFunction, Date dateStart, Date dateEnd, double hours, boolean holiday, String notes) throws BasicException {
+        if (!Double.isFinite(hours) || hours < 0.0 || hours > 24.0) {
+            throw new BasicException("Las horas de asistencia deben estar entre 0 y 24.");
+        }
+        if (pplId == null || roleFunction == null || roleFunction.trim().isEmpty()
+                || dateStart == null || dateEnd == null) {
+            throw new BasicException("Faltan datos obligatorios del registro de asistencia.");
+        }
+        Object[] existing = (Object[]) new PreparedSentence(s,
+            "SELECT ID FROM shifts WHERE PPLID = ? AND ROLE_FUNCTION = ? AND STARTSHIFT >= ? AND STARTSHIFT <= ?",
+            new SerializerWriteBasic(new Datas[] {Datas.STRING, Datas.STRING, Datas.TIMESTAMP, Datas.TIMESTAMP}),
+            new SerializerReadBasic(new Datas[] {Datas.STRING})
+        ).find(new Object[] {pplId, roleFunction, dateStart, dateEnd});
+
+        Date startShift = dateStart;
+        Date endShift = new Date(startShift.getTime() + (long)(hours * 3600.0 * 1000.0));
+
+        if (existing != null) {
+            String shiftId = (String) existing[0];
+            if (hours <= 0.0 && !holiday) {
+                new PreparedSentence(s,
+                    "DELETE FROM shifts WHERE ID = ?",
+                    SerializerWriteString.INSTANCE
+                ).exec(shiftId);
+            } else {
+                new PreparedSentence(s,
+                    "UPDATE shifts SET STARTSHIFT = ?, ENDSHIFT = ?, HOLIDAY = ?, NOTES = ? WHERE ID = ?",
+                    new SerializerWriteBasic(new Datas[] {Datas.TIMESTAMP, Datas.TIMESTAMP, Datas.BOOLEAN, Datas.STRING, Datas.STRING})
+                ).exec(new Object[] {startShift, endShift, holiday, notes, shiftId});
+            }
+        } else {
+            if (hours > 0.0 || holiday) {
+                String newId = UUID.randomUUID().toString();
+                new PreparedSentence(s,
+                    "INSERT INTO shifts(ID, STARTSHIFT, ENDSHIFT, PPLID, HOLIDAY, NOTES, ROLE_FUNCTION) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    new SerializerWriteBasic(new Datas[] {Datas.STRING, Datas.TIMESTAMP, Datas.TIMESTAMP, Datas.STRING, Datas.BOOLEAN, Datas.STRING, Datas.STRING})
+                ).exec(new Object[] {newId, startShift, endShift, pplId, holiday, notes, roleFunction});
+            }
+        }
+    }
+
+    public List<Object[]> getMonthlyShifts(Date startMonth, Date endMonth) throws BasicException {
+        return (List<Object[]>) new PreparedSentence(s,
+            "SELECT p.ID, p.NAME, s.STARTSHIFT, s.ENDSHIFT, s.HOLIDAY, s.NOTES, s.ROLE_FUNCTION " +
+            "FROM people p " +
+            "JOIN shifts s ON p.ID = s.PPLID " +
+            "WHERE s.STARTSHIFT >= ? AND s.STARTSHIFT <= ? " +
+            "ORDER BY p.NAME, s.STARTSHIFT",
+            new SerializerWriteBasic(new Datas[] {Datas.TIMESTAMP, Datas.TIMESTAMP}),
+            new SerializerReadBasic(new Datas[] {Datas.STRING, Datas.STRING, Datas.TIMESTAMP, Datas.TIMESTAMP, Datas.BOOLEAN, Datas.STRING, Datas.STRING})
+        ).list(new Object[] {startMonth, endMonth});
+    }
+
+    public List<String> getUniqueRoleFunctions(String pplId) throws BasicException {
+        return (List<String>) new PreparedSentence(s,
+            "SELECT DISTINCT ROLE_FUNCTION FROM shifts WHERE PPLID = ? AND ROLE_FUNCTION IS NOT NULL",
+            SerializerWriteString.INSTANCE,
+            SerializerReadString.INSTANCE
+        ).list(pplId);
+    }
+
 
     public TableDefinition getTableBreaks() {
         return tbreaks;

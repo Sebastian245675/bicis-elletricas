@@ -25,6 +25,7 @@ import com.openbravo.data.loader.ComparatorCreator;
 import com.openbravo.data.loader.Vectorer;
 import com.openbravo.data.user.*;
 import com.openbravo.pos.forms.*;
+import com.openbravo.pos.util.ModernActionIcon;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.util.logging.Logger;
@@ -105,27 +106,71 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
         // el panel este
         ListCellRenderer cr = getListCellRenderer();
         if (cr != null) {
-            JListNavigator nl = new JListNavigator(bd);
+            final JListNavigator nl = new JListNavigator(bd);
             nl.applyComponentOrientation(getComponentOrientation());
             nl.setCellRenderer(cr);
-            container.add(nl, java.awt.BorderLayout.LINE_START);
+            
+            // Style list navigator children
+            modernizeListNavigator(nl);
+            
+            // Create a wrapper panel for the collapsible sidebar with a sleek fixed width of 200px
+            final javax.swing.JPanel sidebarPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+            sidebarPanel.setOpaque(false);
+            sidebarPanel.setPreferredSize(new java.awt.Dimension(200, 0));
+            sidebarPanel.add(nl, java.awt.BorderLayout.CENTER);
+            
+            // Collapse/Expand Button Panel
+            javax.swing.JPanel togglePanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+            togglePanel.setBackground(new java.awt.Color(248, 250, 252)); // Slate 50 background
+            togglePanel.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 0, 1, new java.awt.Color(226, 232, 240)));
+            togglePanel.setPreferredSize(new java.awt.Dimension(18, 0));
+            
+            final javax.swing.JButton btnToggle = new javax.swing.JButton("<");
+            btnToggle.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 11));
+            btnToggle.setForeground(new java.awt.Color(100, 116, 139)); // Slate 500
+            btnToggle.setBorder(null);
+            btnToggle.setContentAreaFilled(false);
+            btnToggle.setFocusPainted(false);
+            btnToggle.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+            
+            btnToggle.addActionListener(new java.awt.event.ActionListener() {
+                private boolean collapsed = false;
+                @Override
+                public void actionPerformed(java.awt.event.ActionEvent e) {
+                    collapsed = !collapsed;
+                    nl.setVisible(!collapsed);
+                    btnToggle.setText(collapsed ? ">" : "<");
+                    sidebarPanel.setPreferredSize(new java.awt.Dimension(collapsed ? 18 : 200, 0));
+                    container.revalidate();
+                    container.repaint();
+                }
+            });
+            
+            togglePanel.add(btnToggle, java.awt.BorderLayout.CENTER);
+            
+            sidebarPanel.add(togglePanel, java.awt.BorderLayout.EAST);
+            
+            container.add(sidebarPanel, java.awt.BorderLayout.LINE_START);
         }
 
-        // Split toolbar layout: leftToolbar (extras, navigation, new) and rightToolbar (save, delete, history)
+        // Split toolbar layout: leftToolbar (extras, navigation, new) and rightToolbar
+        // (save, delete, history)
         toolbar.setLayout(new java.awt.BorderLayout());
         toolbar.setBackground(java.awt.Color.WHITE);
 
-        javax.swing.JPanel leftToolbar = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 0));
+        javax.swing.JPanel leftToolbar = new javax.swing.JPanel(
+                new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 0));
         leftToolbar.setBackground(java.awt.Color.WHITE);
         leftToolbar.setOpaque(true);
 
-        javax.swing.JPanel rightToolbar = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 5, 0));
+        javax.swing.JPanel rightToolbar = new javax.swing.JPanel(
+                new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 5, 0));
         rightToolbar.setBackground(java.awt.Color.WHITE);
         rightToolbar.setOpaque(true);
 
         toolbar.add(leftToolbar, java.awt.BorderLayout.WEST);
         toolbar.add(rightToolbar, java.awt.BorderLayout.EAST);
-        
+
         toolbar.setBorder(null);
         leftToolbar.setBorder(null);
         rightToolbar.setBorder(null);
@@ -141,11 +186,11 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
         c = new JLabelDirty(dirty);
         c.applyComponentOrientation(getComponentOrientation());
         leftToolbar.add(c);
-        
+
         c = new JCounter(bd);
         c.applyComponentOrientation(getComponentOrientation());
         leftToolbar.add(c);
-        
+
         c = new JNavigator(bd, getVectorer(), getComparatorCreator());
         c.applyComponentOrientation(getComponentOrientation());
         leftToolbar.add(c);
@@ -172,9 +217,12 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
             rightToolbar.add(btnSave);
         }
 
-        // Sebastian - Agregar botón Historial de Auditoría (solo si no es ProductsPanel)
+        // Sebastian - Agregar botón Historial de Auditoría (solo si no es
+        // ProductsPanel)
         if (!this.getClass().getName().contains("ProductsPanel")) {
             JButton btnHistory = new JButton("Historial");
+            btnHistory.setIcon(new ModernActionIcon(
+                    ModernActionIcon.Type.HISTORY, 18, java.awt.Color.WHITE));
             btnHistory.applyComponentOrientation(getComponentOrientation());
             btnHistory.addActionListener(new java.awt.event.ActionListener() {
                 @Override
@@ -183,6 +231,30 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
                 }
             });
             rightToolbar.add(btnHistory);
+        }
+    }
+
+    private void modernizeListNavigator(javax.swing.JComponent nl) {
+        nl.setBackground(java.awt.Color.WHITE);
+        nl.setOpaque(true);
+        // Style children
+        for (int i = 0; i < nl.getComponentCount(); i++) {
+            java.awt.Component child = nl.getComponent(i);
+            if (child instanceof javax.swing.JScrollPane) {
+                javax.swing.JScrollPane scroll = (javax.swing.JScrollPane) child;
+                scroll.setBorder(null);
+                scroll.setOpaque(false);
+                scroll.getViewport().setOpaque(false);
+                java.awt.Component view = scroll.getViewport().getView();
+                if (view instanceof javax.swing.JList) {
+                    javax.swing.JList list = (javax.swing.JList) view;
+                    list.setBackground(java.awt.Color.WHITE);
+                    list.setSelectionBackground(new java.awt.Color(241, 245, 249)); // slate-100 selection
+                    list.setSelectionForeground(new java.awt.Color(15, 23, 42)); // slate-900 text
+                    list.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+                    list.setFixedCellHeight(32);
+                }
+            }
         }
     }
 
@@ -243,7 +315,8 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
      * WARNING: Do NOT modify this code. The content of this method is always
      * regenerated by the Form Editor.
      */
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated
+    // Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
         container = new javax.swing.JPanel();
@@ -255,7 +328,7 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
         container.setBackground(java.awt.Color.WHITE);
         container.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         container.setLayout(new java.awt.BorderLayout());
-        
+
         toolbar.setBackground(java.awt.Color.WHITE);
         toolbar.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT));
         container.add(toolbar, java.awt.BorderLayout.NORTH);
@@ -263,10 +336,9 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
         add(container, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
 
-
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JPanel container;
-    private javax.swing.JPanel toolbar;
+    protected javax.swing.JPanel container;
+    protected javax.swing.JPanel toolbar;
     // End of variables declaration//GEN-END:variables
 
     // --- INICIO MÉTODOS DE AUDITORÍA Y HISTORIAL ---
@@ -301,7 +373,8 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
                         java.util.Map<String, Object> oldRec = fetchRecordAsMap(tableName, entityId);
                         entityName = getEntityNameFromMap(oldRec);
                     }
-                } catch (Exception e) {}
+                } catch (Exception e) {
+                }
 
                 int result = originalProvider.deleteData(value);
                 if (result > 0) {
@@ -431,27 +504,40 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
                     return td.getTableName();
                 }
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
 
         String title = getTitle();
         if (title != null) {
             title = title.toUpperCase();
-            if (title.contains("PRODUCT")) return "PRODUCTS";
-            if (title.contains("CLIENT") || title.contains("CUSTOMER")) return "CUSTOMERS";
-            if (title.contains("CATEGOR")) return "CATEGORIES";
-            if (title.contains("IMPUEST") || title.contains("TAX")) return "TAXES";
-            if (title.contains("PROVEEDOR") || title.contains("SUPPLIER")) return "SUPPLIERS";
-            if (title.contains("USUARIO") || title.contains("USER") || title.contains("PEOPLE") || title.contains("EMPLEADO")) return "PEOPLE";
-            if (title.contains("ROL")) return "ROLES";
-            if (title.contains("RECURS") || title.contains("RESOURCE")) return "RESOURCES";
-            if (title.contains("ALMACEN") || title.contains("LOCATION")) return "LOCATIONS";
-            if (title.contains("UNIDAD") || title.contains("UOM")) return "UOM";
+            if (title.contains("PRODUCT"))
+                return "PRODUCTS";
+            if (title.contains("CLIENT") || title.contains("CUSTOMER"))
+                return "CUSTOMERS";
+            if (title.contains("CATEGOR"))
+                return "CATEGORIES";
+            if (title.contains("IMPUEST") || title.contains("TAX"))
+                return "TAXES";
+            if (title.contains("PROVEEDOR") || title.contains("SUPPLIER"))
+                return "SUPPLIERS";
+            if (title.contains("USUARIO") || title.contains("USER") || title.contains("PEOPLE")
+                    || title.contains("EMPLEADO"))
+                return "PEOPLE";
+            if (title.contains("ROL"))
+                return "ROLES";
+            if (title.contains("RECURS") || title.contains("RESOURCE"))
+                return "RESOURCES";
+            if (title.contains("ALMACEN") || title.contains("LOCATION"))
+                return "LOCATIONS";
+            if (title.contains("UNIDAD") || title.contains("UOM"))
+                return "UOM";
         }
         return null;
     }
 
     private String getEntityId(Object value) {
-        if (value == null) return "";
+        if (value == null)
+            return "";
         if (value instanceof Object[]) {
             Object[] rec = (Object[]) value;
             if (rec.length > 0) {
@@ -466,14 +552,16 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
                     java.lang.reflect.Field fId = value.getClass().getDeclaredField("id");
                     fId.setAccessible(true);
                     return String.valueOf(fId.get(value));
-                } catch (Exception e2) {}
+                } catch (Exception e2) {
+                }
             }
         }
         return "";
     }
 
     private String getEntityNameFromMap(java.util.Map<String, Object> map) {
-        if (map == null) return "Sin Nombre";
+        if (map == null)
+            return "Sin Nombre";
         if (map.containsKey("NAME") && map.get("NAME") != null) {
             return String.valueOf(map.get("NAME"));
         }
@@ -530,8 +618,16 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
         } catch (Exception e) {
             LOGEER.log(Level.WARNING, "Error fetching record as map for table " + tableName + " and ID " + entityId, e);
         } finally {
-            if (rs != null) try { rs.close(); } catch (Exception e) {}
-            if (pstmt != null) try { pstmt.close(); } catch (Exception e) {}
+            if (rs != null)
+                try {
+                    rs.close();
+                } catch (Exception e) {
+                }
+            if (pstmt != null)
+                try {
+                    pstmt.close();
+                } catch (Exception e) {
+                }
         }
         return map;
     }
@@ -548,7 +644,8 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
 
         for (String key : allKeys) {
             String keyUpper = key.toUpperCase();
-            if (keyUpper.equals("ID") || keyUpper.equals("PASSWORD") || keyUpper.equals("IMAGE") || keyUpper.equals("ICON") || keyUpper.equals("MEMODATE")) {
+            if (keyUpper.equals("ID") || keyUpper.equals("PASSWORD") || keyUpper.equals("IMAGE")
+                    || keyUpper.equals("ICON") || keyUpper.equals("MEMODATE")) {
                 continue;
             }
 
@@ -592,7 +689,8 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
             }
 
             if (changed) {
-                if (sb.length() > 0) sb.append("\n");
+                if (sb.length() > 0)
+                    sb.append("\n");
                 String displayName = getFieldDisplayName(key);
                 String oldStr = oldVal == null ? "[Vacío]" : oldVal.toString();
                 String newStr = newVal == null ? "[Vacío]" : newVal.toString();
@@ -604,8 +702,10 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
                     newStr = (Boolean) newVal ? "Sí" : "No";
                 }
 
-                if (oldStr.length() > 100) oldStr = oldStr.substring(0, 97) + "...";
-                if (newStr.length() > 100) newStr = newStr.substring(0, 97) + "...";
+                if (oldStr.length() > 100)
+                    oldStr = oldStr.substring(0, 97) + "...";
+                if (newStr.length() > 100)
+                    newStr = newStr.substring(0, 97) + "...";
 
                 sb.append(displayName).append(" cambió de '").append(oldStr).append("' a '").append(newStr).append("'");
             }
@@ -616,73 +716,133 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
     private String getFieldDisplayName(String key) {
         String k = key.toUpperCase();
         switch (k) {
-            case "REFERENCE": return "Referencia";
-            case "CODE": return "Código de barras";
-            case "CODETYPE": return "Tipo de código";
-            case "NAME": return "Nombre";
-            case "PRICEBUY": return "Precio de compra";
-            case "PRICESELL": return "Precio de venta";
-            case "CATEGORY": return "Categoría";
-            case "TAXCAT": return "Categoría de impuesto";
-            case "ATTRIBUTESET_ID": return "Grupo de atributos";
-            case "STOCKCOST": return "Costo de stock";
-            case "STOCKVOLUME": return "Volumen de stock";
-            case "ISCOM": return "Venta a granel / comisión";
-            case "ISSCALE": return "Usa balanza";
-            case "ISCONSTANT": return "Precio constante";
-            case "PRINTKB": return "Imprimir en cocina/teclado";
-            case "SENDSTATUS": return "Enviar estado";
-            case "ISSERVICE": return "Es servicio (sin inventario)";
-            case "ATTRIBUTES": return "Atributos adicionales";
-            case "DISPLAY": return "Texto de pantalla";
-            case "ISVPRICE": return "Precio variable";
-            case "ISVERPATRIB": return "Ver atributos";
-            case "TEXTTIP": return "Texto de ayuda / nota";
-            case "WARRANTY": return "Tiene garantía";
-            case "STOCKUNITS": return "Unidades de stock";
-            case "PRINTTO": return "Imprimir en";
-            case "SUPPLIER": return "Proveedor";
-            case "UOM": return "Unidad de medida";
-            case "ACCUMULATES_POINTS": return "Acumula puntos";
-            case "LOTE": return "Lote obligatorio";
-            case "MODELO": return "Modelo";
-            case "COLOR": return "Color";
-            case "VOLTAJE": return "Voltaje";
-            case "NOSERIE": return "Número de serie";
-            
+            case "REFERENCE":
+                return "Referencia";
+            case "CODE":
+                return "Código de barras";
+            case "CODETYPE":
+                return "Tipo de código";
+            case "NAME":
+                return "Nombre";
+            case "PRICEBUY":
+                return "Precio de compra";
+            case "PRICESELL":
+                return "Precio de venta";
+            case "CATEGORY":
+                return "Categoría";
+            case "TAXCAT":
+                return "Categoría de impuesto";
+            case "ATTRIBUTESET_ID":
+                return "Grupo de atributos";
+            case "STOCKCOST":
+                return "Costo de stock";
+            case "STOCKVOLUME":
+                return "Volumen de stock";
+            case "ISCOM":
+                return "Venta a granel / comisión";
+            case "ISSCALE":
+                return "Usa balanza";
+            case "ISCONSTANT":
+                return "Precio constante";
+            case "PRINTKB":
+                return "Imprimir en cocina/teclado";
+            case "SENDSTATUS":
+                return "Enviar estado";
+            case "ISSERVICE":
+                return "Es servicio (sin inventario)";
+            case "ATTRIBUTES":
+                return "Atributos adicionales";
+            case "DISPLAY":
+                return "Texto de pantalla";
+            case "ISVPRICE":
+                return "Precio variable";
+            case "ISVERPATRIB":
+                return "Ver atributos";
+            case "TEXTTIP":
+                return "Texto de ayuda / nota";
+            case "WARRANTY":
+                return "Tiene garantía";
+            case "STOCKUNITS":
+                return "Unidades de stock";
+            case "PRINTTO":
+                return "Imprimir en";
+            case "SUPPLIER":
+                return "Proveedor";
+            case "UOM":
+                return "Unidad de medida";
+            case "ACCUMULATES_POINTS":
+                return "Acumula puntos";
+            case "LOTE":
+                return "Lote obligatorio";
+            case "MODELO":
+                return "Modelo";
+            case "COLOR":
+                return "Color";
+            case "VOLTAJE":
+                return "Voltaje";
+            case "NOSERIE":
+                return "Número de serie";
+
             // Customers
-            case "SEARCHKEY": return "Clave de búsqueda";
-            case "TAXID": return "RUT / RFC / Tax ID";
-            case "CARD": return "Tarjeta de cliente";
-            case "DEBTMAX": return "Crédito máximo";
-            case "DEBT": return "Deuda";
-            case "CURDEBT": return "Deuda actual";
-            case "CURDATE": return "Fecha de deuda";
-            case "FIRSTNAME": return "Nombre";
-            case "LASTNAME": return "Apellido";
-            case "EMAIL": return "Correo electrónico";
-            case "PHONE": return "Teléfono";
-            case "PHONE2": return "Teléfono secundario";
-            case "FAX": return "Fax";
-            case "ADDRESS": return "Dirección";
-            case "ADDRESS2": return "Dirección de envío";
-            case "CITY": return "Ciudad";
-            case "REGION": return "Región / Estado";
-            case "POSTAL": return "Código postal";
-            case "COUNTRY": return "País";
-            case "VISIBLE": return "Visible / Activo";
-            case "NOTES": return "Notas";
-            case "MAXPOINTS": return "Puntos acumulados";
-            
+            case "SEARCHKEY":
+                return "Clave de búsqueda";
+            case "TAXID":
+                return "RUT / RFC / Tax ID";
+            case "CARD":
+                return "Tarjeta de cliente";
+            case "DEBTMAX":
+                return "Crédito máximo";
+            case "DEBT":
+                return "Deuda";
+            case "CURDEBT":
+                return "Deuda actual";
+            case "CURDATE":
+                return "Fecha de deuda";
+            case "FIRSTNAME":
+                return "Nombre";
+            case "LASTNAME":
+                return "Apellido";
+            case "EMAIL":
+                return "Correo electrónico";
+            case "PHONE":
+                return "Teléfono";
+            case "PHONE2":
+                return "Teléfono secundario";
+            case "FAX":
+                return "Fax";
+            case "ADDRESS":
+                return "Dirección";
+            case "ADDRESS2":
+                return "Dirección de envío";
+            case "CITY":
+                return "Ciudad";
+            case "REGION":
+                return "Región / Estado";
+            case "POSTAL":
+                return "Código postal";
+            case "COUNTRY":
+                return "País";
+            case "VISIBLE":
+                return "Visible / Activo";
+            case "NOTES":
+                return "Notas";
+            case "MAXPOINTS":
+                return "Puntos acumulados";
+
             // Taxes
-            case "RATE": return "Tasa / Porcentaje";
-            case "PARENTID": return "Impuesto padre";
-            case "CUSTCATEGORY": return "Categoría de cliente";
-            
+            case "RATE":
+                return "Tasa / Porcentaje";
+            case "PARENTID":
+                return "Impuesto padre";
+            case "CUSTCATEGORY":
+                return "Categoría de cliente";
+
             // Users/Employees
-            case "ROLE": return "Rol / Permisos";
-            case "APPPASSWORD": return "Contraseña";
-            
+            case "ROLE":
+                return "Rol / Permisos";
+            case "APPPASSWORD":
+                return "Contraseña";
+
             default:
                 return key.substring(0, 1).toUpperCase() + key.substring(1).toLowerCase();
         }
@@ -694,12 +854,14 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
     }
 
     private TableDefinition findTableDefinitionInObject(Object obj, Set<Object> visited) {
-        if (obj == null || visited.contains(obj)) return null;
+        if (obj == null || visited.contains(obj))
+            return null;
         visited.add(obj);
 
         Class<?> clazz = obj.getClass();
         String objClassName = clazz.getName();
-        if (objClassName.contains("DataLogic") || objClassName.contains("AppView") || objClassName.contains("Session")) {
+        if (objClassName.contains("DataLogic") || objClassName.contains("AppView")
+                || objClassName.contains("Session")) {
             return null;
         }
 
@@ -709,8 +871,10 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
                     try {
                         field.setAccessible(true);
                         TableDefinition td = (TableDefinition) field.get(obj);
-                        if (td != null) return td;
-                    } catch (Exception e) {}
+                        if (td != null)
+                            return td;
+                    } catch (Exception e) {
+                    }
                 }
             }
             clazz = clazz.getSuperclass();
@@ -721,19 +885,21 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
             for (java.lang.reflect.Field field : clazz.getDeclaredFields()) {
                 Class<?> t = field.getType();
                 String fieldTypeName = t.getName();
-                if (fieldTypeName.contains("com.openbravo") 
-                        && !fieldTypeName.contains("DataLogic") 
-                        && !fieldTypeName.contains("AppView") 
-                        && !fieldTypeName.contains("Session") 
+                if (fieldTypeName.contains("com.openbravo")
+                        && !fieldTypeName.contains("DataLogic")
+                        && !fieldTypeName.contains("AppView")
+                        && !fieldTypeName.contains("Session")
                         && !t.isPrimitive() && !t.isArray() && !t.isEnum()) {
                     try {
                         field.setAccessible(true);
                         Object val = field.get(obj);
                         if (val != null) {
                             TableDefinition td = findTableDefinitionInObject(val, visited);
-                            if (td != null) return td;
+                            if (td != null)
+                                return td;
                         }
-                    } catch (Exception e) {}
+                    } catch (Exception e) {
+                    }
                 }
             }
             clazz = clazz.getSuperclass();
@@ -747,7 +913,7 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
             field.setAccessible(true);
             return (int[]) field.get(td);
         } catch (Exception e) {
-            return new int[]{0};
+            return new int[] { 0 };
         }
     }
 
@@ -783,12 +949,14 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
             conn = app.getSession().getConnection();
             StringBuilder sb = new StringBuilder("SELECT ");
             for (int i = 0; i < fieldNames.length; i++) {
-                if (i > 0) sb.append(", ");
+                if (i > 0)
+                    sb.append(", ");
                 sb.append(fieldNames[i]);
             }
             sb.append(" FROM ").append(tableName).append(" WHERE ");
             for (int i = 0; i < idIndices.length; i++) {
-                if (i > 0) sb.append(" AND ");
+                if (i > 0)
+                    sb.append(" AND ");
                 sb.append(fieldNames[idIndices[i]]).append(" = ?");
             }
 
@@ -808,8 +976,16 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
         } catch (Exception e) {
             LOGEER.log(Level.WARNING, "Error fetching old record for audit log", e);
         } finally {
-            if (rs != null) try { rs.close(); } catch (Exception e) {}
-            if (pstmt != null) try { pstmt.close(); } catch (Exception e) {}
+            if (rs != null)
+                try {
+                    rs.close();
+                } catch (Exception e) {
+                }
+            if (pstmt != null)
+                try {
+                    pstmt.close();
+                } catch (Exception e) {
+                }
         }
         return null;
     }
@@ -826,7 +1002,8 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
             Object newVal = newRec[i];
 
             String nameUpper = fieldNames[i].toUpperCase();
-            if (nameUpper.equals("ID") || nameUpper.equals("PASSWORD") || nameUpper.equals("IMAGE") || nameUpper.equals("ICON")) {
+            if (nameUpper.equals("ID") || nameUpper.equals("PASSWORD") || nameUpper.equals("IMAGE")
+                    || nameUpper.equals("ICON")) {
                 continue;
             }
 
@@ -838,13 +1015,16 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
             }
 
             if (changed) {
-                if (sb.length() > 0) sb.append("\n");
+                if (sb.length() > 0)
+                    sb.append("\n");
                 String displayName = (fieldTrans != null && i < fieldTrans.length) ? fieldTrans[i] : fieldNames[i];
                 String oldStr = oldVal == null ? "[Vacío]" : oldVal.toString();
                 String newStr = newVal == null ? "[Vacío]" : newVal.toString();
 
-                if (oldStr.length() > 100) oldStr = oldStr.substring(0, 97) + "...";
-                if (newStr.length() > 100) newStr = newStr.substring(0, 97) + "...";
+                if (oldStr.length() > 100)
+                    oldStr = oldStr.substring(0, 97) + "...";
+                if (newStr.length() > 100)
+                    newStr = newStr.substring(0, 97) + "...";
 
                 sb.append(displayName).append(" cambió de '").append(oldStr).append("' a '").append(newStr).append("'");
             }
@@ -853,14 +1033,16 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
     }
 
     private String getEntityName(String[] fieldNames, Object[] rec) {
-        if (fieldNames == null || rec == null) return "Sin Nombre";
+        if (fieldNames == null || rec == null)
+            return "Sin Nombre";
         for (int i = 0; i < fieldNames.length; i++) {
             if (i < rec.length && "NAME".equalsIgnoreCase(fieldNames[i])) {
                 return rec[i] != null ? rec[i].toString() : "Sin Nombre";
             }
         }
         for (int i = 0; i < fieldNames.length; i++) {
-            if (i < rec.length && ("SEARCHKEY".equalsIgnoreCase(fieldNames[i]) || "KEY".equalsIgnoreCase(fieldNames[i]))) {
+            if (i < rec.length
+                    && ("SEARCHKEY".equalsIgnoreCase(fieldNames[i]) || "KEY".equalsIgnoreCase(fieldNames[i]))) {
                 return rec[i] != null ? rec[i].toString() : "Sin Nombre";
             }
         }
@@ -873,19 +1055,22 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
         return "Sin Nombre";
     }
 
-    private void saveAuditLog(String eventType, String entityType, String entityId, String entityName, String details) {
+    protected void saveAuditLog(String eventType, String entityType, String entityId, String entityName,
+            String details) {
         String username = "Desconocido";
         try {
             if (app != null && app.getAppUserView() != null && app.getAppUserView().getUser() != null) {
                 username = app.getAppUserView().getUser().getName();
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
 
         java.sql.Connection conn = null;
         java.sql.PreparedStatement pstmt = null;
         try {
             conn = app.getSession().getConnection();
-            pstmt = conn.prepareStatement("INSERT INTO AUDIT_LOG (ID, USER_NAME, EVENT_TYPE, ENTITY_TYPE, ENTITY_ID, ENTITY_NAME, EVENT_DATE, DETAILS) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            pstmt = conn.prepareStatement(
+                    "INSERT INTO AUDIT_LOG (ID, USER_NAME, EVENT_TYPE, ENTITY_TYPE, ENTITY_ID, ENTITY_NAME, EVENT_DATE, DETAILS) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
             pstmt.setString(1, UUID.randomUUID().toString());
             pstmt.setString(2, username);
             pstmt.setString(3, eventType);
@@ -898,7 +1083,11 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
         } catch (Exception e) {
             LOGEER.log(Level.WARNING, "Error writing to AUDIT_LOG", e);
         } finally {
-            if (pstmt != null) try { pstmt.close(); } catch (Exception e) {}
+            if (pstmt != null)
+                try {
+                    pstmt.close();
+                } catch (Exception e) {
+                }
         }
     }
 
@@ -906,7 +1095,9 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
         try {
             String tableName = getTableNameForPanel();
             if (tableName == null || tableName.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "No se puede mostrar el historial para este panel (sin definición de tabla).", "Historial", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(this,
+                        "No se puede mostrar el historial para este panel (sin definición de tabla).", "Historial",
+                        JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
@@ -916,13 +1107,15 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
                 currentObj = bd.getListModel().getElementAt(idx);
             }
             if (currentObj == null) {
-                JOptionPane.showMessageDialog(this, "Por favor seleccione un registro primero.", "Historial", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Por favor seleccione un registro primero.", "Historial",
+                        JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
 
             String entityId = getEntityId(currentObj);
             if (entityId == null || entityId.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "No se pudo identificar el ID del registro seleccionado.", "Historial", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(this, "No se pudo identificar el ID del registro seleccionado.",
+                        "Historial", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
@@ -930,7 +1123,8 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
 
         } catch (Exception ex) {
             LOGEER.log(Level.SEVERE, "Error displaying history dialog", ex);
-            JOptionPane.showMessageDialog(this, "Error al cargar el historial: " + ex.getMessage(), "Historial", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error al cargar el historial: " + ex.getMessage(), "Historial",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -938,11 +1132,14 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
         java.awt.Window parentWindow = javax.swing.SwingUtilities.getWindowAncestor(this);
         final javax.swing.JDialog dialog;
         if (parentWindow instanceof java.awt.Frame) {
-            dialog = new javax.swing.JDialog((java.awt.Frame) parentWindow, "Historial de Modificaciones - " + entityType, true);
+            dialog = new javax.swing.JDialog((java.awt.Frame) parentWindow,
+                    "Historial de Modificaciones - " + entityType, true);
         } else if (parentWindow instanceof java.awt.Dialog) {
-            dialog = new javax.swing.JDialog((java.awt.Dialog) parentWindow, "Historial de Modificaciones - " + entityType, true);
+            dialog = new javax.swing.JDialog((java.awt.Dialog) parentWindow,
+                    "Historial de Modificaciones - " + entityType, true);
         } else {
-            dialog = new javax.swing.JDialog((java.awt.Frame) null, "Historial de Modificaciones - " + entityType, true);
+            dialog = new javax.swing.JDialog((java.awt.Frame) null, "Historial de Modificaciones - " + entityType,
+                    true);
         }
 
         dialog.setSize(800, 500);
@@ -955,23 +1152,32 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
         java.sql.ResultSet rs = null;
         try {
             conn = app.getSession().getConnection();
-            pstmt = conn.prepareStatement("SELECT USER_NAME, EVENT_TYPE, EVENT_DATE, DETAILS, ENTITY_NAME FROM AUDIT_LOG WHERE ENTITY_ID = ? ORDER BY EVENT_DATE DESC");
+            pstmt = conn.prepareStatement(
+                    "SELECT USER_NAME, EVENT_TYPE, EVENT_DATE, DETAILS, ENTITY_NAME FROM AUDIT_LOG WHERE ENTITY_ID = ? ORDER BY EVENT_DATE DESC");
             pstmt.setString(1, entityId);
             rs = pstmt.executeQuery();
             while (rs.next()) {
                 dataList.add(new Object[] {
-                    rs.getString("USER_NAME"),
-                    rs.getString("EVENT_TYPE"),
-                    rs.getTimestamp("EVENT_DATE"),
-                    rs.getString("DETAILS"),
-                    rs.getString("ENTITY_NAME")
+                        rs.getString("USER_NAME"),
+                        rs.getString("EVENT_TYPE"),
+                        rs.getTimestamp("EVENT_DATE"),
+                        rs.getString("DETAILS"),
+                        rs.getString("ENTITY_NAME")
                 });
             }
         } catch (Exception e) {
             LOGEER.log(Level.WARNING, "Error loading audit logs for entity " + entityId, e);
         } finally {
-            if (rs != null) try { rs.close(); } catch (Exception e) {}
-            if (pstmt != null) try { pstmt.close(); } catch (Exception e) {}
+            if (rs != null)
+                try {
+                    rs.close();
+                } catch (Exception e) {
+                }
+            if (pstmt != null)
+                try {
+                    pstmt.close();
+                } catch (Exception e) {
+                }
         }
 
         String nameHeader = "Registro: " + entityId;
@@ -983,7 +1189,7 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
         lblHeader.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 10, 5, 10));
         dialog.add(lblHeader, java.awt.BorderLayout.NORTH);
 
-        String[] columnNames = {"Usuario / Empleado", "Acción", "Fecha y Hora"};
+        String[] columnNames = { "Usuario / Empleado", "Acción", "Fecha y Hora" };
         javax.swing.table.DefaultTableModel tableModel = new javax.swing.table.DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -995,9 +1201,9 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
         for (Object[] rowData : dataList) {
             String formattedDate = rowData[2] != null ? sdf.format((java.util.Date) rowData[2]) : "";
             tableModel.addRow(new Object[] {
-                rowData[0],
-                rowData[1],
-                formattedDate
+                    rowData[0],
+                    rowData[1],
+                    formattedDate
             });
         }
 
@@ -1029,7 +1235,8 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
             }
         });
 
-        javax.swing.JSplitPane splitPane = new javax.swing.JSplitPane(javax.swing.JSplitPane.VERTICAL_SPLIT, tableScrollPane, detailScrollPane);
+        javax.swing.JSplitPane splitPane = new javax.swing.JSplitPane(javax.swing.JSplitPane.VERTICAL_SPLIT,
+                tableScrollPane, detailScrollPane);
         splitPane.setDividerLocation(200);
         splitPane.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 10, 0, 10));
         dialog.add(splitPane, java.awt.BorderLayout.CENTER);
@@ -1056,7 +1263,8 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
     }
 
     public void selectRecordById(String id) {
-        if (id == null || id.isEmpty()) return;
+        if (id == null || id.isEmpty())
+            return;
         try {
             if (bd == null || bd.getListModel() == null) {
                 return;
@@ -1076,4 +1284,3 @@ public abstract class JPanelTable extends JPanel implements JPanelView, BeanFact
     }
     // --- FIN MÉTODOS DE AUDITORÍA Y HISTORIAL ---
 }
-

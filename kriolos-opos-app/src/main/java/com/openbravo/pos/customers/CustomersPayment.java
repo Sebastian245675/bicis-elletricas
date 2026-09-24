@@ -38,6 +38,7 @@ import com.openbravo.pos.scripting.ScriptException;
 import com.openbravo.pos.scripting.ScriptFactory;
 import com.openbravo.pos.ticket.TicketInfo;
 import com.openbravo.pos.util.RoundUtils;
+import com.openbravo.pos.util.ModernLookAndFeel;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.event.FocusAdapter;
@@ -72,6 +73,9 @@ public class CustomersPayment extends javax.swing.JPanel implements JPanelView, 
     private final DirtyManager dirty;
     private boolean updatingCustomerFields = false;
     private boolean searchTriggeredFromAction = false;
+    private String sourceLayawayId;
+    private String sourceLayawayCustomerId;
+    private double sourceLayawayBalance;
 
     public CustomersPayment() {
 
@@ -146,9 +150,8 @@ public class CustomersPayment extends javax.swing.JPanel implements JPanelView, 
 
     private void applyModernStyles() {
 
-        Color background = new Color(244, 247, 250);
+        Color background = new Color(250, 247, 242); // Fondo Crema Institucional
         Color panelBackground = Color.WHITE;
-        Color borderColor = new Color(221, 228, 237);
 
         setBackground(background);
         jPanel1.setBackground(panelBackground);
@@ -168,11 +171,8 @@ public class CustomersPayment extends javax.swing.JPanel implements JPanelView, 
         m_jKeys.setMinimumSize(new java.awt.Dimension(0, 0));
         m_jKeys.setMaximumSize(new java.awt.Dimension(0, 0));
 
-        styleButton(btnCustomer, new Color(15, 118, 110), Color.WHITE);
-        styleButton(btnSave, new Color(59, 130, 246), Color.WHITE);
-        styleButton(btnPay, new Color(22, 163, 74), Color.WHITE);
-        styleButton(btnPrePay, new Color(249, 115, 22), Color.WHITE);
-        styleButton(jButton1, new Color(37, 99, 235), Color.WHITE);
+        // Aplicar estilos modernos institucionales (Tema Crema/Oro) de forma recursiva
+        ModernLookAndFeel.estilizarComponentes(this);
 
         btnCustomer.setVisible(false);
         btnSave.setText("Guardar");
@@ -181,31 +181,28 @@ public class CustomersPayment extends javax.swing.JPanel implements JPanelView, 
         jButton1.setText("Buscar");
         jSeparator1.setVisible(false);
 
-        editorcard.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        editorcard.setBorder(createInputBorder(borderColor));
-        txtNotes.setBorder(createInputBorder(borderColor));
+        // Configuración específica de txtNotes (JTextArea)
+        txtNotes.setFont(ModernLookAndFeel.getPreferredFont("Baradig", Font.PLAIN, 14));
+        txtNotes.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(224, 224, 224), 1),
+            BorderFactory.createEmptyBorder(4, 6, 4, 6)
+        ));
         txtNotes.setLineWrap(true);
         txtNotes.setWrapStyleWord(true);
-        txtPrePay.setBorder(createInputBorder(borderColor));
 
-        styleInfoField(txtTaxId, 14, false, new Color(31, 41, 55));
-        styleInfoField(txtName, 16, true, new Color(17, 24, 39));
-        styleInfoField(txtCard, 14, false, new Color(31, 41, 55));
-        styleInfoField(txtMaxdebt, 18, true, new Color(37, 99, 235));
-        styleInfoField(txtCurdebt, 18, true, new Color(220, 38, 38));
-        styleInfoField(txtCurdate, 14, true, new Color(217, 119, 6));
-        txtNotes.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txtPrePay.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        txtPrePay.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
+        // Restablecer colores informativos del estado de deuda del cliente
+        txtMaxdebt.setForeground(new Color(37, 99, 235)); // Azul
+        txtCurdebt.setForeground(new Color(220, 38, 38)); // Rojo
+        txtCurdate.setForeground(new Color(217, 119, 6));  // Naranja
+
+        jLabel1.setForeground(new Color(37, 99, 235));
+        jLabel2.setForeground(new Color(220, 38, 38));
+        jLabel6.setForeground(new Color(217, 119, 6));
 
         jLabel7.setText("Documento / ID");
         jLabel3.setText("Cliente");
         jLabel5.setText("Codigo de cliente");
         lblPrePay.setText("Valor abonado");
-
-        jLabel1.setForeground(new Color(37, 99, 235));
-        jLabel2.setForeground(new Color(220, 38, 38));
-        jLabel6.setForeground(new Color(217, 119, 6));
 
         enableSearchField(txtTaxId);
         enableSearchField(txtName);
@@ -218,14 +215,14 @@ public class CustomersPayment extends javax.swing.JPanel implements JPanelView, 
 
     private Border createCardBorder(String title) {
         return BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(221, 228, 237), 1),
+                BorderFactory.createLineBorder(new Color(224, 224, 224), 2),
                 BorderFactory.createTitledBorder(
                         BorderFactory.createEmptyBorder(10, 10, 10, 10),
                         title,
                         javax.swing.border.TitledBorder.LEFT,
                         javax.swing.border.TitledBorder.TOP,
-                        new Font("Segoe UI", Font.BOLD, 13),
-                        new Color(31, 41, 55)));
+                        ModernLookAndFeel.getPreferredFont("Baradig", Font.BOLD, 17),
+                        new Color(66, 66, 66)));
     }
 
     private Border createInputBorder(Color color) {
@@ -235,22 +232,11 @@ public class CustomersPayment extends javax.swing.JPanel implements JPanelView, 
     }
 
     private void styleButton(javax.swing.JButton button, Color background, Color foreground) {
-        button.setBackground(background);
-        button.setForeground(foreground);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        button.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(background.darker(), 1),
-                BorderFactory.createEmptyBorder(8, 14, 8, 14)));
-        button.setFocusPainted(false);
-        button.setOpaque(true);
-        button.setContentAreaFilled(true);
+        // Obsoleto: manejado por ModernLookAndFeel.estilizarComponentes
     }
 
     private void styleInfoField(javax.swing.JTextField field, int fontSize, boolean bold, Color foreground) {
-        field.setBackground(Color.WHITE);
-        field.setForeground(foreground);
-        field.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, fontSize));
-        field.setBorder(createInputBorder(new Color(221, 228, 237)));
+        // Obsoleto: manejado por ModernLookAndFeel.estilizarComponentes
     }
 
     private void enableSearchField(javax.swing.JTextField field) {
@@ -289,9 +275,32 @@ public class CustomersPayment extends javax.swing.JPanel implements JPanelView, 
             return null;
         }
 
-        String normalized = text.trim().replace("$", "").replace(",", "");
+        String normalized = text.trim().replace("$", "").replace(" ", "");
         if (normalized.isEmpty()) {
             return null;
+        }
+
+        int comma = normalized.lastIndexOf(',');
+        int dot = normalized.lastIndexOf('.');
+        if (comma >= 0 && dot >= 0) {
+            // El último separador es el decimal: admite 1.234,56 y 1,234.56.
+            if (comma > dot) {
+                normalized = normalized.replace(".", "").replace(',', '.');
+            } else {
+                normalized = normalized.replace(",", "");
+            }
+        } else if (comma >= 0) {
+            int decimals = normalized.length() - comma - 1;
+            normalized = decimals > 0 && decimals <= 2
+                    ? normalized.replace(',', '.') : normalized.replace(",", "");
+        } else if (dot >= 0 && normalized.indexOf('.') != dot) {
+            int decimals = normalized.length() - dot - 1;
+            normalized = decimals > 0 && decimals <= 2
+                    ? normalized.substring(0, dot).replace(".", "") + normalized.substring(dot)
+                    : normalized.replace(".", "");
+        } else if (dot >= 0) {
+            int decimals = normalized.length() - dot - 1;
+            if (decimals > 2) normalized = normalized.replace(".", "");
         }
 
         try {
@@ -305,6 +314,13 @@ public class CustomersPayment extends javax.swing.JPanel implements JPanelView, 
         return customerext == null || customerext.getAccdebt() == null
                 ? 0.0
                 : RoundUtils.getValue(customerext.getAccdebt());
+    }
+
+    private double getPayableDebtAmount() {
+        double customerDebt = getCurrentDebtAmount();
+        return sourceLayawayId == null
+                ? customerDebt
+                : Math.min(customerDebt, Math.max(0.0, sourceLayawayBalance));
     }
 
     private String firstNonBlank(String... values) {
@@ -395,6 +411,38 @@ public class CustomersPayment extends javax.swing.JPanel implements JPanelView, 
         return dlsales.loadCustomerExt(id);
     }
 
+    /**
+     * Preselecciona un cliente al llegar desde el módulo de apartados.
+     */
+    public void selectCustomerById(String customerId) {
+        if (customerId == null || customerId.isBlank() || dlsales == null) {
+            return;
+        }
+        try {
+            CustomerInfoExt customer = loadCustomerExt(customerId);
+            if (customer != null) {
+                editCustomer(customer);
+                txtPrePay.requestFocusInWindow();
+            }
+        } catch (BasicException ex) {
+            new MessageInf(MessageInf.SGN_WARNING,
+                    "No se pudo cargar el cliente del apartado", ex).show(this);
+        }
+    }
+
+    /** Opens customer collections scoped to one specific layaway. */
+    public void selectLayaway(String customerId, String layawayId, double pendingBalance) {
+        selectCustomerById(customerId);
+        if (customerext != null && customerext.getId().equals(customerId)) {
+            sourceLayawayId = layawayId;
+            sourceLayawayCustomerId = customerId;
+            sourceLayawayBalance = Math.max(0.0, pendingBalance);
+            jPanel1.setBorder(createCardBorder("Abono al apartado seleccionado"));
+            lblPrePay.setText("Valor a abonar (saldo: "
+                    + Formats.CURRENCY.formatValue(sourceLayawayBalance) + ")");
+        }
+    }
+
     private void refreshCustomer() {
         if (customerext == null) {
             return;
@@ -413,9 +461,11 @@ public class CustomersPayment extends javax.swing.JPanel implements JPanelView, 
 
     private void processPayment(double amount) {
 
-        double currentDebt = getCurrentDebtAmount();
+        double currentDebt = getPayableDebtAmount();
         if (currentDebt <= 0.0) {
-            MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, "El cliente no tiene deuda pendiente.");
+            MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
+                    sourceLayawayId == null ? "El cliente no tiene deuda pendiente."
+                            : "Este apartado ya no tiene saldo pendiente.");
             msg.show(this);
             return;
         }
@@ -446,19 +496,42 @@ public class CustomersPayment extends javax.swing.JPanel implements JPanelView, 
             total += payment.getTotal();
         }
 
-        payments.add(new PaymentInfoTicket(-RoundUtils.getValue(total), "debtpaid"));
+        total = RoundUtils.getValue(total);
+        if (total <= 0.0 || total > currentDebt + 0.005) {
+            MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
+                    "El total seleccionado no es válido para el saldo pendiente.");
+            msg.show(this);
+            return;
+        }
+
+        payments.add(new PaymentInfoTicket(-total, "debtpaid"));
 
         ticket.setPayments(payments);
         ticket.setUser(app.getAppUserView().getUser().getUserInfo());
         ticket.setActiveCash(app.getActiveCashIndex());
         ticket.setDate(new Date());
         ticket.setCustomer(customerext);
+        if (sourceLayawayId != null) {
+            ticket.setProperty("is_apartado_abono", "true");
+            ticket.setProperty("apartado_id", sourceLayawayId);
+        }
 
         try {
             dlsales.saveTicket(ticket, app.getInventoryLocation());
+            if (sourceLayawayId != null) {
+                sourceLayawayBalance = Math.max(0.0, sourceLayawayBalance - total);
+                lblPrePay.setText("Valor a abonar (saldo: "
+                        + Formats.CURRENCY.formatValue(sourceLayawayBalance) + ")");
+            }
             refreshCustomer();
             printTicket(paymentdialog.isPrintSelected() ? "Printer.CustomerPaid" : "Printer.CustomerPaid2",
                     ticket, customerext);
+            MessageInf confirmation = new MessageInf(MessageInf.SGN_SUCCESS,
+                    "Abono registrado: " + Formats.CURRENCY.formatValue(total)
+                            + (sourceLayawayId == null ? ""
+                                    : "\nSaldo del apartado: "
+                                            + Formats.CURRENCY.formatValue(sourceLayawayBalance)));
+            confirmation.show(this);
         } catch (BasicException eData) {
             MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE, AppLocal.getIntString("message.nosaveticket"), eData);
             msg.show(this);
@@ -466,6 +539,10 @@ public class CustomersPayment extends javax.swing.JPanel implements JPanelView, 
     }
 
     private void editCustomer(CustomerInfoExt customer) {
+
+        if (sourceLayawayCustomerId != null && !sourceLayawayCustomerId.equals(customer.getId())) {
+            clearLayawayContext();
+        }
 
         customerext = customer;
 
@@ -498,12 +575,13 @@ public class CustomersPayment extends javax.swing.JPanel implements JPanelView, 
      * @return true is pay is enabled, otherwich false
      */
     private boolean enablePay(){
-        return getCurrentDebtAmount() > 0.0;
+        return getPayableDebtAmount() > 0.0;
     }
 
     private void resetCustomer() {
 
         customerext = null;
+        clearLayawayContext();
 
         updatingCustomerFields = true;
         txtTaxId.setText(null);
@@ -525,6 +603,18 @@ public class CustomersPayment extends javax.swing.JPanel implements JPanelView, 
         btnPay.setEnabled(false);
         btnPrePay.setEnabled(false);        
 
+    }
+
+    private void clearLayawayContext() {
+        sourceLayawayId = null;
+        sourceLayawayCustomerId = null;
+        sourceLayawayBalance = 0.0;
+        if (jPanel1 != null) {
+            jPanel1.setBorder(createCardBorder("Cliente y pago"));
+        }
+        if (lblPrePay != null) {
+            lblPrePay.setText("Valor abonado");
+        }
     }
 
     private void readCustomer() {
@@ -1015,7 +1105,7 @@ public class CustomersPayment extends javax.swing.JPanel implements JPanelView, 
 }//GEN-LAST:event_btnCustomerActionPerformed
 
     private void btnPayActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPayActionPerformed
-        processPayment(getCurrentDebtAmount());
+        processPayment(getPayableDebtAmount());
 }//GEN-LAST:event_btnPayActionPerformed
 
     private void btnSaveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSaveActionPerformed

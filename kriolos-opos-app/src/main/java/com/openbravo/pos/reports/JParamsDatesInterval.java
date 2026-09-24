@@ -103,6 +103,21 @@ public class JParamsDatesInterval extends javax.swing.JPanel implements ReportEd
      */
     @Override
     public void activate() throws BasicException {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        
+        // Start date: hoy a las 12:00:00 a.m. (00:00:00)
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+        cal.set(java.util.Calendar.MINUTE, 0);
+        cal.set(java.util.Calendar.SECOND, 0);
+        cal.set(java.util.Calendar.MILLISECOND, 0);
+        setStartDate(cal.getTime());
+        
+        // End date: hoy a las 11:59:59 p.m. (23:59:59)
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 23);
+        cal.set(java.util.Calendar.MINUTE, 59);
+        cal.set(java.util.Calendar.SECOND, 59);
+        cal.set(java.util.Calendar.MILLISECOND, 999);
+        setEndDate(cal.getTime());
     }
     
     /**
@@ -156,28 +171,26 @@ public class JParamsDatesInterval extends javax.swing.JPanel implements ReportEd
         btnDateStart = new javax.swing.JButton();
         btnDateEnd = new javax.swing.JButton();
 
-        setMaximumSize(new java.awt.Dimension(430, 92));
-        setMinimumSize(new java.awt.Dimension(430, 92));
-        setPreferredSize(new java.awt.Dimension(430, 92));
+        setMaximumSize(new java.awt.Dimension(850, 48));
+        setMinimumSize(new java.awt.Dimension(850, 48));
+        setPreferredSize(new java.awt.Dimension(850, 48));
 
         jLabel1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabel1.setText(AppLocal.getIntString("label.StartDate")); // NOI18N
-        jLabel1.setPreferredSize(new java.awt.Dimension(125, 32));
+        jLabel1.setPreferredSize(new java.awt.Dimension(90, 32));
 
         jTxtStartDate.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jTxtStartDate.setPreferredSize(new java.awt.Dimension(210, 34));
 
         jLabel2.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabel2.setText(AppLocal.getIntString("label.EndDate")); // NOI18N
-        jLabel2.setPreferredSize(new java.awt.Dimension(125, 32));
+        jLabel2.setPreferredSize(new java.awt.Dimension(90, 32));
 
         jTxtEndDate.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jTxtEndDate.setPreferredSize(new java.awt.Dimension(210, 34));
 
         btnDateStart.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/date.png"))); // NOI18N
         btnDateStart.setToolTipText("Open Calendar");
-        btnDateStart.setMaximumSize(new java.awt.Dimension(44, 34));
-        btnDateStart.setMinimumSize(new java.awt.Dimension(44, 34));
         btnDateStart.setPreferredSize(new java.awt.Dimension(44, 34));
         btnDateStart.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -187,8 +200,6 @@ public class JParamsDatesInterval extends javax.swing.JPanel implements ReportEd
 
         btnDateEnd.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/date.png"))); // NOI18N
         btnDateEnd.setToolTipText("Open Calendar");
-        btnDateEnd.setMaximumSize(new java.awt.Dimension(44, 34));
-        btnDateEnd.setMinimumSize(new java.awt.Dimension(44, 34));
         btnDateEnd.setPreferredSize(new java.awt.Dimension(44, 34));
         btnDateEnd.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -196,44 +207,48 @@ public class JParamsDatesInterval extends javax.swing.JPanel implements ReportEd
             }
         });
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
-        this.setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jTxtStartDate, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btnDateStart, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jTxtEndDate, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btnDateEnd, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap())
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addComponent(btnDateStart, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(jTxtStartDate, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(btnDateEnd, javax.swing.GroupLayout.PREFERRED_SIZE, 31, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                        .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(jTxtEndDate, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap())
-        );
+        setLayout(new java.awt.GridBagLayout());
+        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+        gbc.fill = java.awt.GridBagConstraints.BOTH;
+        gbc.insets = new java.awt.Insets(0, 5, 0, 5);
+        gbc.weighty = 1.0;
+
+        // Col 0: Start Date Label
+        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0.0;
+        add(jLabel1, gbc);
+
+        // Col 1: Start Date Text Field
+        gbc.gridx = 1; gbc.gridy = 0; gbc.weightx = 0.0;
+        add(jTxtStartDate, gbc);
+
+        // Col 2: Start Date Button
+        gbc.gridx = 2; gbc.gridy = 0; gbc.weightx = 0.0;
+        add(btnDateStart, gbc);
+
+        // Spacer between groups
+        javax.swing.JPanel spacer = new javax.swing.JPanel();
+        spacer.setOpaque(false);
+        spacer.setPreferredSize(new java.awt.Dimension(30, 10));
+        gbc.gridx = 3; gbc.gridy = 0; gbc.weightx = 0.0;
+        add(spacer, gbc);
+
+        // Col 4: End Date Label
+        gbc.gridx = 4; gbc.gridy = 0; gbc.weightx = 0.0;
+        add(jLabel2, gbc);
+
+        // Col 5: End Date Text Field
+        gbc.gridx = 5; gbc.gridy = 0; gbc.weightx = 0.0;
+        add(jTxtEndDate, gbc);
+
+        // Col 6: End Date Button
+        gbc.gridx = 6; gbc.gridy = 0; gbc.weightx = 0.0;
+        add(btnDateEnd, gbc);
+
+        // Trailing Spacer to absorb remaining horizontal space and push everything to the left
+        javax.swing.JPanel trailingSpacer = new javax.swing.JPanel();
+        trailingSpacer.setOpaque(false);
+        gbc.gridx = 7; gbc.gridy = 0; gbc.weightx = 1.0;
+        add(trailingSpacer, gbc);
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnDateStartActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnDateStartActionPerformed

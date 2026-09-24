@@ -37,6 +37,10 @@ public class AppUserPermissionsLoader {
         String permisionsXML = dlSystem.findRolePermissions(role);
 
         Set<String> permissionsSet = new HashSet<>();
+        if (permisionsXML == null || permisionsXML.isBlank()) {
+            LOGGER.log(Level.WARNING, "No permissions configured for role: {0}", role);
+            return permissionsSet;
+        }
         try {
             SAXParserFactory spf = SAXParserUtils.newSecureInstance();
             SAXParser parser = spf.newSAXParser();

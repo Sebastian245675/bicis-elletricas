@@ -46,6 +46,11 @@ import javax.swing.table.AbstractTableModel;
 import javax.swing.table.JTableHeader;
 import org.netbeans.validation.api.builtin.stringvalidation.StringValidators;
 import org.openide.util.Exceptions;
+import java.awt.Color;
+import java.awt.Dimension;
+import javax.swing.JPanel;
+import javax.swing.JLabel;
+import javax.swing.JComponent;
 
 /**
  *
@@ -84,8 +89,10 @@ public final class SuppliersView extends com.openbravo.pos.panels.ValidationPane
                 if (loc != null && !loc.isEmpty() && !loc.startsWith("label.")) {
                     documentsLabel = loc;
                 }
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
             formTabbedPane.addTab(documentsLabel, documentsPanel);
+            modernizeUI();
             
             m_jTaxID.getDocument().addDocumentListener(dirty);
             m_jVATID.getDocument().addDocumentListener(dirty);
@@ -1329,4 +1336,284 @@ public final class SuppliersView extends com.openbravo.pos.panels.ValidationPane
     private javax.swing.JButton webBtnMail;
     // End of variables declaration//GEN-END:variables
 
+    private void modernizeUI() {
+        // Colors
+        Color bg = new Color(248, 250, 252); // slate-50
+        Color cardBg = Color.WHITE;
+        Color cardBorder = new Color(226, 232, 240); // slate-200
+        Color textPrimary = new Color(15, 23, 42); // slate-900
+        Color textMuted = new Color(100, 116, 139); // slate-500
+        Color accentColor = new Color(99, 102, 241); // indigo-500
+
+        // Set Tabbed Pane titles and icons
+        formTabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        formTabbedPane.setBackground(bg);
+        formTabbedPane.setForeground(textPrimary);
+        
+        // Emojis/Icons for tab titles
+        formTabbedPane.setTitleAt(0, "📋 General");
+        formTabbedPane.setTitleAt(1, "📞 Contacto");
+        formTabbedPane.setTitleAt(2, "📍 Dirección");
+        formTabbedPane.setTitleAt(3, "💼 Transacciones");
+        formTabbedPane.setTitleAt(4, "📝 Notas");
+        
+        if (formTabbedPane.getTabCount() > 5) {
+            formTabbedPane.setTitleAt(5, "📎 Documentos");
+        }
+
+        // Restyle all TextFields
+        javax.swing.JTextField[] fields = {
+            m_jTaxID, m_jVATID, m_jSearchkey, m_jName, txtMaxdebt, txtCurdebt, txtCurdate,
+            txtFirstName, txtLastName, txtEmail, txtPhone, txtPhone2, txtFax,
+            txtAddress, txtAddress2, txtPostal, txtCity, txtRegion, txtCountry
+        };
+        for (javax.swing.JTextField f : fields) {
+            if (f != null) {
+                f.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+                f.setBackground(cardBg);
+                f.setForeground(textPrimary);
+                f.setCaretColor(accentColor);
+                f.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                    new javax.swing.border.LineBorder(cardBorder, 1, true),
+                    javax.swing.BorderFactory.createEmptyBorder(6, 10, 6, 10)
+                ));
+            }
+        }
+
+        // Restyle Notes JTextArea
+        m_jNotes.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        m_jNotes.setBackground(cardBg);
+        m_jNotes.setForeground(textPrimary);
+        m_jNotes.setCaretColor(accentColor);
+        jScrollPane1.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            new javax.swing.border.LineBorder(cardBorder, 1, true),
+            javax.swing.BorderFactory.createEmptyBorder(8, 8, 8, 8)
+        ));
+
+        // Rebuild jPanel5 (General Tab)
+        jPanel5.removeAll();
+        jPanel5.setBackground(bg);
+        jPanel5.setLayout(new java.awt.GridBagLayout());
+        jPanel5.setBorder(javax.swing.BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+        gbc.fill = java.awt.GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        gbc.insets = new java.awt.Insets(0, 0, 0, 15);
+        gbc.gridy = 0;
+
+        // Column 1: Info Fiscal y Nombre (Card Panel)
+        JPanel cardInfo = createCardPanel("Información Principal");
+        addFormRow(cardInfo, m_jName_Label, m_jName);
+        addFormRow(cardInfo, m_jSearchkey_Label, m_jSearchkey);
+        
+        // Horizontal group for Tax ID, VAT ID and Visible
+        JPanel taxGroup = new JPanel(new java.awt.GridLayout(1, 3, 10, 0));
+        taxGroup.setOpaque(false);
+        taxGroup.setAlignmentX(Component.LEFT_ALIGNMENT);
+        taxGroup.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 50));
+
+        JPanel colTax = new JPanel(new java.awt.BorderLayout(0, 4)); colTax.setOpaque(false);
+        colTax.add(jLabel7, java.awt.BorderLayout.NORTH); colTax.add(m_jTaxID, java.awt.BorderLayout.CENTER);
+        
+        JPanel colVat = new JPanel(new java.awt.BorderLayout(0, 4)); colVat.setOpaque(false);
+        colVat.add(jLabel9, java.awt.BorderLayout.NORTH); colVat.add(m_jVATID, java.awt.BorderLayout.CENTER);
+        
+        JPanel colVisible = new JPanel(new java.awt.BorderLayout(0, 4)); colVisible.setOpaque(false);
+        m_jVisible.setOpaque(false);
+        colVisible.add(jLabel4, java.awt.BorderLayout.NORTH); colVisible.add(m_jVisible, java.awt.BorderLayout.CENTER);
+        
+        taxGroup.add(colTax);
+        taxGroup.add(colVat);
+        taxGroup.add(colVisible);
+        
+        cardInfo.add(taxGroup);
+        cardInfo.add(javax.swing.Box.createVerticalStrut(12));
+        finalizeCard(cardInfo);
+
+        gbc.gridx = 0; gbc.weightx = 0.65;
+        jPanel5.add(cardInfo, gbc);
+
+        // Column 2: Datos de Crédito y Deuda (Card Panel)
+        JPanel cardDebt = createCardPanel("Estado Financiero");
+        addFormRow(cardDebt, lblMaxdebt, txtMaxdebt);
+        addFormRow(cardDebt, jLabel2, txtCurdebt);
+        addFormRow(cardDebt, jLabel6, txtCurdate);
+        finalizeCard(cardDebt);
+        
+        gbc.gridx = 1; gbc.weightx = 0.35;
+        gbc.insets = new java.awt.Insets(0, 0, 0, 0);
+        jPanel5.add(cardDebt, gbc);
+
+        // Rebuild jPanel1 (Contacto Tab)
+        jPanel1.removeAll();
+        jPanel1.setBackground(bg);
+        jPanel1.setLayout(new java.awt.GridBagLayout());
+        jPanel1.setBorder(javax.swing.BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+        JPanel cardContact = createCardPanel("Información del Contacto");
+        
+        JPanel gridContact = new JPanel(new java.awt.GridLayout(3, 2, 20, 12));
+        gridContact.setOpaque(false);
+        gridContact.setAlignmentX(Component.LEFT_ALIGNMENT);
+        gridContact.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 170));
+
+        addFormRow(gridContact, jLabel19, txtFirstName);
+        addFormRow(gridContact, jLabel15, txtLastName);
+        
+        // Email row with button
+        JPanel emailPanel = new JPanel(new java.awt.BorderLayout(8, 0));
+        emailPanel.setOpaque(false);
+        emailPanel.add(txtEmail, java.awt.BorderLayout.CENTER);
+        
+        webBtnMail.setText("");
+        webBtnMail.setToolTipText("Enviar Email");
+        webBtnMail.setBackground(Color.WHITE);
+        webBtnMail.setBorder(javax.swing.BorderFactory.createLineBorder(cardBorder, 1, true));
+        webBtnMail.setPreferredSize(new java.awt.Dimension(45, 30));
+        emailPanel.add(webBtnMail, java.awt.BorderLayout.EAST);
+        
+        addFormRow(gridContact, jLabel16, emailPanel);
+        addFormRow(gridContact, jLabel14, txtFax);
+        addFormRow(gridContact, jLabel17, txtPhone);
+        addFormRow(gridContact, jLabel18, txtPhone2);
+
+        cardContact.add(gridContact);
+        finalizeCard(cardContact);
+
+        gbc.gridx = 0; gbc.weightx = 1.0; gbc.insets = new java.awt.Insets(0, 0, 0, 0);
+        jPanel1.add(cardContact, gbc);
+
+        // Rebuild jPanel2 (Dirección Tab)
+        jPanel2.removeAll();
+        jPanel2.setBackground(bg);
+        jPanel2.setLayout(new java.awt.GridBagLayout());
+        jPanel2.setBorder(javax.swing.BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+        JPanel cardAddress = createCardPanel("Dirección del Proveedor");
+        
+        JPanel gridAddress = new JPanel(new java.awt.GridLayout(3, 2, 20, 12));
+        gridAddress.setOpaque(false);
+        gridAddress.setAlignmentX(Component.LEFT_ALIGNMENT);
+        gridAddress.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 170));
+
+        addFormRow(gridAddress, jLabel13, txtAddress);
+        addFormRow(gridAddress, jLabel21, txtAddress2);
+        addFormRow(gridAddress, jLabel23, txtCity);
+        addFormRow(gridAddress, jLabel22, txtPostal);
+        addFormRow(gridAddress, jLabel24, txtRegion);
+        addFormRow(gridAddress, jLabel20, txtCountry);
+
+        cardAddress.add(gridAddress);
+        finalizeCard(cardAddress);
+
+        jPanel2.add(cardAddress, gbc);
+
+        // Rebuild jPanel3 (Notas Tab)
+        jPanel3.removeAll();
+        jPanel3.setBackground(bg);
+        jPanel3.setLayout(new java.awt.BorderLayout());
+        jPanel3.setBorder(javax.swing.BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        
+        JPanel cardNotes = createCardPanel("Notas / Observaciones");
+        cardNotes.add(jScrollPane1);
+        finalizeCard(cardNotes);
+        jPanel3.add(cardNotes, java.awt.BorderLayout.CENTER);
+
+        // Rebuild jPanel4 (Transacciones Tab)
+        jPanel4.removeAll();
+        jPanel4.setBackground(bg);
+        jPanel4.setLayout(new java.awt.BorderLayout(0, 15));
+        jPanel4.setBorder(javax.swing.BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+        JPanel toolbar = new JPanel(new java.awt.BorderLayout());
+        toolbar.setOpaque(false);
+        
+        jBtnShowTrans.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        jBtnShowTrans.setBackground(accentColor);
+        jBtnShowTrans.setForeground(Color.WHITE);
+        jBtnShowTrans.setOpaque(true);
+        jBtnShowTrans.setBorderPainted(false);
+        jBtnShowTrans.setFocusPainted(false);
+        jBtnShowTrans.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        jBtnShowTrans.setPreferredSize(new java.awt.Dimension(180, 35));
+        toolbar.add(jBtnShowTrans, java.awt.BorderLayout.WEST);
+
+        jLblTranCount.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        jLblTranCount.setForeground(textMuted);
+        jLblTranCount.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        toolbar.add(jLblTranCount, java.awt.BorderLayout.CENTER);
+
+        jPanel4.add(toolbar, java.awt.BorderLayout.NORTH);
+
+        // Table card
+        JPanel cardTable = new JPanel(new java.awt.BorderLayout());
+        cardTable.setBackground(cardBg);
+        cardTable.setBorder(javax.swing.BorderFactory.createLineBorder(cardBorder, 1, true));
+        
+        jTableSupplierTransactions.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        jTableSupplierTransactions.setGridColor(cardBorder);
+        jTableSupplierTransactions.setSelectionBackground(new Color(238, 242, 255)); // light indigo
+        jTableSupplierTransactions.setSelectionForeground(textPrimary);
+        jTableSupplierTransactions.setRowHeight(28);
+        
+        JTableHeader header = jTableSupplierTransactions.getTableHeader();
+        header.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        header.setBackground(new Color(241, 245, 249));
+        header.setForeground(textPrimary);
+        header.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, cardBorder));
+
+        jScrollPane3.setBorder(null);
+        jScrollPane3.setViewportView(jTableSupplierTransactions);
+        cardTable.add(jScrollPane3, java.awt.BorderLayout.CENTER);
+        
+        jPanel4.add(cardTable, java.awt.BorderLayout.CENTER);
+
+        // Set labels font
+        JLabel[] labels = {
+            jLabel7, jLabel9, m_jName_Label, m_jSearchkey_Label, lblMaxdebt, jLabel2, jLabel6, jLabel4,
+            jLabel19, jLabel15, jLabel16, jLabel17, jLabel18, jLabel14,
+            jLabel13, jLabel21, jLabel23, jLabel22, jLabel24, jLabel20
+        };
+        for (JLabel l : labels) {
+            if (l != null) {
+                l.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                l.setForeground(textMuted);
+            }
+        }
+    }
+
+    private JPanel createCardPanel(String title) {
+        JPanel card = new JPanel();
+        card.setBackground(Color.WHITE);
+        card.setLayout(new javax.swing.BoxLayout(card, javax.swing.BoxLayout.Y_AXIS));
+        card.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            new javax.swing.border.LineBorder(new Color(226, 232, 240), 1, true), // slate-200
+            javax.swing.BorderFactory.createEmptyBorder(16, 20, 20, 20)
+        ));
+        
+        if (title != null && !title.isEmpty()) {
+            JLabel lblTitle = new JLabel(title);
+            lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            lblTitle.setForeground(new Color(15, 23, 42)); // slate-900
+            lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+            card.add(lblTitle);
+            card.add(javax.swing.Box.createVerticalStrut(15));
+        }
+        return card;
+    }
+
+    private void addFormRow(JPanel container, JLabel label, JComponent input) {
+        JPanel row = new JPanel(new java.awt.BorderLayout(0, 4));
+        row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.add(label, java.awt.BorderLayout.NORTH);
+        row.add(input, java.awt.BorderLayout.CENTER);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+        container.add(row);
+    }
+
+    private void finalizeCard(JPanel card) {
+        card.add(javax.swing.Box.createVerticalGlue());
+    }
 }

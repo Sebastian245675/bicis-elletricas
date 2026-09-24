@@ -219,10 +219,10 @@ public class RolesPanel extends JPanelTable {
 
         switch (roleId.trim()) {
             case "0":
-                return "ADMIN";
             case "1":
-                return "MANAGER";
+                return "ADMIN";
             case "2":
+                return "MANAGER";
             case "3":
                 return "Employee";
             default:

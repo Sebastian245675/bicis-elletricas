@@ -417,6 +417,274 @@ public class PaymentsModel {
         return p;
     }
 
+    public static PaymentsModel loadInstance(AppView app, String moneyIndex) throws BasicException {
+        PaymentsModel p = new PaymentsModel();
+
+        // 1. Load closedcash metadata
+        Object[] closedCashMeta = (Object[]) new StaticSentence(app.getSession(),
+                "SELECT HOST, HOSTSEQUENCE, DATESTART, DATEEND, INITIAL_AMOUNT, "
+                        + "COALESCE((SELECT MIN(people.NAME) FROM tickets INNER JOIN receipts ON tickets.ID = receipts.ID INNER JOIN people ON tickets.PERSON = people.ID WHERE receipts.MONEY = closedcash.MONEY), 'admin') AS CAJERO "
+                        + "FROM closedcash WHERE MONEY = ?",
+                SerializerWriteString.INSTANCE,
+                new SerializerReadBasic(new Datas[] { Datas.STRING, Datas.INT, Datas.TIMESTAMP, Datas.TIMESTAMP, Datas.DOUBLE, Datas.STRING }))
+                .find(moneyIndex);
+
+        if (closedCashMeta != null) {
+            p.m_sHost = (String) closedCashMeta[0];
+            p.m_iSeq = (Integer) closedCashMeta[1];
+            p.m_dDateStart = (Date) closedCashMeta[2];
+            p.m_dDateEnd = (Date) closedCashMeta[3];
+            p.m_dInitialAmount = (Double) closedCashMeta[4];
+            p.m_sUser = (String) closedCashMeta[5];
+        } else {
+            p.m_sHost = app.getProperties().getHost();
+            p.m_sUser = app.getAppUserView().getUser().getName();
+            p.m_iSeq = 0;
+            p.m_dDateStart = new Date();
+            p.m_dDateEnd = null;
+            p.m_dInitialAmount = 0.0;
+        }
+
+        // Product category Sales
+        Object[] valcategorysales = (Object[]) new StaticSentence(app.getSession(),
+                "SELECT COUNT(*), "
+                        + "SUM(ticketlines.UNITS), "
+                        + "SUM((ticketlines.PRICE + ticketlines.PRICE * taxes.RATE ) * ticketlines.UNITS) "
+                        + "FROM ticketlines, tickets, receipts, taxes "
+                        + "WHERE ticketlines.TICKET = tickets.ID AND tickets.ID = receipts.ID "
+                        + "AND ticketlines.TAXID = taxes.ID "
+                        + "AND ticketlines.PRODUCT IS NOT NULL "
+                        + "AND receipts.MONEY = ? "
+                        + "GROUP BY receipts.MONEY",
+                SerializerWriteString.INSTANCE,
+                new SerializerReadBasic(new Datas[] { Datas.INT, Datas.DOUBLE, Datas.DOUBLE }))
+                .find(moneyIndex);
+
+        if (valcategorysales == null) {
+            p.m_iCategorySalesRows = 0;
+            p.m_dCategorySalesTotalUnits = 0.0;
+            p.m_dCategorySalesTotal = 0.0;
+        } else {
+            p.m_iCategorySalesRows = (Integer) valcategorysales[0];
+            p.m_dCategorySalesTotalUnits = (Double) valcategorysales[1];
+            p.m_dCategorySalesTotal = (Double) valcategorysales[2];
+        }
+
+        List categorys = new StaticSentence(app.getSession(),
+                "SELECT a.NAME, sum(c.UNITS), sum(c.UNITS * (c.PRICE + (c.PRICE * d.RATE))) "
+                        + "FROM categories as a "
+                        + "LEFT JOIN products as b on a.id = b.CATEGORY "
+                        + "LEFT JOIN ticketlines as c on b.id = c.PRODUCT "
+                        + "LEFT JOIN taxes as d on c.TAXID = d.ID "
+                        + "LEFT JOIN receipts as e on c.TICKET = e.ID "
+                        + "WHERE e.MONEY = ? "
+                        + "GROUP BY a.NAME",
+                SerializerWriteString.INSTANCE,
+                new SerializerReadClass(PaymentsModel.CategorySalesLine.class))
+                .list(moneyIndex);
+
+        if (categorys == null) {
+            p.m_lcategorysales = new ArrayList();
+        } else {
+            p.m_lcategorysales = categorys;
+        }
+
+        // Payments (Count, SUM)
+        Object[] valtickets = (Object[]) new StaticSentence(app.getSession(),
+                "SELECT COUNT(*), SUM(payments.TOTAL) "
+                        + "FROM payments, receipts "
+                        + "WHERE payments.RECEIPT = receipts.ID AND receipts.MONEY = ?",
+                SerializerWriteString.INSTANCE,
+                new SerializerReadBasic(new Datas[] { Datas.INT, Datas.DOUBLE }))
+                .find(moneyIndex);
+
+        if (valtickets == null) {
+            p.m_iPayments = 0;
+            p.m_dPaymentsTotal = 0.0;
+        } else {
+            p.m_iPayments = (Integer) valtickets[0];
+            p.m_dPaymentsTotal = valtickets[1] == null ? 0.0 : (Double) valtickets[1];
+        }
+
+        // Get Payments
+        p.m_lpayments = new StaticSentence(app.getSession(),
+                "SELECT payments.PAYMENT, SUM(payments.TOTAL), payments.NOTES, COUNT(payments.PAYMENT) "
+                        + "FROM payments, receipts "
+                        + "WHERE payments.RECEIPT = receipts.ID AND receipts.MONEY = ? "
+                        + "GROUP BY payments.PAYMENT, payments.NOTES",
+                SerializerWriteString.INSTANCE,
+                new SerializerReadClass(PaymentsModel.PaymentsLine.class))
+                .list(moneyIndex);
+
+        if (p.m_lpayments == null) {
+            p.m_lpayments = new ArrayList<>();
+        }
+
+        // Sales
+        Object[] recsales = (Object[]) new StaticSentence(app.getSession(),
+                "SELECT COUNT(DISTINCT receipts.ID), SUM(ticketlines.UNITS * ticketlines.PRICE) "
+                        + "FROM receipts, ticketlines "
+                        + "WHERE receipts.ID = ticketlines.TICKET AND receipts.MONEY = ?",
+                SerializerWriteString.INSTANCE,
+                new SerializerReadBasic(new Datas[] { Datas.INT, Datas.DOUBLE }))
+                .find(moneyIndex);
+
+        if (recsales == null) {
+            p.m_iSales = null;
+            p.m_dSalesBase = null;
+        } else {
+            p.m_iSales = (Integer) recsales[0];
+            p.m_dSalesBase = (Double) recsales[1];
+        }
+
+        // Taxes
+        Object[] rectaxes = (Object[]) new StaticSentence(app.getSession(),
+                "SELECT SUM(taxlines.AMOUNT), SUM(taxlines.BASE) "
+                        + "FROM receipts, taxlines "
+                        + "WHERE receipts.ID = taxlines.RECEIPT AND receipts.MONEY = ?",
+                SerializerWriteString.INSTANCE,
+                new SerializerReadBasic(new Datas[] { Datas.DOUBLE, Datas.DOUBLE }))
+                .find(moneyIndex);
+
+        if (rectaxes == null) {
+            p.m_dSalesTaxes = null;
+            p.m_dSalesTaxNet = null;
+        } else {
+            p.m_dSalesTaxes = (Double) rectaxes[0];
+            p.m_dSalesTaxNet = (Double) rectaxes[1];
+        }
+
+        List<SalesLine> asales = new StaticSentence(app.getSession(),
+                "SELECT taxcategories.NAME, SUM(taxlines.AMOUNT), SUM(taxlines.BASE), SUM(taxlines.BASE + taxlines.AMOUNT) "
+                        + "FROM receipts, taxlines, taxes, taxcategories "
+                        + "WHERE receipts.ID = taxlines.RECEIPT AND taxlines.TAXID = taxes.ID AND taxes.CATEGORY = taxcategories.ID "
+                        + "AND receipts.MONEY = ?"
+                        + "GROUP BY taxcategories.NAME",
+                SerializerWriteString.INSTANCE,
+                new SerializerReadClass(PaymentsModel.SalesLine.class))
+                .list(moneyIndex);
+
+        if (asales == null) {
+            p.m_lsales = new ArrayList<>();
+        } else {
+            p.m_lsales = asales;
+        }
+
+        SimpleDateFormat ndf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String startDateFormatted = ndf.format(p.m_dDateStart);
+
+        // removed lines list
+        List removedLines = new StaticSentence(app.getSession(),
+                "SELECT lineremoved.NAME, " +
+                        "CASE " +
+                        "  WHEN COUNT(DISTINCT lineremoved.TICKETID) > 1 THEN 'Varios' " +
+                        "  ELSE MAX(lineremoved.TICKETID) " +
+                        "END as TICKETID, " +
+                        "lineremoved.PRODUCTNAME, " +
+                        "SUM(lineremoved.UNITS) AS TOTAL_UNITS " +
+                        "FROM lineremoved "
+                        + "WHERE lineremoved.REMOVEDDATE > ? "
+                        + "GROUP BY lineremoved.NAME, lineremoved.PRODUCTNAME",
+                SerializerWriteString.INSTANCE,
+                new SerializerReadClass(PaymentsModel.RemovedProductLines.class))
+                .list(startDateFormatted);
+
+        if (removedLines == null) {
+            p.m_lremovedlines = new ArrayList();
+        } else {
+            p.m_lremovedlines = removedLines;
+        }
+
+        // Open Drawer List
+        List drawerOpenedLines = new StaticSentence(app.getSession(),
+                "SELECT OPENDATE, NAME, TICKETID  "
+                        + "FROM draweropened "
+                        + "WHERE TICKETID = 'No Sale' AND OPENDATE > ? "
+                        + "GROUP BY NAME, OPENDATE, TICKETID",
+                SerializerWriteString.INSTANCE,
+                new SerializerReadClass(PaymentsModel.DrawerOpenedLines.class))
+                .list(startDateFormatted);
+
+        if (drawerOpenedLines == null) {
+            p.m_ldraweropenedlines = new ArrayList();
+        } else {
+            p.m_ldraweropenedlines = drawerOpenedLines;
+        }
+
+        // Product Sales
+        Object[] valproductsales = (Object[]) new StaticSentence(app.getSession(),
+                "SELECT COUNT(*), SUM(ticketlines.UNITS), "
+                        + "SUM((ticketlines.PRICE + ticketlines.PRICE * taxes.RATE ) * ticketlines.UNITS) "
+                        + "FROM ticketlines, tickets, receipts, taxes "
+                        + "WHERE ticketlines.TICKET = tickets.ID "
+                        + "AND tickets.ID = receipts.ID "
+                        + "AND ticketlines.TAXID = taxes.ID "
+                        + "AND ticketlines.PRODUCT IS NOT NULL "
+                        + "AND receipts.MONEY = ? "
+                        + "GROUP BY receipts.MONEY",
+                SerializerWriteString.INSTANCE,
+                new SerializerReadBasic(new Datas[] { Datas.INT, Datas.DOUBLE, Datas.DOUBLE }))
+                .find(moneyIndex);
+
+        if (valproductsales == null) {
+            p.m_iProductSalesRows = 0;
+            p.m_dProductSalesTotalUnits = 0.0;
+            p.m_dProductSalesTotal = 0.0;
+        } else {
+            p.m_iProductSalesRows = (Integer) valproductsales[0];
+            p.m_dProductSalesTotalUnits = (Double) valproductsales[1];
+            p.m_dProductSalesTotal = (Double) valproductsales[2];
+        }
+
+        List products = new StaticSentence(app.getSession(),
+                "SELECT products.NAME, " +
+                        "SUM(ticketlines.UNITS) as TOTAL_UNITS, " +
+                        "COALESCE(SUM(ticketlines.PRICE * ticketlines.UNITS) / NULLIF(SUM(ticketlines.UNITS), 0), 0) as AVG_PRICE, "
+                        +
+                        "AVG(taxes.RATE) as AVG_TAX_RATE, " +
+                        "SUM(ticketlines.PRICE * ticketlines.UNITS * (1.0 + taxes.RATE)) as TOTAL_VALUE " +
+                        "FROM ticketlines " +
+                        "INNER JOIN tickets ON ticketlines.TICKET = tickets.ID " +
+                        "INNER JOIN receipts ON tickets.ID = receipts.ID " +
+                        "INNER JOIN products ON ticketlines.PRODUCT = products.ID " +
+                        "INNER JOIN taxes ON ticketlines.TAXID = taxes.ID " +
+                        "WHERE receipts.MONEY = ? " +
+                        "GROUP BY products.NAME " +
+                        "HAVING SUM(ticketlines.UNITS) <> 0",
+                SerializerWriteString.INSTANCE,
+                new SerializerReadClass(PaymentsModel.ProductSalesLine.class))
+                .list(moneyIndex);
+
+        if (products == null) {
+            p.m_lproductsales = new ArrayList();
+        } else {
+            p.m_lproductsales = products;
+        }
+
+        List<RefundLine> refunds = new StaticSentence(app.getSession(),
+                "SELECT receipts.DATENEW, ABS(SUM(payments.TOTAL)) as TOTAL, MAX(tickets.TICKETID) as TICKETID "
+                        + "FROM receipts "
+                        + "INNER JOIN tickets ON receipts.ID = tickets.ID "
+                        + "INNER JOIN payments ON receipts.ID = payments.RECEIPT "
+                        + "WHERE receipts.MONEY = ? "
+                        + "AND (tickets.TICKETTYPE = 1 OR payments.TOTAL < 0) "
+                        + "GROUP BY receipts.ID, receipts.DATENEW "
+                        + "ORDER BY receipts.DATENEW",
+                SerializerWriteString.INSTANCE,
+                new SerializerReadClass(PaymentsModel.RefundLine.class))
+                .list(moneyIndex);
+
+        if (refunds == null) {
+            p.m_lrefunds = new ArrayList<>();
+        } else {
+            p.m_lrefunds = refunds;
+        }
+
+        p.m_dCountedCash = 0.0;
+
+        return p;
+    }
+
     /**
      *
      * @return

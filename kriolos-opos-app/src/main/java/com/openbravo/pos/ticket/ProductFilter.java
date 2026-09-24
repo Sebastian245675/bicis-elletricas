@@ -126,6 +126,10 @@ public class ProductFilter extends javax.swing.JPanel implements ReportEditorCre
               
     }
     
+    public void resetFilter() {
+        jBtnResetActionPerformed(null);
+    }
+    
     /**
      *
      * @return
