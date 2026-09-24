@@ -1577,7 +1577,7 @@ public class VoltiumSyncService {
             p.subtotal = -Math.abs(subtotalVenta);
             p.tax = -Math.abs(taxVenta);
             p.totalCost = -Math.abs(totalCosto);
-            p.totalProfit = -Math.abs(totalVenta - totalCosto);
+            p.totalProfit = -Math.abs(subtotalVenta - totalCosto);
             for (PaymentPayload payment : p.pagos) {
                 payment.monto = -Math.abs(payment.monto);
             }
@@ -1586,7 +1586,8 @@ public class VoltiumSyncService {
             p.subtotal = round(subtotalVenta > 0 ? subtotalVenta : totalVenta);
             p.tax = round(taxVenta);
             p.totalCost = round(totalCosto);
-            p.totalProfit = round(totalVenta - totalCosto);
+            // La utilidad se calcula sobre el subtotal, excluyendo el impuesto cobrado.
+            p.totalProfit = round(subtotalVenta - totalCosto);
         }
 
         return p;
