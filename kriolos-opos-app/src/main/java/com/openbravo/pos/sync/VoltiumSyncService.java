@@ -16,6 +16,9 @@ import java.io.*;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -209,6 +212,7 @@ public class VoltiumSyncService {
         public String responsable;
         public String notas;
         public String referencia;
+        public boolean deleted;
         public int retryCount = 0;
     }
 
@@ -232,6 +236,7 @@ public class VoltiumSyncService {
         public String status;
         public String notes;
         public String processedBy;
+        public boolean deleted;
         public int retryCount = 0;
     }
 
@@ -324,24 +329,30 @@ public class VoltiumSyncService {
 
         SYNC_EXECUTOR.submit(() -> {
             try {
-                // Quitar de la cola offline si estuviera pendiente
+                PayrollPayload deletion = new PayrollPayload();
+                deletion.payrollId = payrollId;
+                deletion.agencyId = getAgencyId();
+                deletion.deleted = true;
                 synchronized (PAYROLL_QUEUE_LOCK) {
                     try {
                         File file = getPayrollQueueFile();
                         List<PayrollPayload> queue = leerColaOfflineNominas(file);
-                        boolean removed = queue.removeIf(item -> item.payrollId != null && item.payrollId.equals(payrollId));
-                        if (removed) {
-                            escribirColaOfflineNominas(file, queue);
-                        }
-                    } catch (Exception ignored) {}
+                        queue.removeIf(item -> item.payrollId != null && item.payrollId.equals(payrollId));
+                        queue.add(deletion);
+                        escribirColaOfflineNominas(file, queue);
+                    } catch (Exception e) {
+                        LOGGER.log(Level.SEVERE, "[VoltiumSync] No se pudo guardar la eliminación de nómina para reintento: " + e.getMessage(), e);
+                        return;
+                    }
                 }
 
-                if (!isOfflineMode()) {
-                    try {
-                        eliminarNominaRemota(payrollId);
-                    } catch (Exception e) {
-                        LOGGER.log(Level.WARNING, "[VoltiumSync] Error al eliminar nómina remota: " + e.getMessage());
-                    }
+                if (isOfflineMode()) return;
+                try {
+                    eliminarNominaRemota(payrollId);
+                    quitarNominaDeCola(payrollId);
+                } catch (Exception e) {
+                    markOffline();
+                    LOGGER.log(Level.WARNING, "[VoltiumSync] Eliminación de nómina pendiente de sincronizar: " + e.getMessage());
                 }
             } catch (Throwable t) {
                 LOGGER.log(Level.WARNING, "[VoltiumSync] Error en eliminarNominaAsync: " + t.getMessage(), t);
@@ -1910,52 +1921,30 @@ public class VoltiumSyncService {
 
         SYNC_EXECUTOR.submit(() -> {
             try {
-                // Quitar de la cola offline si estuviera pendiente
+                ExpensePayload deletion = new ExpensePayload();
+                deletion.id = expenseId;
+                deletion.agencyId = getAgencyId();
+                deletion.deleted = true;
                 synchronized (EXPENSE_QUEUE_LOCK) {
                     try {
                         File file = getExpenseQueueFile();
                         List<ExpensePayload> queue = leerColaOfflineGastos(file);
-                        queue.removeIf(item -> item.id != null && (item.id.equals(expenseId) || item.id.equals("gasto_pos_" + expenseId) || item.id.equals("cash_" + expenseId)));
+                        queue.removeIf(item -> item.id != null && sameExpenseId(item.id, expenseId));
+                        queue.add(deletion);
                         escribirColaOfflineGastos(file, queue);
-                    } catch (Exception ignored) {}
-                }
-
-                if (isOfflineMode()) {
-                    return;
-                }
-
-                String url = "jdbc:postgresql://" + getHost() + ":" + getPort() + "/" + getDb()
-                        + "?connectTimeout=3&socketTimeout=6";
-
-                try (Connection conn = DriverManager.getConnection(url, getUser(), getPass())) {
-                    markOnline();
-                    conn.setAutoCommit(false);
-                    try {
-                        String docId = expenseId.startsWith("gasto_") || expenseId.startsWith("cash_") ? expenseId : ("gasto_pos_" + expenseId);
-                        String sqlDelGasto = "DELETE FROM documentos WHERE tabla_nombre = 'gastos' AND id IN (?, ?, ?)";
-                        try (PreparedStatement ps = conn.prepareStatement(sqlDelGasto)) {
-                            ps.setString(1, docId);
-                            ps.setString(2, expenseId);
-                            ps.setString(3, "cash_" + expenseId);
-                            ps.executeUpdate();
-                        }
-
-                        String sqlDelContab = "DELETE FROM contabilidad WHERE referencia_id IN (?, ?, ?)";
-                        try (PreparedStatement psContab = conn.prepareStatement(sqlDelContab)) {
-                            psContab.setString(1, docId);
-                            psContab.setString(2, expenseId);
-                            psContab.setString(3, "cash_" + expenseId);
-                            psContab.executeUpdate();
-                        }
-
-                        conn.commit();
-                        LOGGER.info("[VoltiumSync] Gasto/movimiento " + expenseId + " eliminado exitosamente del panel central.");
-                    } catch (SQLException ex) {
-                        try {
-                            conn.rollback();
-                        } catch (Exception ignored) {}
-                        throw ex;
+                    } catch (Exception e) {
+                        LOGGER.log(Level.SEVERE, "[VoltiumSync] No se pudo guardar la eliminación de gasto para reintento: " + e.getMessage(), e);
+                        return;
                     }
+                }
+
+                if (isOfflineMode()) return;
+                try {
+                    eliminarGastoEnPostgres(expenseId);
+                    quitarGastoDeCola(expenseId);
+                } catch (Exception e) {
+                    markOffline();
+                    LOGGER.log(Level.WARNING, "[VoltiumSync] Eliminación de gasto pendiente de sincronizar: " + e.getMessage());
                 }
             } catch (Throwable t) {
                 LOGGER.log(Level.WARNING, "[VoltiumSync] Error al eliminar gasto remoto: " + t.getMessage());
@@ -2175,23 +2164,13 @@ public class VoltiumSyncService {
         return new File(dir, "voltium_expense_offline_queue.json");
     }
 
-    private static List<ExpensePayload> leerColaOfflineGastos(File file) {
-        if (!file.exists() || file.length() == 0) {
-            return new ArrayList<>();
-        }
-        try (Reader reader = new InputStreamReader(new FileInputStream(file), "UTF-8")) {
-            Type listType = new TypeToken<ArrayList<ExpensePayload>>() {}.getType();
-            List<ExpensePayload> list = GSON.fromJson(reader, listType);
-            return list != null ? list : new ArrayList<>();
-        } catch (Exception e) {
-            return new ArrayList<>();
-        }
+    private static List<ExpensePayload> leerColaOfflineGastos(File file) throws IOException {
+        Type listType = new TypeToken<ArrayList<ExpensePayload>>() {}.getType();
+        return leerColaDurable(file, listType, "gastos");
     }
 
     private static void escribirColaOfflineGastos(File file, List<ExpensePayload> list) throws IOException {
-        try (Writer writer = new OutputStreamWriter(new FileOutputStream(file), "UTF-8")) {
-            GSON.toJson(list, writer);
-        }
+        escribirColaDurable(file, list);
     }
 
     public static void encolarGastoLocal(ExpensePayload p) {
@@ -2200,12 +2179,76 @@ public class VoltiumSyncService {
             try {
                 File file = getExpenseQueueFile();
                 List<ExpensePayload> queue = leerColaOfflineGastos(file);
-                queue.removeIf(item -> item.id != null && item.id.equals(p.id));
+                queue.removeIf(item -> item.id != null && sameExpenseId(item.id, p.id));
                 queue.add(p);
                 escribirColaOfflineGastos(file, queue);
                 LOGGER.info("[VoltiumSync] Gasto #" + p.id + " encolado en archivo offline (" + queue.size() + " pendientes).");
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "[VoltiumSync] No se pudo encolar gasto offline: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    private static boolean sameExpenseId(String left, String right) {
+        return normalizeExpenseId(left).equals(normalizeExpenseId(right));
+    }
+
+    private static String normalizeExpenseId(String id) {
+        String normalized = id == null ? "" : id.trim();
+        boolean changed;
+        do {
+            changed = false;
+            for (String prefix : new String[] { "gasto_pos_", "gasto_", "cash_" }) {
+                if (normalized.startsWith(prefix)) {
+                    normalized = normalized.substring(prefix.length());
+                    changed = true;
+                    break;
+                }
+            }
+        } while (changed);
+        return normalized;
+    }
+
+    private static void quitarGastoDeCola(String expenseId) {
+        synchronized (EXPENSE_QUEUE_LOCK) {
+            try {
+                File file = getExpenseQueueFile();
+                List<ExpensePayload> queue = leerColaOfflineGastos(file);
+                queue.removeIf(item -> item.id != null && sameExpenseId(item.id, expenseId));
+                escribirColaOfflineGastos(file, queue);
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "[VoltiumSync] Se eliminó el gasto remoto, pero queda pendiente limpiar su cola local: " + e.getMessage());
+            }
+        }
+    }
+
+    private static void eliminarGastoEnPostgres(String expenseId) throws SQLException {
+        String url = "jdbc:postgresql://" + getHost() + ":" + getPort() + "/" + getDb()
+                + "?connectTimeout=3&socketTimeout=6";
+        String docId = expenseId.startsWith("gasto_") || expenseId.startsWith("cash_")
+                ? expenseId : "gasto_pos_" + expenseId;
+        try (Connection conn = DriverManager.getConnection(url, getUser(), getPass())) {
+            conn.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "DELETE FROM documentos WHERE tabla_nombre = 'gastos' AND id IN (?, ?, ?)")) {
+                    ps.setString(1, docId);
+                    ps.setString(2, expenseId);
+                    ps.setString(3, "cash_" + expenseId);
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "DELETE FROM contabilidad WHERE referencia_id IN (?, ?, ?)")) {
+                    ps.setString(1, docId);
+                    ps.setString(2, expenseId);
+                    ps.setString(3, "cash_" + expenseId);
+                    ps.executeUpdate();
+                }
+                conn.commit();
+                markOnline();
+            } catch (SQLException e) {
+                try { conn.rollback(); } catch (Exception ignored) {}
+                throw e;
             }
         }
     }
@@ -2239,8 +2282,13 @@ public class VoltiumSyncService {
                 }
 
                 try {
-                    guardarGastoEnPostgres(p);
-                    LOGGER.info("[VoltiumSync] Gasto offline #" + p.id + " sincronizado con éxito.");
+                    if (p.deleted) {
+                        eliminarGastoEnPostgres(p.id);
+                        LOGGER.info("[VoltiumSync] Eliminación de gasto offline #" + p.id + " sincronizada.");
+                    } else {
+                        guardarGastoEnPostgres(p);
+                        LOGGER.info("[VoltiumSync] Gasto offline #" + p.id + " sincronizado con éxito.");
+                    }
                 } catch (Exception e) {
                     if (isConnectionError(e)) {
                         markOffline();
@@ -2248,11 +2296,10 @@ public class VoltiumSyncService {
                         pendientes.add(p);
                     } else {
                         p.retryCount++;
-                        if (p.retryCount >= 5) {
-                            LOGGER.log(Level.SEVERE, "[VoltiumSync] Gasto offline #" + p.id + " descartado tras 5 fallos: " + e.getMessage());
-                        } else {
-                            pendientes.add(p);
-                        }
+                        pendientes.add(p);
+                        LOGGER.log(p.retryCount >= 5 ? Level.SEVERE : Level.WARNING,
+                                "[VoltiumSync] Gasto offline #" + p.id + " permanece en cola (intento "
+                                        + p.retryCount + "): " + e.getMessage());
                     }
                 }
             }
@@ -2713,22 +2760,81 @@ public class VoltiumSyncService {
         return new File(dir, "voltium_payroll_offline_queue.json");
     }
 
-    private static List<PayrollPayload> leerColaOfflineNominas(File file) {
-        if (!file.exists() || file.length() == 0) {
-            return new ArrayList<>();
-        }
-        try (Reader reader = new InputStreamReader(new FileInputStream(file), "UTF-8")) {
-            Type listType = new TypeToken<ArrayList<PayrollPayload>>() {}.getType();
-            List<PayrollPayload> list = GSON.fromJson(reader, listType);
-            return list != null ? list : new ArrayList<>();
-        } catch (Exception e) {
-            return new ArrayList<>();
-        }
+    private static List<PayrollPayload> leerColaOfflineNominas(File file) throws IOException {
+        Type listType = new TypeToken<ArrayList<PayrollPayload>>() {}.getType();
+        return leerColaDurable(file, listType, "nóminas");
     }
 
     private static void escribirColaOfflineNominas(File file, List<PayrollPayload> list) throws IOException {
-        try (Writer writer = new OutputStreamWriter(new FileOutputStream(file), "UTF-8")) {
+        escribirColaDurable(file, list);
+    }
+
+    private static <T> List<T> leerColaDurable(File file, Type listType, String queueName) throws IOException {
+        File backup = new File(file.getPath() + ".bak");
+        if ((!file.exists() || file.length() == 0) && (!backup.exists() || backup.length() == 0)) {
+            return new ArrayList<>();
+        }
+
+        IOException primaryError = null;
+        if (file.exists() && file.length() > 0) {
+            try {
+                List<T> parsed = leerListaJson(file, listType);
+                if (parsed != null) return parsed;
+                primaryError = new IOException("El archivo contiene JSON nulo");
+            } catch (Exception e) {
+                primaryError = new IOException("No se pudo leer " + file.getName(), e);
+            }
+        }
+
+        if (backup.exists() && backup.length() > 0) {
+            try {
+                List<T> recovered = leerListaJson(backup, listType);
+                if (recovered != null) {
+                    LOGGER.log(Level.WARNING, "[VoltiumSync] Cola de " + queueName
+                            + " recuperada desde respaldo; se preservan sus registros pendientes.");
+                    Files.copy(backup.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    return recovered;
+                }
+            } catch (Exception backupError) {
+                if (primaryError == null) primaryError = new IOException("El respaldo de cola es inválido", backupError);
+                else primaryError.addSuppressed(backupError);
+            }
+        }
+
+        if (primaryError != null) throw primaryError;
+        return new ArrayList<>();
+    }
+
+    private static <T> List<T> leerListaJson(File file, Type listType) throws IOException {
+        try (Reader reader = new InputStreamReader(new FileInputStream(file), "UTF-8")) {
+            return GSON.fromJson(reader, listType);
+        } catch (RuntimeException e) {
+            throw new IOException("JSON de cola ilegible", e);
+        }
+    }
+
+    private static void escribirColaDurable(File file, Object list) throws IOException {
+        File parent = file.getParentFile();
+        if (parent != null && !parent.exists() && !parent.mkdirs() && !parent.isDirectory()) {
+            throw new IOException("No se pudo crear el directorio de sincronización local");
+        }
+
+        File temp = new File(file.getPath() + ".tmp");
+        File backup = new File(file.getPath() + ".bak");
+        try (FileOutputStream output = new FileOutputStream(temp);
+             Writer writer = new OutputStreamWriter(output, "UTF-8")) {
             GSON.toJson(list, writer);
+            writer.flush();
+            output.getFD().sync();
+        }
+
+        if (file.exists() && file.length() > 0) {
+            Files.copy(file.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+        try {
+            Files.move(temp.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
         }
     }
 
@@ -2744,6 +2850,19 @@ public class VoltiumSyncService {
                 LOGGER.info("[VoltiumSync] Nómina #" + p.payrollId + " (" + p.employeeName + ") encolada en archivo offline (" + queue.size() + " pendientes).");
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "[VoltiumSync] No se pudo encolar nómina offline: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    private static void quitarNominaDeCola(String payrollId) {
+        synchronized (PAYROLL_QUEUE_LOCK) {
+            try {
+                File file = getPayrollQueueFile();
+                List<PayrollPayload> queue = leerColaOfflineNominas(file);
+                queue.removeIf(item -> item.payrollId != null && item.payrollId.equals(payrollId));
+                escribirColaOfflineNominas(file, queue);
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "[VoltiumSync] Se eliminó la nómina remota, pero queda pendiente limpiar su cola local: " + e.getMessage());
             }
         }
     }
@@ -2777,8 +2896,13 @@ public class VoltiumSyncService {
                 }
 
                 try {
-                    guardarNominaEnPostgres(p);
-                    LOGGER.info("[VoltiumSync] Nómina offline #" + p.payrollId + " sincronizada con éxito.");
+                    if (p.deleted) {
+                        eliminarNominaRemota(p.payrollId);
+                        LOGGER.info("[VoltiumSync] Eliminación de nómina offline #" + p.payrollId + " sincronizada.");
+                    } else {
+                        guardarNominaEnPostgres(p);
+                        LOGGER.info("[VoltiumSync] Nómina offline #" + p.payrollId + " sincronizada con éxito.");
+                    }
                 } catch (Exception e) {
                     if (isConnectionError(e)) {
                         markOffline();
@@ -2787,11 +2911,10 @@ public class VoltiumSyncService {
                         LOGGER.log(Level.FINE, "[VoltiumSync] Interrupción por conexión en nómina offline #" + p.payrollId);
                     } else {
                         p.retryCount++;
-                        if (p.retryCount >= 5) {
-                            LOGGER.log(Level.SEVERE, "[VoltiumSync] Nómina offline #" + p.payrollId + " descartada tras 5 fallos: " + e.getMessage());
-                        } else {
-                            pendientes.add(p);
-                        }
+                        pendientes.add(p);
+                        LOGGER.log(p.retryCount >= 5 ? Level.SEVERE : Level.WARNING,
+                                "[VoltiumSync] Nómina offline #" + p.payrollId + " permanece en cola (intento "
+                                        + p.retryCount + "): " + e.getMessage());
                     }
                 }
             }
@@ -2898,6 +3021,7 @@ public class VoltiumSyncService {
     public static void procesarColaOffline() {
         synchronized (QUEUE_LOCK) {
             File file = getQueueFile();
+            recuperarTicketsDeadLetter(file);
             if (!file.exists() || file.length() == 0) {
                 return;
             }
@@ -2937,12 +3061,10 @@ public class VoltiumSyncService {
                     } else {
                         // Error de payload/datos, incrementar contador de reintentos
                         p.retryCount++;
-                        if (p.retryCount >= 5) {
-                            LOGGER.log(Level.SEVERE, "[VoltiumSync] Ticket offline #" + p.ticketId + " descartado a lista muerta tras 5 fallos irrecuperables: " + e.getMessage());
-                            guardarEnDeadLetter(p, e.getMessage());
-                        } else {
-                            pendientes.add(p);
-                        }
+                        pendientes.add(p);
+                        LOGGER.log(p.retryCount >= 5 ? Level.SEVERE : Level.WARNING,
+                                "[VoltiumSync] Ticket offline #" + p.ticketId + " permanece en cola (intento "
+                                        + p.retryCount + "): " + e.getMessage());
                     }
                 }
             }
@@ -3008,6 +3130,47 @@ public class VoltiumSyncService {
         } catch (Exception ignored) {}
     }
 
+    /** Recupera en la cola activa tickets que versiones anteriores apartaron tras 5 errores. */
+    private static void recuperarTicketsDeadLetter(File queueFile) {
+        File deadFile = new File(queueFile.getParentFile(), "voltium_dead_letter.json");
+        if (!deadFile.exists() || deadFile.length() == 0) return;
+
+        try (Reader reader = new InputStreamReader(new FileInputStream(deadFile), "UTF-8")) {
+            Type type = new TypeToken<ArrayList<Map<String, Object>>>() {}.getType();
+            List<Map<String, Object>> deadEntries = GSON.fromJson(reader, type);
+            if (deadEntries == null || deadEntries.isEmpty()) return;
+
+            List<TicketPayload> queue = leerColaOffline(queueFile);
+            Set<String> queuedIds = new HashSet<>();
+            for (TicketPayload ticket : queue) {
+                if (ticket.orderId != null) queuedIds.add(ticket.orderId);
+            }
+
+            int restored = 0;
+            for (Map<String, Object> entry : deadEntries) {
+                Object data = entry.get("ticket");
+                if (data == null) continue;
+                TicketPayload ticket = GSON.fromJson(GSON.toJson(data), TicketPayload.class);
+                if (ticket != null && ticket.orderId != null && queuedIds.add(ticket.orderId)) {
+                    queue.add(ticket);
+                    restored++;
+                }
+            }
+            if (restored == 0) return;
+
+            escribirColaOffline(queueFile, queue);
+            File archive = new File(deadFile.getPath() + ".recovered-" + System.currentTimeMillis());
+            try {
+                Files.move(deadFile.toPath(), archive.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING, "[VoltiumSync] Tickets recuperados; el archivo dead-letter se conserva para reintentar archivarlo.");
+            }
+            LOGGER.warning("[VoltiumSync] Se recuperaron " + restored + " tickets de la lista dead-letter para reintentar su sincronización.");
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "[VoltiumSync] No se pudo recuperar dead-letter; se conserva el archivo sin modificar: " + e.getMessage(), e);
+        }
+    }
+
     private static File getQueueFile() {
         String userHome = System.getProperty("user.home", ".");
         File dir = new File(userHome, "kriolopos");
@@ -3017,23 +3180,13 @@ public class VoltiumSyncService {
         return new File(dir, "voltium_offline_queue.json");
     }
 
-    private static List<TicketPayload> leerColaOffline(File file) {
-        if (!file.exists() || file.length() == 0) {
-            return new ArrayList<>();
-        }
-        try (Reader reader = new InputStreamReader(new FileInputStream(file), "UTF-8")) {
-            Type listType = new TypeToken<ArrayList<TicketPayload>>() {}.getType();
-            List<TicketPayload> list = GSON.fromJson(reader, listType);
-            return list != null ? list : new ArrayList<>();
-        } catch (Exception e) {
-            return new ArrayList<>();
-        }
+    private static List<TicketPayload> leerColaOffline(File file) throws IOException {
+        Type listType = new TypeToken<ArrayList<TicketPayload>>() {}.getType();
+        return leerColaDurable(file, listType, "tickets");
     }
 
     private static void escribirColaOffline(File file, List<TicketPayload> list) throws IOException {
-        try (Writer writer = new OutputStreamWriter(new FileOutputStream(file), "UTF-8")) {
-            GSON.toJson(list, writer);
-        }
+        escribirColaDurable(file, list);
     }
 
     private static double round(double val) {
