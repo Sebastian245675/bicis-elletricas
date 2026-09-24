@@ -2828,6 +2828,65 @@ public class VoltiumSyncService {
             sincronizarEmpleadosRRHH();
             sincronizarProveedores();
             sincronizarGastosYMovimientosLocales();
+            sincronizarFacturasLocales();
+        }
+    }
+
+    /**
+     * Publica en el Panel las facturas ya timbradas por el POS. Se vuelve a leer
+     * el historial local en cada ciclo, por lo que también reintenta al recuperar
+     * la conexión y propaga cambios de estatus (por ejemplo, cancelaciones).
+     */
+    private static void sincronizarFacturasLocales() {
+        Session session = localSession;
+        if (session == null) return;
+
+        String url = "jdbc:postgresql://" + getHost() + ":" + getPort() + "/" + getDb()
+                + "?connectTimeout=3&socketTimeout=6";
+        String agencyId = getAgencyId();
+        String sql = "INSERT INTO facturas_electronicas "
+                + "(id, order_id, uuid, fecha, total, estatus, agency_id) VALUES (?, ?, ?, ?, ?, ?, ?) "
+                + "ON CONFLICT (id) DO UPDATE SET order_id = EXCLUDED.order_id, uuid = EXCLUDED.uuid, "
+                + "fecha = EXCLUDED.fecha, total = EXCLUDED.total, estatus = EXCLUDED.estatus, "
+                + "agency_id = EXCLUDED.agency_id";
+
+        try {
+            Connection local = session.getConnection();
+            try (PreparedStatement invoices = local.prepareStatement(
+                     "SELECT id, ticket_id, uuid, fecha, total, estatus FROM facturas_electronicas");
+             ResultSet rows = invoices.executeQuery();
+             Connection remote = DriverManager.getConnection(url, getUser(), getPass());
+             PreparedStatement upsert = remote.prepareStatement(sql)) {
+                remote.setAutoCommit(false);
+                int pending = 0;
+                while (rows.next()) {
+                    String localId = rows.getString("id");
+                    String uuid = rows.getString("uuid");
+                    if (localId == null || localId.trim().isEmpty() || uuid == null
+                            || uuid.trim().isEmpty() || "N/A".equalsIgnoreCase(uuid.trim())) {
+                        continue;
+                    }
+
+                    String ticketId = rows.getString("ticket_id");
+                    upsert.setString(1, "pos-voltium-" + localId);
+                    upsert.setString(2, "POS-" + (ticketId == null ? localId : ticketId));
+                    upsert.setString(3, uuid.trim());
+                    Timestamp issuedAt = rows.getTimestamp("fecha");
+                    upsert.setTimestamp(4, issuedAt == null ? new Timestamp(System.currentTimeMillis()) : issuedAt);
+                    upsert.setBigDecimal(5, rows.getBigDecimal("total"));
+                    upsert.setString(6, rows.getString("estatus"));
+                    upsert.setString(7, agencyId);
+                    upsert.addBatch();
+                    pending++;
+                }
+                if (pending > 0) upsert.executeBatch();
+                remote.commit();
+                markOnline();
+                LOGGER.info("[VoltiumSync] Historial de facturas POS sincronizado (" + pending + " registros).");
+            }
+        } catch (Exception e) {
+            markOffline();
+            LOGGER.log(Level.WARNING, "[VoltiumSync] No se pudo sincronizar el historial de facturas: " + e.getMessage());
         }
     }
 
